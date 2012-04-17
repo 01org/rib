@@ -48,7 +48,8 @@
                 .attr({id:'importFile'})
                 .addClass('hidden-accessible')
                 .change(widget._importChangedCallback)
-                .appendTo(this.element[0].ownerDocument.body);
+                .appendTo(this.element[0].ownerDocument.body)
+                .wrap("<form />");
 
             // Add a project setting dialog element, used to trigger to configure
             // project setting when user want to create or modify project setting
@@ -63,20 +64,23 @@
         },
 
         _importChangedCallback: function (e) {
-            var file;
-            if (e.currentTarget.files.length === 1) {
-                file = e.currentTarget.files[0];
+            var selected, file;
+            selected = e.currentTarget.files;
+            if (selected.length === 1) {
+                file = selected[0];
                 $.rib.pmUtils.importProject(file, function () {
                     // show the layout tab
                     $(document.body).tabs('select', 1);
                 });
             } else {
-                if (e.currentTarget.files.length <= 1) {
+                if (selected.length <= 1) {
                     console.warn("No files specified to import");
                 } else {
                     console.warn("Multiple file import not supported");
                 }
             }
+            // clear the selected file
+            e.currentTarget.form.reset();
         },
         _setOption: function(key, value) {
             switch (key) {
