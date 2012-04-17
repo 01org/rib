@@ -74,7 +74,8 @@
  *   2)    defaultValue: optional default value for the property, of the type
  *                       specified above
  *   3)   htmlAttribute: optional string with an HTML attribute name that this
- *                       property should be written to
+ *                       property should be written to or a function that
+ *                       returns name and value of the HTML attribute
  *   4)  forceAttribute: if true, always write out the HTML attribute even when
  *                       it is equal to the default value (default: false)
  *   5)    htmlSelector: optional selector to find the DOM nodes on which to
@@ -102,6 +103,9 @@
  *                       guaranteed that if you see data X again, you will be
  *                       going from 3 to 5 rows, and can make sense of the
  *                       data.)
+ *   9)        validIn:  Parent widget in which this property is valid
+ *
+ *  10)      invalidIn:  Parent widget in which this property is not valid
  *
  * @class
  */
@@ -425,6 +429,21 @@ var BWidgetRegistry = {
 
             }
         ],
+        properties: {
+            iconpos: {
+                type: "string",
+                options: [ "left", "top", "bottom", "right", "notext" ],
+                defaultValue: "top",
+                htmlAttribute: "data-iconpos",
+            }
+        },
+        init: function (node) {
+            // initial state is three buttons
+            var i;
+            for (i = 0; i < 3; i++) {
+                node.addChild(new ADMNode("Button"));
+            }
+        },
         events: {
             sortchange: function (e, ui) {
                 BWidget.getWidgetAttribute("Navbar", "rearrange")($(this),
@@ -534,7 +553,17 @@ var BWidgetRegistry = {
                 type: "string",
                 options: [ "left", "top", "bottom", "right", "notext" ],
                 defaultValue: "left",
-                htmlAttribute: "data-iconpos"
+                htmlAttribute: "data-iconpos",
+                invalidIn: "Navbar"
+            },
+            active: {
+                type: "boolean",
+                defaultValue: false,
+                htmlAttribute: function (name, value) {
+                    return {name: value?"class": "",
+                        value: value ? 'ui-btn-active':""};
+                },
+                validIn: "Navbar"
             },
             theme: {
                 type: "string",
@@ -545,7 +574,8 @@ var BWidgetRegistry = {
             inline: {
                 type: "boolean",
                 defaultValue: "false",
-                htmlAttribute: "data-inline"
+                htmlAttribute: "data-inline",
+                invalidIn: "Navbar"
             },
             transition: {
                 type: "string",

@@ -131,6 +131,11 @@ var DEBUG = true,
                     break;
                 default:
                     attrName = BWidget.getPropertyHTMLAttribute(type, p);
+                    if (typeof attrName  === "function") {
+                        var newAttr = attrName(attrName, attrValue);
+                        attrName = newAttr.name;
+                        attrValue = newAttr.value;
+                    }
                     if (attrName) {
                         propDefault = BWidget.getPropertyDefault(type, p);
 
