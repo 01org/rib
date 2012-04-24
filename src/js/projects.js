@@ -21,6 +21,7 @@ $(function () {
         _activeProject: null,
         designDirty:false,
         pInfoDirty:false,
+        thumbnailDirty:false,
         allTags: [],
         ProjectDir: "/projects",
         pidPrefix: "p",
@@ -191,7 +192,6 @@ $(function () {
                 layout: ['Header', 'Footer'],
             };
             config.design = newDesign;
-            // TODO: Will we need to show a default page here?
             newPage = $.rib.pageUtils.createNewPage(config);
             if (!newPage) {
                 console.log("Warning: create new page failed");
@@ -228,6 +228,34 @@ $(function () {
         fsUtils.mkdir((pmUtils.ProjectDir + "/" + newPid), successHandler, errorHandler);
     };
 
+    pmUtils.setThumbnail = function (imgData, pid) {
+        pid = pid || pmUtils._activeProject;
+        if (!pid) {
+            return false;
+        }
+        var pInfo = pmUtils._projectsInfo[pid];
+        if (!pInfo) {
+            console.error("Error: Invalid pid for project");
+            return false;
+        }
+        pInfo.thumbnail = imgData;
+        // TODO: Think about this, thumbnail should be together with design
+        pmUtils.thumbnailDirty = false;
+        // update the thumbnail
+        $('div#' + pid + ".projectBox:visible").find('div.thumbnail img').attr('src', imgData);
+        pmUtils.pInfoDirty = true;
+        return true;
+    };
+    pmUtils.getThumbnail = function (pid) {
+        pid = pid || $.gb.pmUtils._activeProject;
+
+        var pInfo = pmUtils._projectsInfo[pid];
+        if (!pInfo) {
+            console.error("Error: Invalid pid for project");
+            return false;
+        }
+        return pInfo.thumbnail;
+    };
     /**
      * Get the path of design file of the project
      *

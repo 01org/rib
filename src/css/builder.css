@@ -1258,6 +1258,12 @@ table#selectOption {
     padding: 8px;
 }
 .thumbnail {
+    overflow:hidden;
+    border: 1px solid #a1a1a1;
+    -webkit-border-radius: 6px;
+    -webkit-box-shadow: .2em .2em .3em #595b55;
+    width: 124px;
+    height: 124px;
 }
 .rightSide {
     font-family: OpenSans;

@@ -614,6 +614,31 @@ $(function() {
         });
     });
 
+    function generateThumbnail (options) {
+        var options, element;
+        //options = options || { 'width':200, 'height':200};
+        options = {};
+        element = $('body')[0];
+        options.elements = $('body');
+        options.complete = function(images) {
+            var queue, genCanvas, x, y, width, height, thumbCanvas, thumbCtx;
+            queue = html2canvas.Parse(element, images, options);
+            genCanvas = html2canvas.Renderer(queue, options);
+
+            x = element.scrollLeft;
+            y = element.scrollTop;
+            width = element.clientWidth;
+            height = element.clientHeight;
+            thumbCanvas = document.createElement('canvas');
+            thumbCtx = thumbCanvas.getContext('2d');
+            thumbCanvas.width = width/2;
+            thumbCanvas.height = height/2;
+            thumbCtx.drawImage(genCanvas, x, y, width, height, 0, 0, width/2, height/2);
+            top.$.rib.pmUtils.setThumbnail(thumbCanvas.toDataURL());
+        };
+        html2canvas.Preload(element, options);
+    }
+
     function messageHandler(e) {
         switch (e.data) {
             case 'reload':
@@ -621,6 +646,9 @@ $(function() {
                 break;
             case 'refresh':
                 refreshPage();
+                break;
+            case 'thumbnail':
+                generateThumbnail();
                 break;
             default:
                 console.warn('Unknown request: '+e.data);

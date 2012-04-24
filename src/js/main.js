@@ -376,14 +376,20 @@
             var el, tools, type = ui.panel.id;
             el = $('#'+type+' .stage');
 
+            if (type === "projectView") {
+                // set message to layout iframe to update thumbnail if needed
+                if ($.rib.pmUtils.thumbnailDirty) {
+                    var iframeDoc = $(':rib-layoutView').layoutView('option','contentDocument');
+                    iframeDoc[0].defaultView.postMessage('thumbnail', '*');
+                }
+                // save current project when change to project view
+                $.rib.pmUtils.syncCurrentProject();
+            }
+
             $('.ui-tabs-panel .stage').data('visible', false);
             $(ui.panel).find('.stage').data('visible', true);
             $(el)[type]('refresh');
 
-            // save current project when change to project view
-            if (type === "projectView") {
-                $.rib.pmUtils.syncCurrentProject();
-            }
             // Expose any primary tools for this view
             tools = $(el)[type]('option', 'primaryTools');
             $('.tools-primary').children().hide();
