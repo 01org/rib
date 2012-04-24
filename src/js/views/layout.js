@@ -25,6 +25,7 @@
                 ],
                 'script': [
                     '<script src="lib/jquery-ui-1.8.16.custom.js"></script>',
+                    '<script src="lib/html2canvas.min.js"></script>',
                     '<script src="src/js/composer.js"></script>'
                 ],
                 'link': [

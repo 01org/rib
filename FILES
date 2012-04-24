@@ -73,6 +73,8 @@ Haverbeke
 Intel     src/js/codeview-mode.js                             APLV2       N/A
 Arnaud
 Renevier  lib/zipfile.js                                      Modified BSD[17]
+Niklas von
+Hertzen   lib/html2canvas.min.js                              MIT         [21]
 
 Unreleased/Unpackaged Files (build/debug/development)
 =====================================================
@@ -112,3 +114,4 @@ Notes:
 [18] http://www.bramstein.com/projects/jlayout/
 [19] http://www.bramstein.com/projects/jsizes/
 [20] http://code.google.com/chrome/extensions/crx.html
+[21] https://github.com/niklasvh/html2canvas
