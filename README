@@ -69,6 +69,7 @@ lib/CodeMirror-2.21/mode/htmlmixed/htmlmixed.js
 lib/CodeMirror-2.21/mode/javascript/javascript.js
 					BSD-like	Marijn Haverbeke
 lib/CodeMirror-2.21/mode/xml/xml.js	BSD-like	Marijn Haverbeke
+lib/html2canvas.min.js      	    MIT         Niklas von Hertzen[8]
 
 The following files were copied into this project from upstream and are
 only included as development tools (build, debugging, reporting).  They
@@ -87,3 +88,4 @@ Notes:
 [5] stuart@stuartk.co.uk
 [6] arno@renevier.net
 [7] Copyright 2011 Google (http://code.google.com/chrome/extensions/crx.html)
+[8] niklasvh@gmail.com

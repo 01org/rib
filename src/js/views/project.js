@@ -181,6 +181,7 @@
             // if the designDirty is false, then set it
             if (!($.rib.pmUtils.designDirty)) {
                 $.rib.pmUtils.designDirty = true;
+                $.rib.pmUtils.thumbnailDirty = true;
             }
         },
 
@@ -302,10 +303,12 @@
                         .appendTo(box);
             content = $('<div />').addClass('content flex1 hbox')
                       .appendTo(box);
-            //TODO: imgPath = pmUtils.getThumbnail(pid);
-            imgPath = 'src/css/images/emptyProjectThumbnail.png';
-            thumbnail= $('<img />').attr('src', imgPath);
-            $('<div />').addClass('thumbnail flex1')
+            imgPath = $.rib.pmUtils.getThumbnail(pid);
+            imgPath = imgPath || 'src/css/images/emptyProjectThumbnail.png';
+            thumbnail= $('<img />').attr('src', imgPath)
+                                   .attr('width', '100%')
+                                   .attr('heigth', '100%');
+            $('<div />').addClass('thumbnail flex0')
                         .append(thumbnail)
                         .appendTo(content);
             $('<div />').addClass("rightSide flex1")
