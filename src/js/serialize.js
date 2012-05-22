@@ -386,7 +386,7 @@ $(function() {
             zip = new ZipFile(data);
             zip.filelist.forEach(function(zipInfo, idx, array) {
                 // if find a file name contians "json" then get its data
-                if (zipInfo.filename.indexOf("json") !== -1) {
+                if (zipInfo.filename.indexOf("project.rib") !== -1) {
                     designData = zip.extract(zipInfo.filename);
                 }
             });
@@ -523,14 +523,20 @@ $(function() {
         return $.rib.designHeaders;
     }
 
-   function  exportFile (fileName, content, binary) {
-        var cookieValue = $.rib.cookieUtils.get("exportNotice"),
-            $exportNoticeDialog = createExportNoticeDialog(),
-            saveAndExportFile = function () {
-                $.rib.fsUtils.write(fileName, content, function(fileEntry){
-                    $.rib.fsUtils.exportToTarget(fileEntry.fullPath);
-                }, null, false, binary);
-            };
+   function  exportFile (content, binary) {
+        var fileName, pid, cookieValue,
+            $exportNoticeDialog,
+            saveAndExportFile;
+        pid= $.rib.pmUtils.getActive();
+        fileName = $.rib.pmUtils.getName(pid) || "Utitled";
+        fileName = fileName + ".wgt";
+        cookieValue = $.rib.cookieUtils.get("exportNotice"),
+        $exportNoticeDialog = createExportNoticeDialog(),
+        saveAndExportFile = function () {
+            $.rib.fsUtils.write(fileName, content, function(fileEntry){
+                $.rib.fsUtils.exportToTarget(fileEntry.fullPath);
+            }, null, false, binary);
+        };
 
         if(cookieValue === "true" && $exportNoticeDialog.length > 0) {
             // bind exporting HTML code handler to OK button
@@ -584,12 +590,37 @@ $(function() {
         return $exportNoticeDialog;
     }
 
+    function getConfigFile (pid) {
+        var projName, xmlHeader, xmlDoc, widget, childNode;
+        projName = $.rib.pmUtils.getName(pid) || "Untitled";
+        xmlHeader = '<?xml version="1.0" encoding="UTF-8"?>';
+        xmlDoc = $.parseXML('<widget xmlns="http://www.w3.org/ns/widgets" />');
+        widget = xmlDoc.getElementsByTagName('widget')[0];
+        // add the attr to widget
+        widget.setAttribute('xmlns:tizen', 'http://tizen.org/ns/widgets');
+        widget.setAttribute('version', '0.1');
+        widget.setAttribute('viewmodes', 'fullscreen');
+        widget.setAttribute('id', 'http://yourdomain/' + projName);
+
+        // add name to the widget
+        childNode = xmlDoc.createElement('name');
+        childNode.appendChild(xmlDoc.createTextNode(projName));
+        widget.appendChild(childNode);
+
+        // add icon to the widget
+        childNode = xmlDoc.createElement('icon');
+        childNode.setAttribute('src', 'src/assets/rib-48.png');
+        widget.appendChild(childNode);
+        return (xmlHeader + xmlserializer.serializeToString(xmlDoc));
+    }
     function exportPackage (resultProject) {
-        var zip, resultHTML, files, i;
+        var zip, resultHTML, resultConfig, files, i;
         zip = new JSZip();
         resultHTML = generateHTML();
+        resultConfig = getConfigFile($.rib.pmUtils.getActive());
         resultHTML && zip.add("index.html", resultHTML.html);
-        resultProject && zip.add("project.json", resultProject);
+        resultProject && zip.add("project.rib", resultProject);
+        resultConfig && zip.add("config.xml", resultConfig);
         files = [
             'src/css/images/ajax-loader.png',
             'src/css/images/icons-18-white.png',
@@ -598,7 +629,8 @@ $(function() {
             'src/css/images/icons-36-black.png',
             'src/css/images/icon-search-black.png',
             'src/css/images/web-ui-fw_noContent.png',
-            'src/css/images/web-ui-fw_volume_icon.png'
+            'src/css/images/web-ui-fw_volume_icon.png',
+            'src/assets/rib-48.png'
         ];
         function getDefaultHeaderFiles (type) {
             var headers, files = [];
@@ -628,7 +660,7 @@ $(function() {
                     zip.add(files[i],btoa(charArray.join('')), {base64:true});
                     if (i === files.length - 1){
                         var content = zip.generate(true);
-                        exportFile("design.zip", content, true);
+                        exportFile(content, true);
                     }
                     i++;
                     getFile();
