@@ -30,7 +30,8 @@
             "List views": [
                  "List", "OrderedList", "ListItem", "ListDivider", "ListButton"
             ],
-            "Output": ["ProgressBar"]
+            "Output": ["ProgressBar"],
+            "Image": ["Image"]
         }
     ],
 

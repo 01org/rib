@@ -495,6 +495,61 @@ var BWidgetRegistry = {
         template: '<a data-role="button">%TEXT%</a>'
     },
 
+	/**
+	 * Represents a image
+	 */
+	Image : {
+		parent : "Base",
+		paletteImageName : "jqm_image.svg",
+		template : function(node) {
+			var prop, code = $('<img/>');
+			code = BWidgetRegistry.Base.applyProperties(node, code);
+			if (node.getProperty("src") != "")
+				code.attr("src", node.getProperty("src"));
+			if (node.getProperty("alt") != "")
+				code.attr("alt", node.getProperty("alt"));
+			if (node.getProperty("width") != "")
+				code.attr("width", node.getProperty("width"));
+			if (node.getProperty("height") != "")
+				code.attr("height", node.getProperty("height"));
+			if (node.getProperty("align") === "left") {
+				code.attr("style", "display:block;margin:auto auto auto 0px ");
+			} else if (node.getProperty("align") === "center") {
+				code.attr("style", "display:block;margin: 0 auto");
+			} else if (node.getProperty("align") === "right") {
+				code.attr("style", "display:block;margin: auto 0px auto auto ");
+			}
+			return code;
+		},
+		properties : {
+			src : {
+				type : "string",
+				defaultValue : "",
+				htmlAttribute : "src"
+			},
+			alt : {
+				type : "string",
+				defaultValue : "",
+				htmlAttribute : "alt"
+			},
+			width : {
+				type : "string",
+				defaultValue : "",
+				htmlAttribute : "width"
+			},
+			height : {
+				type : "string",
+				defaultValue : "",
+				htmlAttribute : "height"
+			},
+			align : {
+				type : "string",
+				options : [ "left", "center", "right" ],
+				defaultValue : "left",
+			},
+		},
+	},
+
     /**
      * Represents an HTML form object. Includes an "action" property with the
      * submission URL and a "method" string property that should be "get" or
