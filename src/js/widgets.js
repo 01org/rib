@@ -2005,6 +2005,29 @@ var BWidget = {
     },
 
     /**
+     * Gets the displayName for a given instance property.
+     *
+     * @param {String} widgetType The type of the widget.
+     * @param {String} property The name of the requested property.
+     * @return {AnyType} The default value for the given property, or
+     *                   undefined if this property has no default (in which
+     *                   case there should be an autoGenerate prefix set).
+     * @throws {Error} If widgetType is invalid, or property not found.
+     */
+    getPropertyDisplayName: function (widgetType, property) {
+        var stack = [], prop, widget = BWidgetRegistry[widgetType];
+        if (typeof widget !== "object") {
+            throw new Error(
+                "undefined widget type in getPropertyDisplayName: "
+                 + widgetType);
+        }
+        if (widget.properties && widget.properties[property]['displayName']) {
+            return widget.properties[property]['displayName'];
+        }
+        return property.replace(/_/g,'-');
+    },
+
+    /**
      * Gets the HTML attribute associated with this property.
      *
      * @param {String} widgetType The type of the widget.
