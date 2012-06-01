@@ -50,11 +50,11 @@ $(function () {
 
     /* Asynchronous. init pmUtils.
      * ls the root/projects dir to get all metadata about projects,
-     * if the dir is not exist, create it
-     * @param {function()=} success callback. An optional
-     * @param {function(FileError)=} error callback. An optional
+     * if the dir dose not exist, create it.
+     * @param {function()=} success Success callback.
+     * @param {function(FileError)=} error Error callback.
      *
-     *
+     * @return {None}.
      */
     pmUtils.init = function (success, error) {
         var successReadData, errorCreateDir, onEnd,
@@ -126,17 +126,18 @@ $(function () {
     /***************** APIs to manipulate projects *************************/
     /* Get the acitve project.
      *
-     * @return the pid of current acitve project
+     * @return {String} The pid of current acitve project, or null if none.
      */
     pmUtils.getActive = function () {
         return pmUtils._activeProject;
     };
 
     /**
-     * Get properties of a specified project
+     * Get properties of a specified project.
      *
-     * @param {String} project id
-     * @return {Object} Object which contains all of the project properties, or null if failed
+     * @param {String} pid Project id.
+     * @return {Object} Object which contains all project properties,
+     *                  or null if failed.
      */
     pmUtils.getProperties = function (pid) {
         var pInfo;
@@ -149,10 +150,10 @@ $(function () {
     };
 
     /**
-     * Get the schema of a specified property
+     * Get the schema of a specified property.
      *
-     * @param {String} property name
-     * @return {Object} Object of property schema, or null if failed
+     * @param {String} property Name of specified property.
+     * @return {Object} Object of property schema, or null if failed.
      */
     pmUtils.getPropertySchema = function (property) {
         var schema = pmUtils.propertySchema[property];
@@ -165,10 +166,10 @@ $(function () {
     };
 
     /**
-     * Get the default value of a specified property item
+     * Get the default value of a specified property item.
      *
-     * @param {String} property name
-     * @return the default value or null if failed
+     * @param {String} property Name of specified property.
+     * @return {Various} Default value of the property or null if failed.
      */
     pmUtils.getPropertyDefault = function (property) {
         var schema = pmUtils.getPropertySchema(property);
@@ -183,11 +184,11 @@ $(function () {
     }
 
     /**
-     * Get the value of a specified property
+     * Get the value of a specified property.
      *
-     * @param {String} project id
-     * @param {String} property
-     * @return {} value of the property or null if failed
+     * @param {String} pid Project id.
+     * @param {String} property Name of specified property.
+     * @return {Various} Value of the property or null if failed.
      */
     pmUtils.getProperty = function (pid, property) {
         var schema, pInfo, value;
@@ -205,12 +206,12 @@ $(function () {
     };
 
     /**
-     * Set value of a specified property
+     * Set value of a specified property.
      *
-     * @param {String} project id
-     * @param {String} property
-     * @param {} the give value for property
-     * @return {Bool} return true if success, false when fails
+     * @param {String} pid Project id.
+     * @param {String} property Name of specified property.
+     * @return {Various} value Given value for the property.
+     * @return {Bool} True if success, false if failed.
      */
     pmUtils.setProperty = function (pid, property, value) {
         var schema, pInfo, temp;
@@ -247,33 +248,33 @@ $(function () {
 
     /**
      * Set properties for a specified project:
-     * This function just extends pInfo object using given options object,
+     * This function just extends pInfo object using given properties object,
      * pInfo will not completely replaced by the given object.
      * Items in the given object will be merged with the original pInfo,
      * and the property items in the given object can has no schema in propertySchema,
      * for example:
      *              { "template": XXX, "theme":XXXX }
      *
-     * @param {String} project id
-     * @param {Object} setting options
-     * @return
+     * @param {String} pid Project id.
+     * @param {Object} properties Given object which contains setting properties.
+     * @return {Bool} True if success, false if failed.
      */
-    pmUtils.setProperties = function (pid, options) {
+    pmUtils.setProperties = function (pid, properties) {
         var i, pInfo, temp;
         // get the original object of pInfo
         pid && (pInfo = pmUtils._projectsInfo[pid]);
-        if (!(pid && pInfo) || typeof options !== "object") {
-            console.error("Invalid project or options in setProperties");
+        if (!(pid && pInfo) || typeof properties !== "object") {
+            console.error("Invalid project or properties in setProperties");
             return false;
         }
-        for ( i in options) {
+        for ( i in properties) {
             if (pmUtils.propertySchema.hasOwnProperty(i)) {
                 // if the item has schema then check the type
-                pmUtils.setProperty(pid, i, options[i]);
+                pmUtils.setProperty(pid, i, properties[i]);
             } else {
                 // extend the item having no schema directly
                 temp = new Object();
-                temp[i] = options[i];
+                temp[i] = properties[i];
                 $.extend(true, pInfo, temp);
                 pmUtils.pInfoDirty || (pmUtils.pInfoDirty = true);
             }
@@ -283,8 +284,10 @@ $(function () {
 
     /* Asynchronous. find the last opened project and show it, if there is no
      * project in sandbox, then create an "Untitled" project.
-     * @param {function()=} success callback. An optional
-     * @param {function(FileError)=} error callback. An optional
+     *
+     * @param {function()=} success Success callback.
+     * @param {function(FileError)=} error Error callback.
+     * @return {None}.
      *
      */
     pmUtils.showLastOpened = function (success, error) {
@@ -310,8 +313,10 @@ $(function () {
     };
 
     /* Asynchronous. save current project to sandbox.
-     * @param {function()=} success callback. An optional
-     * @param {function(FileError)=} error callback. An optional
+     *
+     * @param {function()=} success Success callback.
+     * @param {function(FileError)=} error Error callback.
+     * @return {None}.
      *
      */
     pmUtils.syncCurrentProject = function (success, error) {
@@ -338,18 +343,19 @@ $(function () {
      *     version: version of the project
      *     tags: an array of string tags
      *
-     * @param {Object} setting options to create a project, currently, like:
-     *                 { "name": XXX, "theme":XXXX }
-     * @param {function(Array)=} success callback. An optional
-     * @param {function(FileError)=} error callback. An optional
-     * @param {ADMNode} the ADM design used to create a project. An optional
+     * @param {Object} properties Object contains setting properties which are
+     *                         used to create a project, such as:
+     *                         { "name": XXX, "theme":XXXX }
+     * @param {function()=} success Success callback.
+     * @param {function(FileError)=} error Error callback.
+     * @param {ADMNode} design Give ADM design used to create a project.
      *
      * success callback passed the pid of the new created project.
      * error callback passed the generated file error.
      *
-     * @return
+     * @return {None}.
      */
-    pmUtils.createProject = function (options, success, error, design) {
+    pmUtils.createProject = function (properties, success, error, design) {
         var newPid, successHandler, buildDesign, errorHandler;
         newPid = pmUtils.getValidPid();
         buildDesign = function () {
@@ -374,7 +380,7 @@ $(function () {
                 // if the design has no page when setDesignRoot, a empty page will be added in
                 pmUtils._activeProject = newPid;
                 pmUtils._projectsInfo[newPid] = {};
-                pmUtils.setProperties(newPid, options);
+                pmUtils.setProperties(newPid, properties);
                 pmUtils.setProperty(newPid, "accessDate", new Date());
 
                 if (design && (design instanceof ADMNode)) {
@@ -402,8 +408,9 @@ $(function () {
     /**
      * Get the path of design file of the project
      *
-     * @param {String} project id
-     * @return {String} path of design file
+     * @param {String} pid Project id.
+     * @return {String} Design file("design.json" in project directory contains
+     *                  serialized ADM tree) path of the project in sandbox.
      */
     pmUtils.getDesignPath = function (pid) {
         var designPath = pmUtils.ProjectDir + "/" + pid + "/" + "design.json";
@@ -414,7 +421,8 @@ $(function () {
      * Get the path of file saving project info
      *
      * @param {String} project id
-     * @return {String} path of metadata file of the project
+     * @return {String} Metadata file("pInfo.json" in project directory) path
+     *                  of the specified project in sandbox.
      */
     pmUtils.getMetadataPath = function (pid) {
         var metadataPath = pmUtils.ProjectDir + "/" + pid + "/" + "pInfo.json";
@@ -446,14 +454,14 @@ $(function () {
     /**
      * Asynchronous. Clone an existing project, just clone, but not open
      *
-     * @param {String} project id of the source project
-     * @param {function(String)=} success callback. An optional
-     * @param {function(FileError)=} error callback. An optional
+     * @param {String} srcPid Project id of the source project.
+     * @param {function(String)=} success Success callback.
+     * @param {function(FileError)=} error Error callback.
      *
      * success callback passed pid of the newly cloned project.
      * error callback passed the generated file error.
      *
-     * @return
+     * @return {None}.
      */
     pmUtils.cloneProject = function (srcPid, success, error) {
         var basePath = pmUtils.ProjectDir + "/",
@@ -473,9 +481,9 @@ $(function () {
     };
 
     /**
-     * Get a valid project id
+     * Get a valid project id.
      *
-     * @return {String} project id
+     * @return {String} A valid id for project.
      */
     pmUtils.getValidPid = function () {
         var num;
@@ -484,16 +492,16 @@ $(function () {
     };
 
     /**
-     * Asynchronous. Open an existing project
+     * Asynchronous. Open an existing project.
      *
-     * @param {String} project id
-     * @param {function()=} success callback. An optional
-     * @param {function(Error/null)=} error callback. An optional
+     * @param {String} pid Project id
+     * @param {function(String)=} success Success callback.
+     * @param {function(FileError)=} error Error callback.
      *
      * success callback passed nothing.
      * error callback passed the generated file error.
      *
-     * @return
+     * @return {None}.
      */
     pmUtils.openProject = function (pid, success, error) {
         var designPath, successHandler;
@@ -536,14 +544,14 @@ $(function () {
     /**
      * Asynchronous. delete an existing project
      *
-     * @param {String} project id
-     * @param {function(String)=} success callback. An optional
-     * @param {function(FileError)=} error callback. An optional
+     * @param {String} pid Project id
+     * @param {function(String)=} success Success callback.
+     * @param {function(FileError)=} error Error callback.
      *
      * success callback passed pid of the deleted project.
      * error callback passed the generated file error.
      *
-     * @return
+     * @return {None}.
      */
     pmUtils.deleteProject = function (pid, success, error) {
         var ProjectPath = pmUtils.ProjectDir + "/" + pid,
@@ -640,11 +648,10 @@ $(function () {
     };
 
     /**
-     * Add a new tag to project
+     * Add a new tag to project (Invalid)
      *
-     * @param {String} project id
-     * @return {Bool} return true if success, false when fails
-     */
+     * @param {String} pid Project id
+     * @return {Bool} True if success, false when fails
     pmUtils.addTag = function (pid, tag) {
         // if tag in alltags()
         //    if tag in currntprojectTags
@@ -666,13 +673,13 @@ $(function () {
             return false;
         }
     };
+     */
 
     /**
-     * Delete a tag of the project
+     * Delete a tag of the project {Invalid}
      *
-     * @param {String} project id
-     * @return {Bool} return true if success, false when fails
-     */
+     * @param {String} pid Project id
+     * @return {Bool} True if success, false when fails
     pmUtils.deleteTag = function (pid, tag) {
         var pInfo = pmUtils._projectsInfo[pid],
             index = $.inArray(tag, pInfo.tags);
@@ -685,11 +692,12 @@ $(function () {
             return false;
         }
     };
+     */
 
     /**
-     * Export the zip file of the project
+     * Export the zip file of the project.
      *
-     * @return {Bool} return true if success, false when fails
+     * @return {Bool} True if success, false when fails.
      */
     pmUtils.exportProject = function () {
         var pid, pInfo, design, obj, resultProject;
@@ -720,32 +728,33 @@ $(function () {
     // TODO: manipulatation about the thumbnail of the project
 
      /**
-     * Asynchronous. import a project and open it:
-     * @param {fileEntry} the fine entry of the imported file
-     * @param {function(Array)=} success callback. An optional
-     * @param {function(FileError)=} error callback. An optional
+     * Asynchronous. import a project and open it.
+     *
+     * @param {fileEntry} file File entry of the imported file.
+     * @param {function(Array)=} success Success callback.
+     * @param {function(FileError)=} error Error callback.
      *
      * success callback passed the pid of the imported project.
      * error callback passed the generated file error.
      *
-     * @return
+     * @return {None}.
      */
     pmUtils.importProject = function (file, success, error) {
         var reader = new FileReader();
 
         reader.onloadend = function(e) {
-            var options, design, resultProject;
+            var properties, design, resultProject;
             resultProject = $.rib.zipToProj(e.target.result);
             if (!resultProject) {
                 alert("Invalid imported project.");
                 return;
             }
-            // Get options from imported file
-            options = resultProject.pInfo || {"name":"Imported Project"};
+            // Get properties from imported file
+            properties = resultProject.pInfo || {"name":"Imported Project"};
             design = resultProject.design;
 
             if (design && (design instanceof ADMNode)) {
-                $.rib.pmUtils.createProject(options, success, error, design);
+                $.rib.pmUtils.createProject(properties, success, error, design);
             } else {
                 console.error("Imported project failed");
                 error && error();
@@ -760,15 +769,15 @@ $(function () {
     /**
      * Asynchronous. Sync all the project data into sandbox file system
      *
-     * @param {String} project id
-     * @param {ADMNode} ADM design node
-     * @param {function()=} success callback. An optional
-     * @param {function(Error/null)=} error callback. An optional
+     * @param {String} pid Project id.
+     * @param {ADMNode} design ADM design node need to be saved.
+     * @param {function()=} success Success callback.
+     * @param {function(Error/null)=} error Error callback.
      *
      * success callback passed nothing.
      * error callback passed the generated file error.
      *
-     * @return
+     * @return {None}.
      */
     pmUtils.syncProject = function (pid, design, success, error) {
         var syncDesign, syncInfo, saveWrite;
@@ -844,8 +853,8 @@ $(function () {
     /**
      * Get project by tag
      *
-     * @param {String} the given tag
-     * @return {Array} an array of Object{"pid":XXX, "date": XXXX}
+     * @param {String} tag Given tag
+     * @return {Array} An array of Object, item as: {"pid":XXX, "date": XXXX}
      */
     pmUtils.getProjectByTag = function (tag) {
         var arr = $.map(pmUtils._projectsInfo, function (value, index) {
@@ -859,7 +868,8 @@ $(function () {
     /**
      * List all pid by access date
      *
-     * @return {Array} return an array of object which contains { "pid": XXX, "date": XXX } sorted by access date
+     * @return {Array} An array of objects each item looks like { "pid": XXX, "date": XXX },
+     *                 and all elements are sorted by access date.
      */
     pmUtils.listAllProject = function () {
         var arr = $.map(pmUtils._projectsInfo, function (value, index) {
@@ -872,8 +882,8 @@ $(function () {
     /**
      * Sort the input array by "date"
      *
-     * @param {String} project id
-     * @return {String/null} return project name or null if fails
+     * @param {Array} arr An array of Object, item as: {"pid":XXX, "date": XXXX}.
+     * @return {Array} Array of objects with all elements are sorted by access date.
      */
     pmUtils.sortByAccessDate = function (arr) {
         var orderFunc = function (a, b) {
