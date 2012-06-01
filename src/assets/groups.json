@@ -48,7 +48,8 @@
             "Tizen Widgets": [ "OptionHeader",  "Switch",
                 "#0._hidden_node.tizen_input_date",
                 "#0._hidden_node.tizen_input_color", "ProgressBar"
-            ]
+            ],
+            "Other Widgets":["Image"]
         }
     ]
 }]
