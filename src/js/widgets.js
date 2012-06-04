@@ -496,6 +496,54 @@ var BWidgetRegistry = {
     },
 
     /**
+     * Represents a image
+     */
+    Image: {
+        parent: "Base",
+        paletteImageName: "jqm_image.svg",
+        template: function(node) {
+            var prop, code = $('<img/>');
+            code = BWidgetRegistry.Base.applyProperties(node, code);
+            if (node.getProperty("align") === "left") {
+                code.attr("style", "display:block;margin:auto auto auto 0px ");
+            } else if (node.getProperty("align") === "center") {
+                code.attr("style", "display:block;margin: 0 auto");
+            } else if (node.getProperty("align") === "right") {
+                code.attr("style", "display:block;margin: auto 0px auto auto ");
+            }
+            return code;
+        },
+        properties: {
+            src: {
+                type: "string",
+                defaultValue: "src/css/images/widgets/jqm_image.svg",
+                htmlAttribute: "src",
+                forceAttribute: true
+            },
+            alt: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: "alt"
+            },
+            width: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: "width"
+            },
+            height: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: "height"
+            },
+            align: {
+                type: "string",
+                options:[ "left", "center", "right" ],
+                defaultValue: "left",
+            },
+        },
+    },
+
+    /**
      * Represents an HTML form object. Includes an "action" property with the
      * submission URL and a "method" string property that should be "get" or
      * "post".
@@ -2137,15 +2185,14 @@ var BWidget = {
     /**
      * Gets the template for a given widget type.
      *
-     * @param {String} widgetType The type of the widget.
+     * @param {ADMNode} node The ADMNode to get template from.
      * @return {Various} The template string for this widget type, or an
-     *                   object (FIXME: explain), or a function(ADMNode) that
-     *                   provides a template, or undefined if the template does
-     *                   not exist.
+     *                   object (FIXME: explain) that provides a template,
+     *                   or undefined if the template does not exist.
      * @throws {Error} If widgetType is invalid.
      */
-    getTemplate: function (widgetType) {
-        var widget, template;
+    getTemplate: function (node) {
+        var widget, template, widgetType = node.getType();
         widget = BWidgetRegistry[widgetType];
         if (typeof widget !== "object") {
             throw new Error("undefined widget type in getTemplate: " +
@@ -2157,6 +2204,8 @@ var BWidget = {
             typeof template !== "function") {
             return "";
         }
+        if (typeof template === "function")
+            template = new XMLSerializer().serializeToString(template(node)[0]);
         return template;
     },
 
