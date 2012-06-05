@@ -538,9 +538,8 @@ $(function() {
             height: 150,
             title: "Export"
         };
-        exportDialog = $('<div id="exportDialog" class="vbox"/>')
-                           .css({'padding':'1em',
-                                 'font-size':'0.9em'});
+        exportDialog = $('<div id="exportDialog" />').addClass("vbox")
+            .css({'padding':'0.8em 1.2em'});
 
         // If user haven't checked "Do not remind again", then show the notice
         if ($.rib.cookieUtils.get("exportNotice") !== "false") {
@@ -568,12 +567,8 @@ $(function() {
         $.each(exportTypes, function (index, type) {
             $('<button />').attr('id', 'export-' + type)
                 .text('Export as ' + type)
-                .css({
-                    'padding': '0.5em',
-                    'margin': '0.7em',
-                    'border': '1px solid #a1a1a1',
-                    'background-color': '#fbfbfb'})
-                .addClass("ui-state-default ui-corner-all")
+                .addClass("buttonStyle")
+                .css({'margin':'0.5em'})
                 .appendTo(exportMenu);
         });
 
