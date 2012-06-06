@@ -20,7 +20,7 @@
                     "json_data" : {
                         "data" : widgets
                     },
-                    "plugins" : ["themes", "json_data", "ui"]
+                    "plugins" : ["themes", "json_data", "ui", "hotkeys"]
                 }).bind("select_node.jstree", function(e, data) {
                     $('.paletteView').paletteView('option', "model", jQuery.data(data.rslt.obj[0]));
                 });

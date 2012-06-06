@@ -260,7 +260,7 @@
 				"json_data" : {
 						"data" : treeModel
 				        },
-			    "plugins" : ["themes", "json_data", "ui", "crrm", "dnd"],
+			    "plugins" : ["themes", "json_data", "ui", "crrm", "dnd", "hotkeys"],
             });
 
 			//catch event here
