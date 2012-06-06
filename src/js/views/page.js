@@ -199,7 +199,8 @@
         _modelUpdatedHandler: function(event, widget) {
             if (event.node && event.node.getType()==='Page' &&
                (event.type === "nodeRemoved" ||
-                event.type === "nodeAdded")) {
+                event.type === "nodeAdded" ||
+                event.type === "nodeMoved")) {
                 widget.refresh(event, widget);
             } else {
                 return;
