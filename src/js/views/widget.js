@@ -11,44 +11,23 @@
 
 // Widget view widget
 
-
 (function($, undefined) {
-
-    $.widget('rib.widgetView',  $.rib.treeView, {
-
-        _create: function() {
-            var widget = this;
-            $.getJSON("src/assets/groups.json", function (groups) {
-                var resolveRefs = function (root, data) {
-                    $.each(data, function(name, value) {
-                        var refObj;
-                        if (value &&  typeof value == "string" &&
-                            value.indexOf('#') == 0) {
-                            refObj = root;
-                            $.each(value.substring(1).split('.'),
-                                function (i, attr) {
-                                    refObj = refObj[attr];
-                                });
-                            data.splice(data.indexOf(value), 1, refObj);
-                        }
-                        else if (value && typeof value === "object")
-                            resolveRefs(root, value);
-                    });
-                };
-                resolveRefs(groups, groups);
-                widget._setOption("model", groups);
-                widget.findDomNode(groups[0]['Functional Groups'])
-                    .find('> a').trigger('click');
+    $.widget('rib.widgetView', {
+        _create : function() {
+            var self = this;
+            $.getJSON("src/assets/groups.json", function(widgets) {
+                self.element.jstree({
+                    "json_data" : {
+                        "data" : widgets
+                    },
+                    "plugins" : ["themes", "json_data", "ui", "hotkeys"]
+                }).bind("select_node.jstree", function(e, data) {
+                    $('.paletteView').paletteView('option', "model", jQuery.data(data.rslt.obj[0]));
+                });
+            $('.paletteView').paletteView('option', "model", widgets[0].metadata);
             });
-            this.enableKeyNavigation();
             return this;
         },
-
-        _nodeSelected: function (treeModelNode, data, domNode) {
-            this._setSelected(domNode);
-            $(':rib-paletteView').paletteView('option', "model", treeModelNode);
-        },
-
         resize: function(event, widget) {
             var headerHeight = 30, resizeBarHeight = 20, used, e;
             e = this.element;
@@ -56,6 +35,6 @@
             // allocate 30% of the remaining space for the filter tree
             used = 2 * headerHeight + resizeBarHeight;
             e.height(Math.round((e.parent().height() - used) * 0.3));
-        },
+        }
     });
 })(jQuery);

@@ -73,7 +73,8 @@ Haverbeke
 Intel     src/js/codeview-mode.js                             APLV2       N/A
 Arnaud
 Renevier  lib/zipfile.js                                      Modified BSD[17]
-
+Ivan
+Bozhanov  lib/jstree/jstree.js               MIT, GPLv2       [21]
 Unreleased/Unpackaged Files (build/debug/development)
 =====================================================
 Owner:     File:                     License:  Source:
@@ -112,3 +113,4 @@ Notes:
 [18] http://www.bramstein.com/projects/jlayout/
 [19] http://www.bramstein.com/projects/jsizes/
 [20] http://code.google.com/chrome/extensions/crx.html
+[21] http://www.jstree.com/
