@@ -6,18 +6,29 @@
 
 .jstree-default li,
 .jstree-default ins { background-image:url("d.png"); background-repeat:no-repeat; background-color:transparent; }
-.jstree-default li { background-position:-90px 0; background-repeat:repeat-y; }
+.jstree-default li {
+    background-position:-90px 0;
+    background-repeat:repeat-y;
+    margin-left: 18px;
+    min-width: 18px;
+    }
 .jstree-default li.jstree-last { background:transparent; }
 .jstree-default .jstree-open > ins { background-position:-72px 0; }
 .jstree-default .jstree-closed > ins { background-position:-54px 0; }
 .jstree-default .jstree-leaf > ins { background-position:-36px 0; }
+.jstree-default a {
+    font-style: normal;
+    font-size: 12px;
+    min-height: 18px;
+    min-width: 18px;
+	}
 
-.jstree-default .jstree-hovered { background:#e7f4f9; border:1px solid #d8f0fa; padding:0 2px 0 1px; }
-.jstree-default .jstree-clicked { background:#beebff; border:1px solid #99defd; padding:0 2px 0 1px; }
-.jstree-default a .jstree-icon { background-position:-56px -19px; }
+.jstree-default .jstree-hovered { background:#e7f4f9; border:1px solid #d8f0fa; padding:2px 2px 2px 1px; -webkit-border-radius:5px }
+.jstree-default .jstree-clicked { background:#A7F394; border:1px solid #99defd; padding:2px 1px 2px 1px; -webkit-border-radius:5px }
+.jstree-default a .jstree-icon { background-position:-56px -19px; display:none }
 .jstree-default a.jstree-loading .jstree-icon { background:url("throbber.gif") center center no-repeat !important; }
 
-.jstree-default.jstree-focused { background:#ffffee; }
+.jstree-default.jstree-focused { background:transparent; }
 
 .jstree-default .jstree-no-dots li,
 .jstree-default .jstree-no-dots .jstree-leaf > ins { background:transparent; }
