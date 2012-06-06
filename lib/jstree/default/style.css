@@ -4,6 +4,9 @@
  * Supported plugins: ui (hovered, clicked), checkbox, contextmenu, search
  */
 
+.jstree-default {
+    overflow: auto
+}
 .jstree-default li,
 .jstree-default ins { background-image:url("d.png"); background-repeat:no-repeat; background-color:transparent; }
 .jstree-default li {
@@ -21,7 +24,7 @@
     font-size: 12px;
     min-height: 18px;
     min-width: 18px;
-	}
+}
 
 .jstree-default .jstree-hovered { background:#e7f4f9; border:1px solid #d8f0fa; padding:2px 2px 2px 1px; -webkit-border-radius:5px }
 .jstree-default .jstree-clicked { background:#A7F394; border:1px solid #99defd; padding:2px 1px 2px 1px; -webkit-border-radius:5px }
