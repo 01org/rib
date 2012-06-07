@@ -445,6 +445,10 @@ var BWidgetRegistry = {
             }
         },
         events: {
+            sortstart: function(event, ui){
+                ui.helper.css('list-style', 'none');
+                ui.placeholder.css('list-style', 'none');
+            },
             sortchange: function (e, ui) {
                 BWidget.getWidgetAttribute("Navbar", "rearrange")($(this),
                     ui.placeholder, ui.placeholder.parent()
