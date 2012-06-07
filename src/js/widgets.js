@@ -61,6 +61,10 @@
  *   4) deny: string or array of string names of disallowed widgets
  *             (all others will be allowed)
  *   Only one of allow or deny should be set, if neither than all are allowed.
+ *   5) locator:  a selector used to find the html tag to append child node
+ *                 of this zone.
+ *   6) itemWrapper: an HTML tag used to wrapp a child node before appending
+ *                   to the zone
  *
  * The "properties" of each widget definition is an object, each property of
  * which names a property of the widget. These are objects with the following
@@ -70,7 +74,8 @@
  *   2)    defaultValue: optional default value for the property, of the type
  *                       specified above
  *   3)   htmlAttribute: optional string with an HTML attribute name that this
- *                       property should be written to
+ *                       property should be written to or a function that
+ *                       returns name and value of the HTML attribute
  *   4)  forceAttribute: if true, always write out the HTML attribute even when
  *                       it is equal to the default value (default: false)
  *   5)    htmlSelector: optional selector to find the DOM nodes on which to
@@ -98,6 +103,9 @@
  *                       guaranteed that if you see data X again, you will be
  *                       going from 3 to 5 rows, and can make sense of the
  *                       data.)
+ *   9)        validIn:  Parent widget in which this property is valid
+ *
+ *  10)      invalidIn:  Parent widget in which this property is not valid
  *
  * @class
  */
@@ -323,7 +331,7 @@ var BWidgetRegistry = {
             {
                 name: "bottom",
                 cardinality: "1",
-                allow: "Navbar, OptionHeader"
+                allow: ["Navbar", "OptionHeader"]
             }
         ],
     },
@@ -406,6 +414,82 @@ var BWidgetRegistry = {
         ],
     },
 
+    Navbar: {
+        parent: "Base",
+        template: '<div data-role="navbar"><ul/></div>',
+        paletteImageName: "jqm_navbar.svg",
+        dragHeader: true,
+        zones: [
+            {
+                name: "default",
+                locator: 'ul',
+                cardinality: "N",
+                allow: "Button"
+
+            }
+        ],
+        properties: {
+            iconpos: {
+                type: "string",
+                options: [ "left", "top", "bottom", "right", "notext" ],
+                defaultValue: "top",
+                htmlAttribute: "data-iconpos",
+            }
+        },
+        init: function (node) {
+            // initial state is three buttons
+            var i;
+            for (i = 0; i < 3; i++) {
+                node.addChild(new ADMNode("Button"));
+            }
+        },
+        events: {
+            sortstart: function(event, ui){
+                ui.helper.css('list-style', 'none');
+                ui.placeholder.css('list-style', 'none');
+            },
+            sortchange: function (e, ui) {
+                BWidget.getWidgetAttribute("Navbar", "rearrange")($(this),
+                        ui.placeholder, ui.placeholder.parent()
+                        .closest('.nrc-sortable-container')[0] !== this);
+            },
+            sortout: function (e, ui) {
+                BWidget.getWidgetAttribute("Navbar", "rearrange")
+                    ($(this), ui.placeholder, true);
+            },
+            sortover: function (e, ui) {
+                BWidget.getWidgetAttribute("Navbar", "rearrange")
+                    ($(this), ui.placeholder);
+            },
+        },
+        rearrange: function (sortable, placeholder, excludePlaceholder) {
+            var classes = ['a', 'b', 'c', 'd', 'e', 'solo'], i = 0, blocks, zone,
+                replaceClass = function (elem, oldClassSuffix, newClass) {
+                    var reg = new RegExp ('\\b' + oldClassSuffix +  '\\S+', 'g');
+                    elem.removeClass(function (index, css) {
+                        return (css.match (reg) || []).join(' ');
+                    })
+                    .addClass(newClass);
+                };
+
+            if (sortable.is('[data-role="navbar"]')){
+                zone = sortable.find('ul');
+                if (excludePlaceholder)
+                    replaceClass(placeholder, 'ui-block-', '');
+                else
+                    placeholder.addClass('ui-block-a');
+                blocks = zone.children('[class*=ui-block-]:visible');
+                blocks.each( function () {
+                    if (blocks.length > 5)
+                        i = i % 2;
+                    replaceClass($(this), 'ui-block-', 'ui-block-' + classes[i++]);
+                });
+                replaceClass(zone, 'ui-grid-', 'ui-grid-' +
+                        classes[blocks.length > 5 ? 0 : (i - 2 < 0 ? 5 : i - 2)]);
+            }
+        }
+    },
+
     /**
      * Represents a Control Group object. Includes an "data-type" property
      * that should be "vertical" or "horizontal"
@@ -457,6 +541,7 @@ var BWidgetRegistry = {
             target: {
                 type: "string",
                 defaultValue: "",
+                htmlSelector: "a",
                 htmlAttribute: "href"
             },
             icon: {
@@ -466,33 +551,102 @@ var BWidgetRegistry = {
                            "gear", "grid", "home", "info", "minus", "plus",
                            "refresh", "search", "star" ],
                 defaultValue: "none",
+                htmlSelector: "a",
                 htmlAttribute: "data-icon"
             },
             iconpos: {
                 type: "string",
                 options: [ "left", "top", "bottom", "right", "notext" ],
                 defaultValue: "left",
-                htmlAttribute: "data-iconpos"
+                htmlSelector: "a",
+                htmlAttribute: "data-iconpos",
+                invalidIn: "Navbar"
+            },
+            active: {
+                type: "boolean",
+                defaultValue: false,
+                htmlSelector: "a",
+                htmlAttribute: function (name, value) {
+                    return {name: value?"class": "",
+                        value: value ? 'ui-btn-active':""};
+                },
+                validIn: "Navbar"
             },
             theme: {
                 type: "string",
                 options: [ "default", "a", "b", "c", "d", "e" ],
                 defaultValue: "default",
+                htmlSelector: "a",
                 htmlAttribute: "data-theme"
             },
             inline: {
                 type: "boolean",
                 defaultValue: "false",
-                htmlAttribute: "data-inline"
+                htmlSelector: "a",
+                htmlAttribute: "data-inline",
+                invalidIn: "Navbar"
             },
             transition: {
                 type: "string",
                 options: [ "slide", "slideup", "slidedown", "pop", "fade", "flip" ],
                 defaultValue: "slide",
+                htmlSelector: "a",
                 htmlAttribute: "data-transition"
             }
         },
-        template: '<a data-role="button">%TEXT%</a>'
+        template: {
+            default: '<a data-role="button">%TEXT%</a>',
+            Navbar: '<li><a data-role="button">%TEXT%</a></li>',
+        }
+
+    },
+
+    /**
+     * Represents a image
+     */
+    Image: {
+        parent: "Base",
+        paletteImageName: "jqm_image.svg",
+        template: function(node) {
+            var prop, code = $('<img/>');
+            code = BWidgetRegistry.Base.applyProperties(node, code);
+            if (node.getProperty("align") === "left") {
+                code.attr("style", "display:block;margin:auto auto auto 0px ");
+            } else if (node.getProperty("align") === "center") {
+                code.attr("style", "display:block;margin: 0 auto");
+            } else if (node.getProperty("align") === "right") {
+                code.attr("style", "display:block;margin: auto 0px auto auto ");
+            }
+            return code;
+        },
+        properties: {
+            src: {
+                type: "string",
+                defaultValue: "src/css/images/widgets/jqm_image.svg",
+                htmlAttribute: "src",
+                forceAttribute: true
+            },
+            alt: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: "alt"
+            },
+            width: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: "width"
+            },
+            height: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: "height"
+            },
+            align: {
+                type: "string",
+                options:[ "left", "center", "right" ],
+                defaultValue: "left",
+            },
+        },
     },
 
     /**
@@ -2137,15 +2291,14 @@ var BWidget = {
     /**
      * Gets the template for a given widget type.
      *
-     * @param {String} widgetType The type of the widget.
+     * @param {ADMNode} node The ADMNode to get template from.
      * @return {Various} The template string for this widget type, or an
-     *                   object (FIXME: explain), or a function(ADMNode) that
-     *                   provides a template, or undefined if the template does
-     *                   not exist.
+     *                   object (FIXME: explain) that provides a template,
+     *                   or undefined if the template does not exist.
      * @throws {Error} If widgetType is invalid.
      */
-    getTemplate: function (widgetType) {
-        var widget, template;
+    getTemplate: function (node) {
+        var widget, template, widgetType = node.getType();
         widget = BWidgetRegistry[widgetType];
         if (typeof widget !== "object") {
             throw new Error("undefined widget type in getTemplate: " +
@@ -2157,6 +2310,10 @@ var BWidget = {
             typeof template !== "function") {
             return "";
         }
+        if (typeof template === "function")
+            template = new XMLSerializer().serializeToString(template(node)[0]);
+        else if (typeof template === "object")
+            template = (template[node.getParent().getType()] || template.default);
         return template;
     },
 
@@ -2251,6 +2408,35 @@ var BWidget = {
             }
         }
         throw new Error("no such zone found in getZoneCardinality: " +
+                        zoneName);
+    },
+
+    /**
+     * Get the zone information for the given zone in the given widget type.
+     *
+     * @param {String} widgetType The type of the widget.
+     * @param {String} zoneName The name of the zone.
+     * @return {Ojbect} Returns the whole object of this zone.
+     * @throws {Error} If widgetType is invalid or the zone is not found.
+     */
+    getZone: function (widgetType, zoneName) {
+        var widget, zones, length, i;
+        widget = BWidgetRegistry[widgetType];
+        if (typeof widget !== "object") {
+            throw new Error("undefined widget type in getZone: " +
+                            widgetType);
+        }
+
+        zones = widget.zones;
+        if (zones && zones.length) {
+            length = zones.length;
+            for (i = 0; i < length; i++) {
+                if (zones[i].name === zoneName) {
+                    return zones[i];
+                }
+            }
+        }
+        throw new Error("no such zone found in getZone: " +
                         zoneName);
     },
 

@@ -56,7 +56,7 @@ var DEBUG = true,
             return null;
         }
 
-        template = BWidget.getTemplate(node.getType());
+        template = BWidget.getTemplate(node);
 
         // 1. Regenerating the entire Design, re-create entire document
         if (node.instanceOf('Design')) {
@@ -113,10 +113,7 @@ var DEBUG = true,
         id = node.getProperty('id');
         blockModelUpdated = false;
 
-        if (typeof template === "function") {
-            widget = template(node);
-        }
-        else {
+        {
             if (typeof template === "object") {
                 template = template[props["type"]];
             }
@@ -131,6 +128,11 @@ var DEBUG = true,
                     break;
                 default:
                     attrName = BWidget.getPropertyHTMLAttribute(type, p);
+                    if (typeof attrName  === "function") {
+                        var newAttr = attrName(attrName, attrValue);
+                        attrName = newAttr.name;
+                        attrValue = newAttr.value;
+                    }
                     if (attrName) {
                         propDefault = BWidget.getPropertyDefault(type, p);
 
@@ -184,8 +186,15 @@ var DEBUG = true,
             }
         }
 
-        if (domNodes.length === 0)
-            $(parentNode).append(widget);
+        if (domNodes.length === 0) {
+            var zone = BWidget.getZone(node.getParent().getType(), node.getZone());
+            if (zone.itemWrapper)
+                widget = $(zone.itemWrapper).append(widget);
+            if (zone.locator)
+                $(parentNode).find(zone.locator).append(widget);
+            else
+                $(parentNode).append(widget);
+        }
         else {
             //The template of some widgets may have multiple root tags
             //and there are also possible delegated nodes, we will remove all
