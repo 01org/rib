@@ -1320,11 +1320,15 @@ div.propertyItems label[for|=id] {
 .deviceSetting input {
     margin-top: 2em
 }
+.deviceSetting input {
+    margin-left: 1em;
+    margin-right: 1em;
+}
 
 .deviceSetting input.submit
 {
-    margin-left: 4.5em;
-    margin-right: 0.5em;
+    margin-left: 6em;
+    margin-right: 1.5em;
     min-width: 10em;
 }
 .rotateDevice {
