@@ -69,6 +69,7 @@ lib/CodeMirror-2.21/mode/htmlmixed/htmlmixed.js
 lib/CodeMirror-2.21/mode/javascript/javascript.js
 					BSD-like	Marijn Haverbeke
 lib/CodeMirror-2.21/mode/xml/xml.js	BSD-like	Marijn Haverbeke
+lib/jstree/jstree.js        MIT & GPLv2    Ivan Bozhanov
 
 The following files were copied into this project from upstream and are
 only included as development tools (build, debugging, reporting).  They
