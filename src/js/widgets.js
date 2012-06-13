@@ -475,6 +475,13 @@ var BWidgetRegistry = {
                 defaultValue: "",
                 htmlAttribute: "href"
             },
+            opentargetas : {
+                type: "string",
+                displayName: "open target as",
+                options: ["page", "dialog"],
+                defaultValue: "Page",
+                htmlAttribute: "data-rel",
+            },
             icon: {
                 type: "string",
                 options: [ "none", "alert", "arrow-d", "arrow-l", "arrow-r",
@@ -2054,6 +2061,23 @@ var BWidget = {
             return schema.defaultValue;
         }
         return schema;
+    },
+
+    /**
+     * Gets the display name for a given instance property.
+     *
+     * @param {String} widgetType The type of the widget.
+     * @param {String} property The name of the requested property.
+     * @return {String} The display name for the given property, or
+     *                  the property instance name if this property has
+     *                  no the attribute.
+     */
+    getPropertyDisplayName: function (widgetType, property) {
+        var schema = BWidget.getPropertySchema(widgetType, property);
+        if (schema && schema.displayName) {
+            return schema.displayName;
+        }
+        return property.replace(/_/g,'-');
     },
 
     /**
