@@ -777,8 +777,14 @@ var BWidgetRegistry = {
         parent: "Base",
         paletteImageName: "jqm_select.svg",
         template: function(node) {
-            var prop, length, i, child,
-            code = $('<select></select>');
+            var prop, length, i, child, code;
+            if(node.getProperty("multiple") == true) {
+                code = $('<select multiple="multiple" data-native-menu="false"></select>');
+            } else {
+                code = $('<select></select>');
+            }
+            $('<option>' + node.getProperty("label") + '</option>')
+                .appendTo(code);
             prop = node.getProperty("options");
             length = prop.children.length;
             for (i = 0; i< length; i++) {
@@ -802,6 +808,15 @@ var BWidgetRegistry = {
         },
         displayLabel: "Select Menu",
         properties: {
+            label: {
+                type: "string",
+                defaultValue: "Choose option",
+            },
+            multiple: {
+                type: "boolean",
+                defaultValue: false,
+                displayName: "multiple select",
+            },
             options: {
                  type: "record-array",
                  sortable: true,
@@ -828,8 +843,12 @@ var BWidgetRegistry = {
                 allow: [ "Option" ]
             }
         ],
-        //jQM generates two levels of divs for a select, the topmost one is what is clicked.
-        delegate: "grandparent",
+        delegate: function (domNode, admNode) {
+            if(admNode.getProperty('multiple') == true) {
+                return $(domNode).parent();
+            }
+            return $(domNode).parent().parent();
+        },
         events: {
             mousedown: function (e) {
                 e.preventDefault();
