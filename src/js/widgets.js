@@ -200,18 +200,39 @@ var BWidgetRegistry = {
             }
         ],
     },
-
+    /**
+    *Support background images using <div>
+    */
+    Background:{
+        parent: "Base",
+        allowIn: [],
+        BackgroundImgProperties: function (node,code) {
+        code = BWidgetRegistry.Base.applyProperties(node, code);
+        if (node.getProperty("BackgroundImg") != "") {
+                var backgroundImg = node.getProperty("BackgroundImg");
+                code.attr("style", "background-image:url('"+ backgroundImg +"');"+
+                "background-attachment:scroll;background-repeat:no-repeat;background-size:cover;");
+        }
+        return code;
+        },
+        properties: {
+            BackgroundImg: {
+                type: "string",
+                defaultValue: ""
+            }
+        }
+    },
     /**
      * Represents a page or dialog in the application. Includes "top" zone
      * for an optional header, "content" zone for the Content area, and "bottom"
      * zone for an optional footer.
      */
     Page: {
-        parent: "Base",
+        parent: "Background",
         allowIn: "Design",
         template: function (node) {
             var prop, code = $('<div data-role="page"></div>');
-            code.attr("id", node.getProperty("id"));
+            code = BWidgetRegistry.Background.BackgroundImgProperties(node,code);
 
             // don't write data-theme if it's using the default
             prop = node.getProperty("theme");
@@ -264,13 +285,13 @@ var BWidgetRegistry = {
      * for optional buttons, and "bottom" zone for an optional navbar.
      */
     Header: {
-        parent: "Base",
+        parent: "Background",
         allowIn: "Page",
         dragHeader: true,
         paletteImageName: "jqm_header.svg",
         template: function (node) {
             var prop, code = $('<div data-role="header"><h1></h1></div>');
-            code = BWidgetRegistry.Base.applyProperties(node, code);
+            code = BWidgetRegistry.Background.BackgroundImgProperties(node,code);
 
             // only write data-position if it's being set to fixed
             if (node.getProperty("position") === "fixed") {
@@ -333,13 +354,13 @@ var BWidgetRegistry = {
      * Represents a footer object at the bottom of a page.
      */
     Footer: {
-        parent: "Base",
+        parent: "Background",
         allowIn: "Page",
         dragHeader: true,
         paletteImageName: "jqm_footer.svg",
         template: function (node) {
             var prop, code = $('<div data-role="footer"></div>');
-            code = BWidgetRegistry.Base.applyProperties(node, code);
+              code = BWidgetRegistry.Background.BackgroundImgProperties(node,code);
 
             // only write data-position if it's being set to fixed
             if (node.getProperty("position") === "fixed") {
@@ -540,6 +561,54 @@ var BWidgetRegistry = {
             }
         },
         template: '<a data-role="button">%TEXT%</a>'
+    },
+
+    /**
+     * Represents a image
+     */
+    Image: {
+        parent: "Base",
+        paletteImageName: "jqm_image.svg",
+        template: function(node) {
+            var prop, code = $('<img/>');
+            code = BWidgetRegistry.Base.applyProperties(node, code);
+            if (node.getProperty("align") === "left") {
+                code.attr("style", "display:block;margin:auto auto auto 0px ");
+            } else if (node.getProperty("align") === "center") {
+                code.attr("style", "display:block;margin: 0 auto");
+            } else if (node.getProperty("align") === "right") {
+                code.attr("style", "display:block;margin: auto 0px auto auto ");
+            }
+            return code;
+        },
+        properties: {
+            src: {
+                type: "string",
+                defaultValue: "src/css/images/widgets/jqm_image.svg",
+                htmlAttribute: "src",
+                forceAttribute: true
+            },
+            alt: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: "alt"
+            },
+            width: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: "width"
+            },
+            height: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: "height"
+            },
+            align: {
+                type: "string",
+                options:[ "left", "center", "right" ],
+                defaultValue: "left",
+            },
+        },
     },
 
     /**
@@ -2187,15 +2256,14 @@ var BWidget = {
     /**
      * Gets the template for a given widget type.
      *
-     * @param {String} widgetType The type of the widget.
+     * @param {ADMNode} node The ADMNode to get template from.
      * @return {Various} The template string for this widget type, or an
-     *                   object (FIXME: explain), or a function(ADMNode) that
-     *                   provides a template, or undefined if the template does
-     *                   not exist.
+     *                   object (FIXME: explain) that provides a template,
+     *                   or undefined if the template does not exist.
      * @throws {Error} If widgetType is invalid.
      */
-    getTemplate: function (widgetType) {
-        var widget, template;
+    getTemplate: function (node) {
+        var widget, template, widgetType = node.getType();
         widget = BWidgetRegistry[widgetType];
         if (typeof widget !== "object") {
             throw new Error("undefined widget type in getTemplate: " +
@@ -2207,6 +2275,8 @@ var BWidget = {
             typeof template !== "function") {
             return "";
         }
+        if (typeof template === "function")
+            template = new XMLSerializer().serializeToString(template(node)[0]);
         return template;
     },
 
