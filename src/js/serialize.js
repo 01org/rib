@@ -60,7 +60,7 @@ var DEBUG = true,
             return null;
         }
 
-        template = BWidget.getTemplate(node.getType());
+        template = BWidget.getTemplate(node);
 
         // 1. Regenerating the entire Design, re-create entire document
         if (node.instanceOf('Design')) {
@@ -109,10 +109,7 @@ var DEBUG = true,
 
         props = node.getProperties();
 
-        if (typeof template === "function") {
-            widget = template(node);
-        }
-        else {
+        {
             if (typeof template === "object") {
                 template = template[props["type"]];
             }
