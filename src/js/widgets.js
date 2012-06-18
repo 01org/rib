@@ -2347,15 +2347,14 @@ var BWidget = {
     /**
      * Gets the template for a given widget type.
      *
-     * @param {String} widgetType The type of the widget.
+     * @param {ADMNode} node The ADMNode to get template from.
      * @return {Various} The template string for this widget type, or an
-     *                   object (FIXME: explain), or a function(ADMNode) that
-     *                   provides a template, or undefined if the template does
-     *                   not exist.
+     *                   object (FIXME: explain) that provides a template,
+     *                   or undefined if the template does not exist.
      * @throws {Error} If widgetType is invalid.
      */
-    getTemplate: function (widgetType) {
-        var widget, template;
+    getTemplate: function (node) {
+        var widget, template, widgetType = node.getType();
         widget = BWidgetRegistry[widgetType];
         if (typeof widget !== "object") {
             throw new Error("undefined widget type in getTemplate: " +
@@ -2367,6 +2366,8 @@ var BWidget = {
             typeof template !== "function") {
             return "";
         }
+        if (typeof template === "function")
+            template = new XMLSerializer().serializeToString(template(node)[0]);
         return template;
     },
 
