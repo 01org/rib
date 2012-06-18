@@ -147,11 +147,13 @@
                         .addClass("deviceSetting")
                         .append('<label for="name">Device Name</label>')
                         .append('<input required name="name"/>')
-                        .append('<label for="screenWidth">Screen</label>')
-                        .append('<input name="screenWidth" type="number" max="10000"  style="width:4em" required size="4"/>').append('x')
-                        .append('<input name="screenHeight" type="number" max="10000" style="width:4em" required size="4"/>')
                         .append('<br/>')
-                        .append('<input type="submit" class="submit" value="Done"></input>')
+                        .append('<label for="screenWidth">Screen</label>')
+                        .append('<input name="screenWidth" type="number" max="10000" required/>')
+                        .append('<span>x</span>')
+                        .append('<input name="screenHeight" type="number" max="10000" required/>')
+                        .append('<br/><br/>')
+                        .append('<input type="submit" class="buttonStyle submit" value="Done"></input>')
                         .append($('<a href="javascript:void(0)">Cancel</a>').click( function() { $(this).parent().dialog("close"); }))
                         .submit( function () {
                             var values = {},
@@ -172,7 +174,7 @@
                             }
                             return false;
                         })
-                        .dialog({title:"Add Device", modal:true, width: 400, height: 285, resizable:false });
+                        .dialog({title:"Add Device", modal:true, width: 360, height: 260, resizable:false });
                 });
             $('<a href="javascript:void(0)">Add Device</a>').appendTo(deviceToolbar).click(function () {
                 addDeviceButton.trigger('click');
