@@ -637,7 +637,13 @@ var BWidgetRegistry = {
                 options: [ "slide", "slideup", "slidedown", "pop", "fade", "flip" ],
                 defaultValue: "slide",
                 htmlAttribute: "data-transition"
-            }
+            },
+            class: {
+                type: "string",
+                defaultValue: "",
+                options: ["default", "ui-btn-right"],
+                htmlAttribute: "class",
+            },
         },
         template: '<a data-role="button">%TEXT%</a>'
     },
