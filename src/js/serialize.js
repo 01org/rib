@@ -28,18 +28,27 @@ var DEBUG = true,
         });
     },
 
-    generateHTML = function () {
-        var doc = constructNewDocument($.rib.getDefaultHeaders());
+    /**
+     * Generate HTML from ADM tree.
+     *
+     * @param {ADMNode} design ADM design root to be serialized.
+     * @param {function(ADMNode, DOMElement)=} handler Extra handler for each node.
+     *
+     * @return {Object} return the generated object contains the relative html string
+     */
+    generateHTML = function (design, handler) {
+        design = design || ADM.getDesignRoot();
+        var doc = constructNewDocument($.rib.getDefaultHeaders(design));
 
         function renderClean(admNode, domNode) {
             $(domNode).data('uid', admNode.getUid());
             if (domNode.hasClass("rib-remove")) {
                 domNode.replaceWith(domNode.text());
             }
+            handler && handler(admNode, domNode);
         };
 
-        serializeADMSubtreeToDOM(ADM.getDesignRoot(), $(doc).find('body'),
-                                 renderClean);
+        serializeADMSubtreeToDOM(design, $(doc).find('body'), renderClean);
         return { doc: doc,
                  html: formatHTML(xmlserializer.serializeToString(doc))
         };
@@ -423,7 +432,9 @@ $(function() {
         }
     }
 
-    function getDefaultHeaders() {
+    function getDefaultHeaders(design) {
+        var i, props, el, designRoot;
+        designRoot = design || ADM.getDesignRoot();
         var i, props, el;
 
         $.rib.defaultHeaders = $.rib.defaultHeaders || [];
@@ -431,7 +442,7 @@ $(function() {
         if ($.rib.defaultHeaders.length > 0)
             return $.rib.defaultHeaders;
 
-        props = ADM.getDesignRoot().getProperty('metas');
+        props = designRoot.getProperty('metas');
         for (i in props) {
             // Skip design only header properties
             if (props[i].hasOwnProperty('designOnly') && props[i].designOnly) {
@@ -450,7 +461,7 @@ $(function() {
             el = el + '>';
             $.rib.defaultHeaders.push(el);
         }
-        props = ADM.getDesignRoot().getProperty('libs');
+        props = designRoot.getProperty('libs');
         for (i in props) {
             // Skip design only header properties
             if (props[i].hasOwnProperty('designOnly') && props[i].designOnly) {
@@ -463,7 +474,7 @@ $(function() {
             el = el + '></script>';
             $.rib.defaultHeaders.push(el);
         }
-        props = ADM.getDesignRoot().getProperty('css');
+        props = designRoot.getProperty('css');
         for (i in props) {
             // Skip design only header properties
             if (props[i].hasOwnProperty('designOnly') && props[i].designOnly) {
