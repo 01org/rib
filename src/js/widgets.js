@@ -637,9 +637,48 @@ var BWidgetRegistry = {
                 options: [ "slide", "slideup", "slidedown", "pop", "fade", "flip" ],
                 defaultValue: "slide",
                 htmlAttribute: "data-transition"
+            },
+            back: {
+                type: "boolean",
+                defaultValue: "false",
             }
         },
-        template: '<a data-role="button">%TEXT%</a>'
+        template: function(node) {
+            var text, prop, code;
+            text = node.getProperty("text");
+            if(node.getProperty("back") == true) {
+                code = $('<a data-role="button" data-rel="back">' + text 
+                    + '</a>');
+            } else {
+                code = $('<a data-role="button">' + text + '</a>');
+            }
+
+            prop = node.getProperty("target");
+            if(prop !== "") {
+                code.attr("href", prop);
+            }
+            prop = node.getProperty("icon");
+            if(prop !== "none") {
+                code.attr("data-icon", prop);
+            }
+            prop = node.getProperty("iconpos");
+            if(prop !== "left") {
+                code.attr("data-iconpos", prop);
+            }
+            prop = node.getProperty("theme");
+            if(prop !== "default") {
+                code.attr("data-theme", prop);
+            }
+            prop = node.getProperty("inline");
+            if(prop != false) {
+                code.attr("data-inline", prop);
+            }
+            prop = node.getProperty("transition");
+            if(prop !== "slide") {
+                code.attr("data-transition", prop);
+            }
+            return code;
+        }
     },
 
     /**
