@@ -165,6 +165,7 @@
         },
         _renderPageNode: function (domNode, node) {
             if (node.getType() === "Page") {
+                domNode.addClass('nrc-sortable-container');
                 //set page id
                 var id = node.getProperty('id'),
                     titleNode = domNode.find("> a > .pageTitle");
@@ -191,9 +192,160 @@
                         .insertBefore(domNode).data('adm-node', parentNode);
             }
             this._renderPageNode(domNode, data);
+            $(domNode).addClass('adm-node');
+            //attach UID to domNode
+            $(domNode).attr('data-uid', data.getUid());
+            // If this node is a "container", make sure it's class reflects this
+            if (data.isContainer() || data.getType() === 'Header') {
+                $(domNode).addClass('nrc-sortable-container');
+                if (data.getChildrenCount() === 0) {
+                    $(domNode).addClass('empty');
+                } else {
+                    $(domNode).removeClass('empty')
+                }
+            }
         },
         _nodeSelected: function (treeModelNode, data) {
             this.options.model.setSelected(data.getUid());
-        }
+        },
+        refresh: function(event, widget) {
+            var targets, debug = (window.top.$.rib && window.top.$.rib.debug()),
+                widget = widget || this;
+            // Chain up to base class refresh()
+            $.rib.treeView.prototype.refresh.apply(this, arguments);
+            targets =  widget.element.find(".adm-node", this).andSelf();
+            targets.sortable({
+                    distance: 1,
+                    forceHelperSize: true,
+                    forcePlaceholderSize: true,
+                    placeholder: 'ui-state-highlight',
+                    appendTo: 'parent',
+                    helper: 'clone',
+                    connectWith: '.nrc-sortable-container',
+                    cancel: '> :not(.adm-node)',
+                    items: '.adm-node',
+                    tolerance: 'pointer',
+                    sort: function(event, ui){
+                        // Workaround a jQuery UI bug which doesn't take scrollTop
+                        // into accounting when checking if mouse is near top or
+                        // bottom of the sortable
+                        var s = $(this).data('sortable'), sP = s.scrollParent;
+                        if(sP[0] != document && sP[0].tagName != 'HTML') {
+                            s.overflowOffset.top = sP.offset().top+sP[0].scrollTop;
+                            // Hackish solution to cheat jquery UI so that
+                            // horizontal scroll will never happen. Note that we
+                            // can't use axis:'x' to solve the problem, as it
+                            // tolltaly forbid horizontal moving, which will cause
+                            // some problems, e.g, moving widgets to right blocks
+                            // of Grid will be impossible
+                            s.overflowOffset.left = sP.offsetWidth/2
+                                - s.options.scrollSensitivity;
+                        }
+
+                        targets.removeClass('ui-state-active');
+                        // The highlighted container should always be where the
+                        // placeholder is located
+                        ui.placeholder.closest('.nrc-sortable-container')
+                            .addClass('ui-state-active');
+                    },
+                    over: function(event, ui){
+                        if (ui && ui.placeholder) {
+                            var s = ui.placeholder.siblings('.adm-node:visible'),
+                                p = ui.placeholder.parent();
+                            if (p.hasClass('ui-content')) {
+                                ui.placeholder.css('width', p.width());
+                            } else if (p.hasClass('ui-header')) {
+                                if (s.length && s.eq(0).width()) {
+                                    ui.placeholder.css('width', s.eq(0).width());
+                                    ui.placeholder.css('display',
+                                            s.eq(0).css('display'));
+                                } else {
+                                    ui.placeholder.css('width', '128px');
+                                }
+                            } else if (s.length && s.eq(0).width()) {
+                                ui.placeholder.css('width', s.eq(0).width());
+                                ui.placeholder.css('display',
+                                        s.eq(0).css('display'));
+                            } else {
+                                ui.placeholder.css('width', p.width());
+                            }
+                        }
+                    },
+                    stop: function(event, ui) {
+                        var node = null,
+                            adm = window.parent.ADM,
+                            bw = window.parent.BWidget,
+                            root = adm.getDesignRoot(),
+                            node, zones, newParent, newZone,
+                            idx, cid, pid, card, type;
+                        $(this).removeClass('ui-state-active');
+                        if (!ui.item) return;
+                        idx = ui.item.parent().children('.adm-node')
+                              .index(ui.item);
+                        cid = ui.item.attr('data-uid');
+                        // closest() will select current element if it matches
+                        // the selector, so we start with its parent.
+                        pid = ui.item.parent()
+                            .closest('.adm-node.ui-sortable')
+                            .attr('data-uid');
+                        if (!pid) {
+                            //set design root as the parent of page
+                            pid = root.getUid();
+                        }
+                        node = cid && root.findNodeByUid(cid);
+                        type = node.getType();
+                        newParent = pid && root.findNodeByUid(pid);
+                        if (newParent && newParent.getType() === 'Page' &&
+                            type !== 'Header' && type !== 'Footer') {
+                            if (newParent.getZoneArray('top')[0]) {
+                                idx = idx -1;
+                            }
+                            newParent = newParent.getZoneArray('content')[0];
+                        }
+                        zones = newParent && bw.getZones(newParent.getType());
+                        card = newParent && zones &&
+                            bw.getZoneCardinality(newParent.getType(),
+                                    zones[0]);
+
+                        if ((zones && zones.length===1 && card !== '1')) {
+                            if (!node ||
+                                    !adm.moveNode(node, newParent, zones[0],
+                                        idx)) {
+                                console.warn('Move node failed');
+                                ui.item.remove();
+                                return false;
+                            } else {
+                                debug && console.log('Moved node');
+                                if (node) adm.setSelected(node.getUid());
+                                widget.refresh();
+                            }
+                        } else if (node && newParent &&
+                                (newParent.getType() === 'Header' ||
+                                 newParent.getType() === 'Page')) {
+                            for (var z=0; z < zones.length; z++) {
+                                if (adm.moveNode(node, newParent, zones[z],
+                                            0, true)) {
+                                    newZone = zones[z];
+                                    break;
+                                }
+                            }
+                            if (newZone) {
+                                adm.moveNode(node, newParent, newZone, 0);
+                                debug && console.log('Moved node');
+                                if (node) adm.setSelected(node.getUid());
+                                widget.refresh();
+                            } else {
+                                console.warn('Move node failed');
+                                ui.item.remove();
+                                return false;
+                            }
+                        } else {
+                            console.warn('Move node failed: invalid zone');
+                            ui.item.remove();
+                            return false;
+                        }
+                    },
+                });
+        },
     });
 })(jQuery);
