@@ -629,7 +629,7 @@ var BWidgetRegistry = {
         template: '<img/>',
         properties: {
             src: {
-                type: "string",
+                type: "url-upload",
                 defaultValue: "src/css/images/widgets/tizen_image.svg",
                 htmlAttribute: "src",
                 forceAttribute: true
