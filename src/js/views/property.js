@@ -12,37 +12,20 @@
 
 (function($, undefined) {
 
-    $.widget('rib.propertyView', {
-
-        options: {
-            model: null,
-        },
+    $.widget('rib.propertyView', $.rib.baseView, {
 
         _create: function() {
             var o = this.options,
                 e = this.element;
 
-            o.designReset = this._designResetHandler;
-            o.selectionChanged = this._selectionChangedHandler;
-            o.activePageChanged = this._activePageChangedHandler;
-            o.modelUpdated = this._modelUpdatedHandler;
-
-            // FIXME: This should work, but $.extend of options seems to be
-            //        creating a copy of the ADM, which will not containt the
-            //        same nodes and events as the master
-            //o.model = o.model || ADM || undefined;
-            if (o.model) {
-                this._bindADMEvents(o.model);
-            }
+            // Chain up to base class _create()
+            $.rib.baseView.prototype._create.call(this);
 
             this.element
-                .addClass(this.widgetName)
                 .append('<div/>')
                 .children(':last')
                 .addClass('property_content');
 
-            this.options.primaryTools = this._createPrimaryTools();
-            this.options.secondaryTools = this._createSecondaryTools();
             $(window).resize(this, function(event) {
                 var el = event.data.element;
                 if (el.parent().height() == 0)
@@ -57,18 +40,17 @@
                 el.height(newHeight);
             });
 
-            this.refresh(null, this);
-
             return this;
         },
 
         _setOption: function(key, value) {
+            // Chain up to base class _setOptions()
+            // FIXME: In jquery UI 1.9 and above, instead use
+            //    this._super('_setOption', key, value)
+            $.rib.baseView.prototype._setOption.apply(this, arguments);
+
             switch (key) {
-                // Should this REALLY be done here, or plugin registration in
-                // the "host"... using the functions mapped in widget options?
                 case 'model':
-                    this._unbindADMEvents();
-                    this._bindADMEvents(value);
                     this.refresh(null, this);
                     break;
                 default:
@@ -76,22 +58,16 @@
             }
         },
 
-        destroy: function() {
-            // TODO: unbind any ADM event handlers
-            $(this.element).find('.'+this.widgetName).remove();
-            this.options.primaryTools.remove();
-            this.options.secondaryTools.remove();
-        },
-
         refresh: function(event, widget) {
+            var node;
             widget = widget || this;
             if (event) {
                 if (event.node && !(event.name === "modelUpdated" &&
                     event.type === "nodeRemoved")) {
-                    widget._showProperties(event);
+                    widget._showProperties(event.node);
                 } else {
-                    event.node = ADM.getActivePage();
-                    widget._showProperties(event);
+                    node = ADM.getActivePage();
+                    widget._showProperties(node);
                 }
             }
         },
@@ -103,84 +79,6 @@
 
         _createSecondaryTools: function() {
             return $(null);
-        },
-
-        _bindADMEvents: function(a) {
-            var o = this.options,
-                d = this.designRoot;
-
-            if (a) {
-                o.model = a;
-
-                if (o.designReset) {
-                    a.bind("designReset", o.designReset, this);
-                }
-                if (o.selectionChanged) {
-                    a.bind("selectionChanged", o.selectionChanged, this);
-                }
-                if (o.activePageChanged) {
-                    a.bind("activePageChanged", o.activePageChanged, this);
-                }
-
-                // Since model changed, need to call our designReset hander
-                // to sync up the ADMDesign modelUpdated event handler
-                if (o.designReset) {
-                    o.designReset({design: a.getDesignRoot()}, this);
-                }
-            }
-        },
-
-        _unbindADMEvents: function() {
-            var o = this.options,
-                a = this.options.model,
-                d = this.designRoot;
-
-            // First unbind our ADMDesign modelUpdated handler, if any...
-            if (d && o.modelUpdated) {
-                d.designRoot.unbind("modelUpdated", o.modelUpdated, this);
-            }
-
-            // Now unbind all ADM model event handlers, if any...
-            if (a) {
-                if (o.designReset) {
-                    a.unbind("designReset", o.designReset, this);
-                }
-                if (o.selectionChanged) {
-                    a.unbind("selectionChanged", o.selectionChanged, this);
-                }
-                if (o.activePageChanged) {
-                    a.unbind("activePageChanged", o.activePageChanged, this);
-                }
-            }
-        },
-
-        _designResetHandler: function(event, widget) {
-            var d = event && event.design, o;
-
-            widget = widget || this;
-            o = widget.options;
-            d = d || o.model.getDesignRoot();
-
-            // Do nothing if the new ADMDesign equals our currently cached one
-            if (d === widget.designRoot) {
-                return;
-            }
-
-            // First, unbind existing modelUpdated hander, if any...
-            if (widget.designRoot && o.modelUpdated) {
-                widget.designRoot.unbind("modelUpdated", o.modelUpdated,widget);
-            }
-
-            // Next, bind to modelUpdated events from new ADMDesign, if any...
-            if (d && o.modelUpdated) {
-                d.bind("modelUpdated", o.modelUpdated, widget);
-            }
-
-            // Then, cache the new ADMDesign reference with this instance
-            widget.designRoot = d;
-
-            // Finally, redraw our view since the ADMDesign root has changed
-            widget.refresh(event, widget);
         },
 
         _selectionChangedHandler: function(event, widget) {
@@ -201,19 +99,19 @@
             widget.refresh(event,widget);
         },
 
-        _showProperties: function(event) {
-            var node = event.node,
-                labelId, labelVal, valueId, valueVal, count,
+        _showProperties: function(node) {
+            var labelId, labelVal, valueId, valueVal, count,
                 widget = this, type,  i, child, index, propType,
                 p, props, options, code, o, propertyItems, label, value,
                 title = this.element.parent().find('.property_title'),
-                content = this.element.find('.property_content');
+                content = this.element.find('.property_content'),
+                continueToDelete;
 
             // Clear the properties pane when nothing is selected
             if (node === null || node === undefined) {
                 node = ADM.getActivePage();
                 if (node === null || node === undefined) {
-                    $('#property_content').empty()
+                    content.empty()
                         .append('<label>Nothing Selected</label>');
                     return;
                 }
@@ -225,19 +123,14 @@
                 .children(':first')
                     .addClass('title')
                     .text(BWidget.getDisplayLabel(type)+' Properties');
-            content.empty()
-                .append('<div class="propertyItems"></div>');
-            propertyItems = content.find('div')
-                .addClass("propertyItems");
+            content.empty();
+            propertyItems = $('<div/>').addClass("propertyItems")
+                                    .appendTo(content);
             props = node.getProperties();
             options = node.getPropertyOptions();
             // iterate property of node
             for (p in props) {
-                labelVal = p.replace(/_/g,'-');
-                labelVal = labelVal.charAt(0).toUpperCase()+labelVal.substring(1);
-                if (labelVal === "Id") {
-                    labelVal = labelVal.toUpperCase(); 
-                }
+                labelVal = node.getPropertyDisplayName(p);
                 valueId = p+'-value';
                 valueVal = props[p];
                 propType = BWidget.getPropertyType(type, p);
@@ -255,9 +148,16 @@
                             .attr('id', valueId)
                             .appendTo(value);
 
+                        // FIXME: Boolean values should be actual booleans, not
+                        // "true" and "false" strings; but because of bugs we
+                        // had previously, data files were written out with the
+                        // wrong values, so the following test helps them keep
+                        // working correctly. Someday, we should remove it.
+
                         // initial value of checkbox
-                        if (node.getProperty (p) === true) {
-                            $("#" + valueId).attr("checked", true);
+                        if ((node.getProperty (p) === true) ||
+                            (node.getProperty (p) === "true")) {
+                            value.find("#" + valueId).attr("checked", "checked");
                         }
                         break;
                     case "record-array":
@@ -297,11 +197,11 @@
                                         .addClass('title optionInput')
                                         .change(node, function (event) {
                                             index = $(this).parent().parent().data('index');
-                                            props[p].children[index].text = $(this).val();
+                                            props['options'].children[index].text = $(this).val();
                                             node.fireEvent("modelUpdated",
                                                 {type: "propertyChanged",
                                                  node: node,
-                                                 property: p});
+                                                 property: 'options'});
                                         })
                                         .end().end()
                                     .end().end()
@@ -313,11 +213,11 @@
                                         .addClass('title optionInput')
                                         .change(node, function (event) {
                                             index = $(this).parent().parent().data('index');
-                                            props[p].children[index].value = $(this).val();
+                                            props['options'].children[index].value = $(this).val();
                                             node.fireEvent("modelUpdated",
                                                 {type: "propertyChanged",
                                                  node: node,
-                                                 property: p});
+                                                 property: 'options'});
                                         })
                                         .end().end()
                                     .end().end()
@@ -330,11 +230,11 @@
                                         .click(function(e) {
                                             try {
                                                 index = $(this).parent().parent().data('index');
-                                                props[p].children.splice(index, 1);
+                                                props['options'].children.splice(index, 1);
                                                 node.fireEvent("modelUpdated",
                                                     {type: "propertyChanged",
                                                         node: node,
-                                                    property: p});
+                                                    property: 'options'});
                                             }
                                             catch (err) {
                                                 console.error(err.message);
@@ -360,11 +260,11 @@
                                     var optionItem = {};
                                     optionItem.text = "Option";
                                     optionItem.value = "Value";
-                                    props[p].children.push(optionItem);
+                                    props['options'].children.push(optionItem);
                                     node.fireEvent("modelUpdated",
                                                   {type: "propertyChanged",
                                                    node: node,
-                                                   property: p});
+                                                   property: 'options'});
                                 }
                                 catch (err) {
                                     console.error(err.message);
@@ -384,13 +284,13 @@
                             stop: function(event, ui) {
                                 var optionItem, curIndex = ui.item.index() - 1,
                                     origIndex = widget.origRowIndex;
-                                    optionItem = props[p].children.splice(origIndex,1)[0];
+                                    optionItem = props['options'].children.splice(origIndex,1)[0];
 
-                                props[p].children.splice(curIndex, 0, optionItem);
+                                props['options'].children.splice(curIndex, 0, optionItem);
                                 node.fireEvent("modelUpdated",
                                               {type: "propertyChanged",
                                                node: node,
-                                               property: p});
+                                               property: 'options'});
                             },
                         });
                         break;
@@ -422,7 +322,7 @@
 
                 content.find('#' + valueId)
                     .change(node, function (event) {
-                        var updated, node, element, type, value;
+                        var updated, node, element, type, value, ret;
                         updated = event.target.id.replace(/-value/,''),
                         node = event.data;
 
@@ -432,7 +332,10 @@
                         }
                         value = validValue($(this),
                             BWidget.getPropertyType(node.getType(), updated));
-                        ADM.setProperty(node, updated, value);
+                        ret = ADM.setProperty(node, updated, value);
+                        if(ret.result === false) {
+                            $(this).val(node.getProperty(updated));
+                        }
                         event.stopPropagation();
                         return false;
                     });
@@ -447,13 +350,17 @@
                 .end()
                 .appendTo(content);
             content.find('#deleteElement')
-                .one('click', function (e) {
+                .bind('click', function (e) {
                     var parent, zone, index;
                     try {
                         index = node.getZoneIndex();
                         parent = node.getParent();
                         zone = parent.getZoneArray(node.getZone());
                         if (type === "Page") {
+                            continueToDelete = confirm("Are you sure you want to delete the page?");
+                            if(!continueToDelete) {
+                                return false;
+                            }
                             $.rib.pageUtils.deletePage(node.getUid(), false);
                         } else {
                             ADM.removeChild(node.getUid(), false);

@@ -13,6 +13,15 @@ var ADMEvent = {
     _lastEventId: 0
 };
 
+var ADMEventQueue = [];
+
+ADMEventQueue.processEvents = function () {
+    var queuedEvent = ADMEventQueue.shift();
+    if (queuedEvent) {
+        queuedEvent.handler(queuedEvent.event, queuedEvent.data);
+    }
+}
+
 /**
  * Base class for objects that support sending ADM events.
  *
@@ -120,7 +129,12 @@ var ADMEventSource = {
 
         length = listeners.length;
         for (i = 0; i < length; i++) {
-            listeners[i].handler(event, listeners[i].data);
+            ADMEventQueue.push({
+                handler: listeners[i].handler,
+                event: event,
+                data: listeners[i].data
+            });
+            setTimeout("ADMEventQueue.processEvents()", 0);
         }
     },
 
@@ -1252,6 +1266,15 @@ ADMNode.prototype.getZoneArray = function (zoneName) {
 }
 
 /**
+ * Tests whether this node is allowed to be edited.
+ *
+ * @return {Object} if the node is allowed to be edited.
+ */
+ADMNode.prototype.isEditable = function () {
+    return BWidget.isEditable(this.getType());
+};
+
+/**
  * Returns whether this node is selected.
  *
  * @return {Boolean} True if this node is selected.
@@ -1815,6 +1838,13 @@ ADMNode.prototype.getProperties = function () {
     defaults = BWidget.getPropertyDefaults(this.getType());
     for (i in defaults) {
         if (defaults.hasOwnProperty(i)) {
+            var validIn = BWidget.getPropertySchema(this.getType(), i).validIn,
+                invalidIn =
+                    BWidget.getPropertySchema(this.getType(), i).invalidIn;
+            if (validIn && this.getParent().getType() !== validIn)
+                continue;
+            if (invalidIn && this.getParent().getType() === invalidIn)
+                continue;
             props[i] = this._properties[i];
             if (props[i] === undefined) {
                 props[i] = this.generateUniqueProperty(i);
@@ -1869,6 +1899,17 @@ ADMNode.prototype.getPropertyOptions = function (property) {
  */
 ADMNode.prototype.getPropertyDefault = function (property) {
     return BWidget.getPropertyDefault(this.getType(), property);
+};
+
+/**
+ * Gets the display name for the named property for this widget type.
+ *
+ * @param {String} property The name of the requested property.
+ * @return {String} The display name of the property, or the property instance
+ *                  name if the property has no the attribute.
+ */
+ADMNode.prototype.getPropertyDisplayName = function (property) {
+    return BWidget.getPropertyDisplayName(this.getType(), property);
 };
 
 /**
@@ -1936,6 +1977,11 @@ ADMNode.prototype.setProperty = function (property, value, data, raw) {
         var pattern = /^[a-zA-Z]([\w-]*)$/;
         if (value && !pattern.test(value)) {
             console.error("Error: attempted to set invalid id");
+            return rval;
+        }
+
+        if (value === "" && this._inheritance[0] === "Page") {
+            console.error("Error: page id cannot be null");
             return rval;
         }
     }

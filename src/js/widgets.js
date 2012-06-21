@@ -33,25 +33,22 @@
  *                     widget is attempted to be added to this widget, instead
  *                     add it to the given zone, inside the widget type
  *                     (first creating that widget if it doesn't exist)
- *  10)      newGroup: [DEPRECATED] boolean, indicating that this is the first
- *                     widget in a conceptual group of widgets (default: false),
- *                     this should go away soon in favor of a better system for
- *                     classifying/presenting widgets
- *  11)  newAccordion: [DEPRECATED] boolean, indicating that this is the first
- *                     widget within a new high-level widget set (default:
- *                     false), should go away soon (see newGroup above)
- *  12)  displayLabel: the name to be displayed to the user for this widget, if
+ *  10)  displayLabel: the name to be displayed to the user for this widget, if
  *                     different from the raw name (eventually this should be
  *                     overwritten by localized values)
- *  13)      delegate: [FIXME] something to do with which node in the generated
+ *  11)      delegate: [FIXME] something to do with which node in the generated
  *                     template is used for event handling (string or function)
- *  14)        events: [FIXME] something to do with handling events
- *  15)          init: function to be called after a new widget is created with
+ *  12)        events: [FIXME] something to do with handling events
+ *  13)          init: function to be called after a new widget is created with
  *                     default properties, e.g. when dragged onto the canvas
  *                     from the palette (i.e. Grid uses this to generate its
  *                     two default child Blocks)
- *  16)  outlineLabel: optional function(ADMNode) that returns a label to show
+ *  14)  outlineLabel: optional function(ADMNode) that returns a label to show
  *                     (intended even for widgets w/ showInPalette false)
+ *  15)      editable: optional object, containing an optional selector and a
+ *                     a required property name (see #3 above).  Existance of
+ *                     this object implies the textContent node of the
+ *                     resulting DOM element is editable in-line
  *
  * Each zone description in the array should be an object with:
  *   1) name identifying the zone point
@@ -61,6 +58,10 @@
  *   4) deny: string or array of string names of disallowed widgets
  *             (all others will be allowed)
  *   Only one of allow or deny should be set, if neither than all are allowed.
+ *   5) locator:  a selector used to find the html tag to append child node
+ *                 of this zone.
+ *   6) itemWrapper: an HTML tag used to wrapp a child node before appending
+ *                   to the zone
  *
  * The "properties" of each widget definition is an object, each property of
  * which names a property of the widget. These are objects with the following
@@ -70,7 +71,9 @@
  *   2)    defaultValue: optional default value for the property, of the type
  *                       specified above
  *   3)   htmlAttribute: optional string with an HTML attribute name that this
- *                       property should be written to
+ *                       property should be written to or an object that
+ *                       contains the name and value mapping of the HTML
+ *                       attribute
  *   4)  forceAttribute: if true, always write out the HTML attribute even when
  *                       it is equal to the default value (default: false)
  *   5)    htmlSelector: optional selector to find the DOM nodes on which to
@@ -98,6 +101,9 @@
  *                       guaranteed that if you see data X again, you will be
  *                       going from 3 to 5 rows, and can make sense of the
  *                       data.)
+ *   9)        validIn:  Parent widget in which this property is valid
+ *
+ *  10)      invalidIn:  Parent widget in which this property is not valid
  *
  * @class
  */
@@ -164,7 +170,7 @@ var BWidgetRegistry = {
                       value: 'src/js/template.js'
                     },
                     { designOnly: false,
-                      value: 'lib/jquery.mobile-1.0.js'
+                      value: 'lib/jquery.mobile-1.1.0.js'
                     },
                     { designOnly: false,
                       value: 'lib/web-ui-fw-libs.js'
@@ -178,10 +184,10 @@ var BWidgetRegistry = {
                 type: "array",
                 defaultValue: [
                     { designOnly: false,
-                      value: 'src/css/jquery.mobile.structure-1.0.css'
+                      value: 'src/css/jquery.mobile.structure-1.1.0.css'
                     },
                     { designOnly: false,
-                      value: 'src/css/jquery.mobile-1.0.css'
+                      value: 'src/css/jquery.mobile.theme-1.1.0.css'
                     },
                     { designOnly: false,
                       value: 'src/css/web-ui-fw-theme.css'
@@ -293,6 +299,10 @@ var BWidgetRegistry = {
         },
 
         moveable: false,
+        editable: {
+            selector: "h1",
+            propertyName: "text"
+        },
         properties: {
             text: {
                 type: "string",
@@ -323,7 +333,7 @@ var BWidgetRegistry = {
             {
                 name: "bottom",
                 cardinality: "1",
-                allow: "Navbar, OptionHeader"
+                allow: ["Navbar", "OptionHeader"]
             }
         ],
     },
@@ -360,6 +370,10 @@ var BWidgetRegistry = {
         },
 
         moveable: false,
+        editable: {
+            selector: "h1",
+            propertyName: "text"
+        },
         properties: {
             text: {
                 type: "string",
@@ -406,6 +420,116 @@ var BWidgetRegistry = {
         ],
     },
 
+    Navbar: {
+        parent: "Base",
+        template: '<div data-role="navbar"><ul/></div>',
+        paletteImageName: "jqm_navbar.svg",
+        dragHeader: true,
+        allowIn: [ "Header", "Footer" ],
+        zones: [
+            {
+                name: "default",
+                locator: 'ul',
+                itemWrapper: '<li/>',
+                cardinality: "N",
+                allow: "Button"
+
+            }
+        ],
+        properties: {
+            iconpos: {
+                type: "string",
+                options: [ "left", "top", "bottom", "right", "notext" ],
+                defaultValue: "top",
+                htmlAttribute: "data-iconpos",
+            }
+        },
+        init: function (node) {
+            // initial state is three buttons
+            var i;
+            for (i = 0; i < 3; i++) {
+                node.addChild(new ADMNode("Button"));
+            }
+        },
+        events: {
+            sortchange: function (e, ui) {
+                BWidget.getWidgetAttribute("Navbar", "rearrange")($(this),
+                    ui.placeholder, ui.placeholder.parent()
+                    .closest('.nrc-sortable-container')[0] !== this);
+            },
+            sortout: function (e, ui) {
+                BWidget.getWidgetAttribute("Navbar", "rearrange")
+                    ($(this), ui.placeholder, true);
+            },
+            sortover: function (e, ui) {
+                BWidget.getWidgetAttribute("Navbar", "rearrange")
+                    ($(this), ui.placeholder);
+            },
+        },
+        rearrange: function (sortable, placeholder, excludePlaceholder) {
+            var classes = ['a', 'b', 'c', 'd', 'e', 'solo'],
+                gridClasses = 'ui-grid-a ui-grid-b ui-grid-c ' +
+                              'ui-grid-d ui-grid-e ui-grid-solo',
+                blockClasses = 'ui-block-a ui-block-b ui-block-c ' +
+                               'ui-block-d ui-block-e ui-block-solo',
+                i = 0, j, pClass, blocks, zone;
+
+            if (sortable.is('.ui-navbar')){
+                zone = sortable.find('ul');
+                pClass = excludePlaceholder ? blockClasses : 'ui-block-a';
+                placeholder.toggleClass(pClass, !excludePlaceholder);
+                blocks = zone.children('[class*=ui-block-]:visible');
+                blocks.each( function () {
+                    if (blocks.length > 5) i = i % 2;
+                    $(this).toggleClass(blockClasses, false)
+                           .toggleClass('ui-block-'+classes[i++], true);
+                });
+                j = (blocks.length>5) ? 0 : (i-2 < 0) ? 5 : i-2;
+                zone.toggleClass(gridClasses, false)
+                    .toggleClass('ui-grid-'+classes[j]);
+            }
+        }
+    },
+
+    /**
+     * Represents simple text in the layout, possibly wrapped with a tag like
+     * <h1> ... <h6>, <p>, <em>, etc.
+     */
+    Text: {
+        parent: "Base",
+        paletteImageName: "jqm_text.svg",
+        template: function(node) {
+            var type, code;
+
+            type = node.getProperty("type");
+            code = $('<' + type + '>');
+
+            // FIXME: including a space here because the beautify script
+            // adds whitespace between adjacent inline tags; this forces the
+            // layout canvas to match the preview, and we just lose the ability
+            // to have adjacent text sections without whitespace
+            code.text(node.getProperty("text") + ' ');
+
+            return BWidgetRegistry.Base.applyProperties(node, code);
+        },
+        properties: {
+            text: {
+                type: "string",
+                defaultValue: "Text"
+            },
+            type: {
+                type: "string",
+                options: [ "span", "h1", "h2", "h3", "h4", "h5", "h6",
+                           "label", "p", "em", "strong" ],
+                defaultValue: "span"
+            }
+        },
+        editable: {
+            selector: "",
+            propertyName: "text"
+        }
+    },
+
     /**
      * Represents a Control Group object. Includes an "data-type" property
      * that should be "vertical" or "horizontal"
@@ -415,7 +539,6 @@ var BWidgetRegistry = {
         dragHeader: true,
         paletteImageName: "jqm_vertical_button_group.svg",
         template: '<div data-role="controlgroup"></div>',
-        newGroup: true,
         displayLabel: "Button Group",
         zones: [
             {
@@ -449,6 +572,10 @@ var BWidgetRegistry = {
     Button: {
         parent: "Base",
         paletteImageName: "jqm_button.svg",
+        editable: {
+            selector: "span > .ui-btn-text",
+            propertyName: "text"
+        },
         properties: {
             text: {
                 type: "string",
@@ -458,6 +585,13 @@ var BWidgetRegistry = {
                 type: "string",
                 defaultValue: "",
                 htmlAttribute: "href"
+            },
+            opentargetas : {
+                type: "string",
+                displayName: "open target as",
+                options: ["page", "dialog"],
+                defaultValue: "page",
+                htmlAttribute: "data-rel"
             },
             icon: {
                 type: "string",
@@ -472,7 +606,19 @@ var BWidgetRegistry = {
                 type: "string",
                 options: [ "left", "top", "bottom", "right", "notext" ],
                 defaultValue: "left",
-                htmlAttribute: "data-iconpos"
+                htmlAttribute: "data-iconpos",
+                invalidIn: "Navbar"
+            },
+            active: {
+                type: "boolean",
+                defaultValue: false,
+                htmlAttribute: {
+                    name: "class",
+                    value: {
+                        true: "ui-btn-active",
+                        false: ""
+                    }
+                }
             },
             theme: {
                 type: "string",
@@ -482,14 +628,26 @@ var BWidgetRegistry = {
             },
             inline: {
                 type: "boolean",
-                defaultValue: "false",
-                htmlAttribute: "data-inline"
+                defaultValue: false,
+                htmlAttribute: "data-inline",
+                invalidIn: "Navbar"
             },
             transition: {
                 type: "string",
                 options: [ "slide", "slideup", "slidedown", "pop", "fade", "flip" ],
                 defaultValue: "slide",
                 htmlAttribute: "data-transition"
+            },
+            back: {
+                type: "boolean",
+                defaultValue: false,
+                htmlAttribute: {
+                    name: "data-rel",
+                    value: {
+                        true: "back",
+                        false: ""
+                    }
+                }
             }
         },
         template: '<a data-role="button">%TEXT%</a>'
@@ -509,7 +667,6 @@ var BWidgetRegistry = {
         dragHeader: true,
         paletteImageName: "jqm_form.svg",
         template: '<form></form>',
-        newGroup: true,
         zones: [
             {
                 name: "default",
@@ -564,6 +721,10 @@ var BWidgetRegistry = {
                 type: "integer",
                 defaultValue: 100
             },
+            step: {
+                type: "integer",
+                defaultValue: 1
+            },
             theme: {
                 type: "string",
                 options: [ "default", "a", "b", "c", "d", "e" ],
@@ -574,7 +735,15 @@ var BWidgetRegistry = {
                 type: "string",
                 options: [ "default", "a", "b", "c", "d", "e" ],
                 defaultValue: "default"
+            },
+            disabled: {
+                type: "boolean",
+                defaultValue: false
             }
+        },
+        editable: {
+            selector: "label",
+            propertyName: "label"
         },
         template: function (node) {
             var label, idstr, prop, input,
@@ -584,16 +753,12 @@ var BWidgetRegistry = {
             idstr = prop + "-range";
 
             label = node.getProperty("label");
-            if (label) {
-                code.append($('<label for="$1">$2</label>'
-                              .replace(/\$1/, idstr)
-                              .replace(/\$2/, label)));
-            }
+            code.append($('<label for="$1">$2</label>'
+                          .replace(/\$1/, idstr)
+                          .replace(/\$2/, label||"")));
 
             input = $('<input type="range">');
-            if (label) {
-                input.attr("id", idstr);
-            }
+            input.attr("id", idstr);
 
             prop = node.getProperty("value");
             input.attr("value", prop);
@@ -603,6 +768,9 @@ var BWidgetRegistry = {
 
             prop = node.getProperty("max");
             input.attr("max", prop);
+
+            prop = node.getProperty("step");
+            input.attr("step", prop);
 
             prop = node.getProperty("theme");
             if (prop !== "default") {
@@ -614,27 +782,14 @@ var BWidgetRegistry = {
                 input.attr("data-track-theme", prop);
             }
 
+            prop = node.getProperty("disabled");
+            if (prop == true) {
+                input.attr("disabled", "disabled");
+            }
+
             code.append(input);
             return code;
         }
-    },
-
-    /**
-     * Represents a text label. A "text" string property holds the text.
-     */
-    Label: {
-        // FIXME: I'm not sure we should really have this. Instead we make
-        //        label text a property of other form elements and the
-        //        <label> part of their templates.
-        parent: "Base",
-        paletteImageName: "jqm_label.svg",
-        properties: {
-            text: {
-                type: "string",
-                defaultValue: "Label"
-            }
-        },
-        template: '<label>%TEXT%</label>',
     },
 
     /**
@@ -644,27 +799,54 @@ var BWidgetRegistry = {
         parent: "Base",
         displayLabel: "Text Input",
         paletteImageName: "jqm_text_input.svg",
+        editable: {
+            selector: "",
+            propertyName: "value"
+        },
         properties: {
+            id: {
+                type: "string",
+                htmlSelector: "input",
+                htmlAttribute: "id",
+                autoGenerate: "text"
+            },
+            name: {
+                type: "string",
+                htmlSelector: "input",
+                htmlAttribute: "name"
+            },
             hint: {
                 type: "string",
                 defaultValue: "",
+                htmlSelector: "input",
                 htmlAttribute: "placeholder"
             },
             theme: {
                 type: "string",
                 options: [ "default", "a", "b", "c", "d", "e" ],
                 defaultValue: "default",
+                htmlSelector: "input",
                 htmlAttribute: "data-theme"
+            },
+            label: {
+                type: "string",
+                defaultValue: "Label"
             },
             value: {
                 // FIXME: Probably value should be removed, setting initial
                 //        static text is not a common thing to do
                 type: "string",
                 defaultValue: "",
+                htmlSelector: "input",
                 htmlAttribute: "value"
+            },
+            disabled: {
+                type: "boolean",
+                defaultValue: false,
+                htmlAttribute: "disabled"
             }
         },
-        template: '<input type="text">',
+        template: '<div data-role="fieldcontain"><label for="%ID%">%LABEL%</label><input type="text"/></div>',
     },
 
     /**
@@ -676,6 +858,10 @@ var BWidgetRegistry = {
         parent: "Base",
         displayLabel: "Text Area",
         paletteImageName: "jqm_text_area.svg",
+        editable: {
+            selector: "",
+            propertyName: "value"
+        },
         properties: {
             hint: {
                 type: "string",
@@ -693,6 +879,11 @@ var BWidgetRegistry = {
                 //        static text is not a common thing to do
                 type: "string",
                 defaultValue: "",
+            },
+            disabled: {
+                type: "boolean",
+                defaultValue: false,
+                htmlAttribute: "disabled"
             }
         },
         template: '<textarea>%VALUE%</textarea>'
@@ -727,6 +918,11 @@ var BWidgetRegistry = {
                 options: [ "default", "a", "b", "c", "d", "e" ],
                 defaultValue: "default",
                 htmlAttribute: "data-theme"
+            },
+            disabled: {
+                type: "boolean",
+                defaultValue: false,
+                htmlAttribute: "disabled"
             }
         },
         template: '<select data-role="slider"><option value="%VALUE1%">%LABEL1%</option><option value="%VALUE2%">%LABEL2%</option></select>',
@@ -741,13 +937,25 @@ var BWidgetRegistry = {
         parent: "Base",
         paletteImageName: "jqm_select.svg",
         template: function(node) {
-            var prop, length, i, child,
+            var prop, code, length, i, child;
             code = $('<select></select>');
+
+            code.attr('data-native-menu', false);
+
+            if(node.getProperty("disabled")) {
+                code.attr('disabled', true);
+            }
+
+            if(node.getProperty("multiple")) {
+                code.attr('multiple', true);
+                code.append('<option>'+node.getProperty("label")+'</option>');
+            }
+
             prop = node.getProperty("options");
             length = prop.children.length;
             for (i = 0; i< length; i++) {
                 child = prop.children[i];
-                $('<option value="' + child.value + '">'+ child.text + '</option>')
+                $('<option value="' +child.value+ '">' +child.text+ '</option>')
                     .appendTo(code);
             }
             return code;
@@ -764,9 +972,17 @@ var BWidgetRegistry = {
                 prop.children.push(optionItem);
             }
         },
-        newGroup: true,
         displayLabel: "Select Menu",
         properties: {
+            label: {
+                type: "string",
+                defaultValue: "Choose option",
+            },
+            multiple: {
+                type: "boolean",
+                defaultValue: false,
+                displayName: "multiple select",
+            },
             options: {
                  type: "record-array",
                  sortable: true,
@@ -784,7 +1000,11 @@ var BWidgetRegistry = {
                      },
                      children : []
                  }
-             }
+            },
+            disabled: {
+                type: "boolean",
+                defaultValue: false
+            }
         },
         zones: [
             {
@@ -793,8 +1013,9 @@ var BWidgetRegistry = {
                 allow: [ "Option" ]
             }
         ],
-        //jQM generates two levels of divs for a select, the topmost one is what is clicked.
-        delegate: "grandparent",
+        delegate: function (domNode, admNode) {
+            return $(domNode).parent();
+        },
         events: {
             mousedown: function (e) {
                 e.preventDefault();
@@ -834,7 +1055,6 @@ var BWidgetRegistry = {
     RadioGroup: {
         parent: "ButtonGroup",
         dragHeader: true,
-        newGroup: true,
         displayLabel: "Radio Group",
         paletteImageName: "jqm_radio_group.svg",
         properties: {
@@ -881,13 +1101,16 @@ var BWidgetRegistry = {
         displayLabel: "Radio Button",
         paletteImageName: "jqm_radio_button.svg",
         allowIn: "RadioGroup",
+        editable: {
+            selector: "span > .ui-btn-text",
+            propertyName: "label"
+        },
         properties: {
             // FIXME: All the radio buttons in a group need to have a common
             //        "name" field in order to work correctly
             id: {
                 type: "string",
-                autoGenerate: "radio",
-                htmlAttribute: "id"
+                autoGenerate: "radio"
             },
             label: {
                 type: "string",
@@ -895,26 +1118,32 @@ var BWidgetRegistry = {
             },
             value: {
                 type: "string",
-                defaultValue: "",
-                htmlAttribute: "value"
+                defaultValue: ""
             },
             checked: {
                 type: "string",
                 options: [ "not checked", "checked" ],
-                defaultValue: "not checked",
-                htmlAttribute: "checked"
+                defaultValue: "not checked"
             },
             theme: {
                 type: "string",
                 options: [ "default", "a", "b", "c", "d", "e" ],
-                defaultValue: "default",
-                htmlAttribute: "data-theme"
+                defaultValue: "default"
+            },
+            disabled: {
+                type: "boolean",
+                defaultValue: false
             }
         },
         delegate: 'parent',
         template: function (node) {
             //var prop, code = $('<div data-role="header"><h1></h1></div>');
-            var prop, label, code = $('<input type="radio"><label></label>');
+            var prop, label, code;
+
+            code = $('<input type="radio"><label/>');
+            if (node.getProperty("disabled")) {
+                code.attr("disabled", "disabled");
+            }
 
             // always include id property on input
             code.filter('input').attr("id", node.getProperty("id"));
@@ -964,7 +1193,6 @@ var BWidgetRegistry = {
     CheckboxGroup: {
         parent: "ButtonGroup",
         dragHeader: true,
-        newGroup: true,
         displayLabel: "Checkbox Group",
         paletteImageName: "jqm_checkbox_group.svg",
         properties: {
@@ -1005,6 +1233,10 @@ var BWidgetRegistry = {
     Checkbox: {
         parent: "Base",
         paletteImageName: "jqm_checkbox.svg",
+        editable: {
+            selector: "span > .ui-btn-text",
+            propertyName: "label"
+        },
         properties: {
             id: {
                 type: "string",
@@ -1031,6 +1263,11 @@ var BWidgetRegistry = {
                 options: [ "default", "a", "b", "c", "d", "e" ],
                 defaultValue: "default",
                 htmlAttribute: "data-theme"
+            },
+            disabled: {
+                type: "boolean",
+                defaultValue: false,
+                htmlAttribute: "disabled"
             }
         },
         template: '<input type="checkbox"><label for="%ID%">%LABEL%</label>',
@@ -1044,11 +1281,10 @@ var BWidgetRegistry = {
         parent: "Base",
         paletteImageName: "jqm_list.svg",
         dragHeader: true,
-        newGroup: true,
         properties: {
             inset: {
                 type: "boolean",
-                defaultValue: "true",
+                defaultValue: true,
                 htmlAttribute: "data-inset",
                 // because data-inset="false" is the real default, do this:
                 forceAttribute: true
@@ -1058,7 +1294,7 @@ var BWidgetRegistry = {
             },
             filter: {
                 type: "boolean",
-                defaultValue: "false",
+                defaultValue: false,
                 htmlAttribute: "data-filter"
             },
             theme: {
@@ -1096,7 +1332,7 @@ var BWidgetRegistry = {
         properties: {
             inset: {
                 type: "boolean",
-                defaultValue: "true",
+                defaultValue: true,
                 htmlAttribute: "data-inset",
                 // because data-inset="false" is the real default, do this:
                 forceAttribute: true
@@ -1106,7 +1342,7 @@ var BWidgetRegistry = {
             },
             filter: {
                 type: "boolean",
-                defaultValue: "false",
+                defaultValue: false,
                 htmlAttribute: "data-filter"
             },
             theme: {
@@ -1141,6 +1377,10 @@ var BWidgetRegistry = {
         displayLabel: "List Item",
         paletteImageName: "jqm_list_item.svg",
         allowIn: [ "List", "OrderedList" ],
+        editable: {
+            selector: "",
+            propertyName: "text"
+        },
         properties: {
             text: {
                 type: "string",
@@ -1164,6 +1404,10 @@ var BWidgetRegistry = {
         displayLabel: "List Divider",
         paletteImageName: "jqm_list_divider.svg",
         allowIn: [ "List", "OrderedList" ],
+        editable: {
+            selector: "",
+            propertyName: "text"
+        },
         properties: {
             text: {
                 type: "string",
@@ -1187,6 +1431,10 @@ var BWidgetRegistry = {
         displayLabel: "List Button",
         paletteImageName: "jqm_list_button.svg",
         allowIn: [ "List", "OrderedList" ],
+        editable: {
+            selector: "a",
+            propertyName: "text"
+        },
         properties: {
             text: {
                 type: "string",
@@ -1212,9 +1460,30 @@ var BWidgetRegistry = {
                 options: [ "default", "a", "b", "c", "d", "e" ],
                 defaultValue: "default",
                 htmlAttribute: "data-theme"
+            },
+            countbubble: {
+                type: "string",
+                displayName: "count bubble",
+                defaultValue: ""
             }
         },
-        template: '<li><a>%TEXT%</a></li>'
+        template: function (node) {
+            var prop, countBubble, code = $('<li><a></a></li>');
+            var container = code.find('a');
+            container
+                .html(node.getProperty("text"))
+                .attr('href', node.getProperty("target"));
+            prop = node.getProperty("countbubble");
+            // Add the count bubble if countbubble property is not blank
+            if (prop.trim() != '') {
+                countBubble = $('<span>')
+                    .attr('class', 'ui-li-count')
+                    .html(prop);
+                container.append(countBubble);
+            };
+            return code;
+        }
+        
     },
 
     /**
@@ -1224,7 +1493,6 @@ var BWidgetRegistry = {
         parent: "Base",
         dragHeader: true,
         paletteImageName: "jqm_grid.svg",
-        newGroup: true,
         properties: {
             rows: {
                 type: "integer",
@@ -1447,7 +1715,10 @@ var BWidgetRegistry = {
         parent: "Base",
         paletteImageName: "jqm_collapsible.svg",
         template: '<div data-role="collapsible"><h1>%HEADING%</h1></div>',
-        newGroup: true,
+        editable: {
+            selector: "span.ui-btn-text",
+            propertyName: "heading"
+        },
         properties: {
             // NOTE: Removed "size" (h1 - h6) for the same reason we don't
             //       provide that option in header/footer currently. jQM
@@ -1491,11 +1762,6 @@ var BWidgetRegistry = {
             e.node = ADM.getDesignRoot().findNodeByUid(ADM.getSelected());
             toggleCollapse(e);
             ADM.bind("selectionChanged", toggleCollapse);
-            // Fixup "Collapsible" to make the content div jQM adds at runtime
-            // be a "sortable" as well
-            $('.ui-collapsible-content', domNode)
-                .addClass('nrc-sortable-container')
-                .attr('data-uid', admNode.getUid());
             return domNode;
         },
     },
@@ -1536,8 +1802,6 @@ var BWidgetRegistry = {
         parent: "Base",
         paletteImageName: "tizen_date_picker.svg",
         template: '<input type="date" />',
-        newGroup: true,
-        newAccordion: true,
         delegate: 'next'
     },
 
@@ -1552,7 +1816,6 @@ var BWidgetRegistry = {
         parent: "Base",
         paletteImageName: "tizen_color_picker.svg",
         template: '<div data-role="colorpicker" />',
-        newGroup: true,
         properties: {
             data_color: {
                 type: "string",
@@ -1585,7 +1848,7 @@ var BWidgetRegistry = {
             },
             show_preview: {
                 type: "boolean",
-                defaultValue: "false",
+                defaultValue: false,
                 htmlAttribute: "data-show-preview"
             }
         },
@@ -1619,7 +1882,6 @@ var BWidgetRegistry = {
     ProgressBar: {
         parent: "Base",
         paletteImageName: "tizen_progress_bar.svg",
-        newGroup: true,
         template: '<div data-role="processingbar" />',
     },
 
@@ -2010,6 +2272,23 @@ var BWidget = {
     },
 
     /**
+     * Gets the display name for a given instance property.
+     *
+     * @param {String} widgetType The type of the widget.
+     * @param {String} property The name of the requested property.
+     * @return {String} The display name for the given property, or
+     *                  the property instance name if this property has
+     *                  no the attribute.
+     */
+    getPropertyDisplayName: function (widgetType, property) {
+        var schema = BWidget.getPropertySchema(widgetType, property);
+        if (schema && schema.displayName) {
+            return schema.displayName;
+        }
+        return property.replace(/_/g,'-');
+    },
+
+    /**
      * Gets the HTML attribute associated with this property.
      *
      * @param {String} widgetType The type of the widget.
@@ -2259,6 +2538,35 @@ var BWidget = {
                         zoneName);
     },
 
+    /**
+     * Get the zone information for the given zone in the given widget type.
+     *
+     * @param {String} widgetType The type of the widget.
+     * @param {String} zoneName The name of the zone.
+     * @return {Ojbect} Returns the whole object of this zone.
+     * @throws {Error} If widgetType is invalid or the zone is not found.
+     */
+    getZone: function (widgetType, zoneName) {
+        var widget, zones, length, i;
+        widget = BWidgetRegistry[widgetType];
+        if (typeof widget !== "object") {
+            throw new Error("undefined widget type in getZone: " +
+                            widgetType);
+        }
+
+        zones = widget.zones;
+        if (zones && zones.length) {
+            length = zones.length;
+            for (i = 0; i < length; i++) {
+                if (zones[i].name === zoneName) {
+                    return zones[i];
+                }
+            }
+        }
+        throw new Error("no such zone found in getZone: " +
+                        zoneName);
+    },
+
     // helper function
     isTypeInList: function (type, list) {
         // requires: list can be an array, a string, or invalid
@@ -2408,6 +2716,20 @@ var BWidget = {
     },
 
     /**
+     * Tests whether this BWidget is allowed to have it's textContent edited.
+     *
+     * @return {Object} if this BWidget is editable, null if not.
+     * @throws {Error} If widgetType is invalid.
+     */
+    isEditable: function (widgetType) {
+        var widget = BWidgetRegistry[widgetType];
+        if (typeof widget !== "object") {
+            throw new Error("widget type invalid in isEditable");
+        }
+        return widget.hasOwnProperty("editable") ? widget.editable : null;
+    },
+
+    /**
      * Tests whether this BWidget is allowed to be selected.
      *
      * @return {Boolean} True if this BWidget is selectable.
@@ -2433,34 +2755,6 @@ var BWidget = {
             throw new Error("widget type invalid in isMoveable");
         }
         return widget.hasOwnProperty("moveable") ? widget.moveable : true;
-    },
-
-    /**
-     * Tests whether this BWidget begins a new widget group.
-     *
-     * @return {Boolean} True if this BWidget is the first in a new group.
-     * @throws {Error} If widgetType is invalid.
-     */
-    startsNewGroup: function (widgetType) {
-        var widget = BWidgetRegistry[widgetType];
-        if (typeof widget !== "object") {
-            throw new Error("widget type invalid in startsNewGroup");
-        }
-        return widget.newGroup ? true : false;
-    },
-
-    /**
-     * Tests whether this BWidget begins a new accordion.
-     *
-     * @return {Boolean} True if this BWidget is the first in a new group.
-     * @throws {Error} If widgetType is invalid.
-     */
-    startsNewAccordion: function (widgetType) {
-        var widget = BWidgetRegistry[widgetType];
-        if (typeof widget !== "object") {
-            throw new Error("widget type invalid in startsNewAccordion");
-        }
-        return widget.newAccordion ? true : false;
     },
 
     /**

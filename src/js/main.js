@@ -580,7 +580,8 @@ $(function() {
 
     function fsInitFailed() {
         if (window.location.protocol === "file:") {
-            showErrorDialog();
+            alert("Please open browser with '--allow-file-access-from-files --enable-file-cookies' options.\n" +
+                    "\nClose the browser if you have already opened it before.");
         } else {
             alert('Unable to init filesystem.');
         }
@@ -626,7 +627,7 @@ $(function() {
     // init the sandbox file system
     fsUtils = $.rib.fsUtils;
     // Try to init a temporary filesystem to test '--allow-file-access-from-files' option
-    fsUtils.initFS(window.TEMPORARY, 10, function () {
+    requestFileSystem(window.TEMPORARY, 10,  function(filesystem) {
         fsUtils.initFS(fsUtils.fsType, fsUtils.fsSize, fsInitSuccess, fsInitFailed);
     }, fsInitFailed);
 });

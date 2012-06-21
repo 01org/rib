@@ -233,7 +233,7 @@ body.ui-tabs.ui-widget {
 }
 
 .navbar > ul.ui-tabs-nav li a {
-    padding:0;
+    padding: 0;
     height: 32px;
 }
 
@@ -292,7 +292,7 @@ body.ui-tabs.ui-widget {
 .view.live .stage .panel-section-contents > * {
     font-size: 11px;
     font-weight: normal;
-    color:  #4d4d4d;
+    color: #4d4d4d;
 }
 .view.live .stage > div {
 
@@ -442,7 +442,7 @@ body.ui-tabs.ui-widget {
                           transparent 1px,
                           transparent 12px);
     background-attachment: fixed;
-    overflow:auto;
+    overflow: auto;
 }
 
 /*
@@ -577,8 +577,8 @@ body.ui-tabs.ui-widget {
     border: none;
     -webkit-border-radius: 10px;
     -webkit-box-shadow: inset 0 4px 2px -3px #999;
-    color:#9ca2a8;
-    font-style:italic;
+    color: #9ca2a8;
+    font-style: italic;
 }
 .tools-secondary a {
     cursor: pointer;
@@ -761,7 +761,7 @@ body.ui-tabs.ui-widget {
     text-align: center;
 }
 .propertyView .buttonStyle {
-    height:27px;
+    height: 27px;
     font-size: 0.8em;
     text-align: center;
     color: #424242;
@@ -777,9 +777,9 @@ body.ui-tabs.ui-widget {
 }
 .propertyView .buttonStyle:focus,
 .propertyView .buttonStyle:hover {
-    color:#eee;
+    color: #eee;
     background-color: #cccccc;
-    border-color:#424242;
+    border-color: #424242;
     background-image: -webkit-linear-gradient(top, #cccccc, #777777);
 }
 div.propertyItems {
@@ -802,6 +802,12 @@ div.propertyItems > div > * {
 }
 table#selectOption {
     width: 100%;
+}
+div.propertyItems label[for] {
+    text-transform: capitalize;
+}
+div.propertyItems label[for|=id] {
+    text-transform: uppercase;
 }
 
 /*
@@ -868,32 +874,32 @@ table#selectOption {
 }
 .page-arrow.left {
     margin: 3px 0.5%;
-    padding:0px;
+    padding: 0px;
     width: 9%;
-    border:0px;
-    height:24px;
+    border: 0px;
+    height: 24px;
     -webkit-transform: rotate(180deg);
-    background:url("images/pageArrow_dimmed.png") no-repeat 0px;
+    background: url("images/pageArrow_dimmed.png") no-repeat 0px;
     -webkit-box-flex: 1;
     background-position: center;
 }
 .page-arrow.right {
     margin: 3px 0.5%;
-    padding:0px;
-    border:0px;
+    padding: 0px;
+    border: 0px;
     width: 9%;
-    height:24px;
-    background:url("images/pageArrow_dimmed.png") no-repeat 0px;
+    height: 24px;
+    background: url("images/pageArrow_dimmed.png") no-repeat 0px;
     -webkit-box-flex: 1;
     background-position: center;
 }
 .pageView .allwidth {
-    width:1000%;
+    width: 1000%;
 }
 .pageView .pages-box {
     overflow: hidden;
-    width:80%;
-    padding:0px;
+    width: 80%;
+    padding: 0px;
     -webkit-box-flex: 0;
 }
 .page-arrow.ui-state-active {
@@ -945,8 +951,6 @@ table#selectOption {
 }
 
 .ribDialog {
-    background-color: transparent;
-    background-color: rgba(21, 28, 34, 0.85);
     padding: 0;
     margin: 0;
     display: block;
@@ -954,19 +958,51 @@ table#selectOption {
     border-radius: 8px;
     -webkit-background-clip: padding-box;
     background-clip: padding-box;
-    font-size: 14px;
-    font-family: OpenSans-SB;
-    font-weight: 600; /* semi-bold */
-    font-color: #333;
-
 }
 .ui-dialog {
     padding: 0px;
 }
 .ui-dialog .ui-dialog-content{
     padding: 0px;
+    font-size: 14px;
+    font-family: OpenSans-SB;
+    font-weight: 600; /* semi-bold */
+    font-color: #333;
 }
 
+.ui-dialog .buttonStyle{
+    display: inline-block;
+    font-size: 12px;
+    text-align: center;
+    color: #424242;
+    border: 1px solid #a1a1a1;
+    line-height: 12px;
+    padding: 8px 20px 7px 20px;
+    background-color: #fbfbfb;
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#fbfbfb), to(#ececec));
+    background-image: -webkit-linear-gradient(top, #fbfbfb, #ececec);
+    background-image: -moz-linear-gradient(top, #fbfbfb, #ececec);
+    background-image: -ms-linear-gradient(top, #fbfbfb, #ececec);
+    background-image: -o-linear-gradient(top, #fbfbfb, #ececec);
+    background-image: linear-gradient(to bottom, #fbfbfb, #ececec);
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    border-radius: 6px;
+    -moz-background-clip: padding; -webkit-background-clip: padding-box;
+    background-clip: padding-box;
+    text-decoration: none;
+}
+.ui-dialog .buttonStyle:hover {
+    color: #eee;
+    background-color: #cccccc;
+    border-color: #424242;
+    background-image: -webkit-gradient(linear, left top, left bottom, from(#cccccc), to(#777777));
+    background-image: -webkit-linear-gradient(top, #cccccc, #777777);
+    background-image: -moz-linear-gradient(top, #cccccc, #777777);
+    background-image: -ms-linear-gradient(top, #cccccc, #777777);
+    background-image: -o-linear-gradient(top, #cccccc, #777777);
+    background-image: linear-gradient(to bottom, #cccccc, #777777);
+}
 .ribDialog > div {
     -webkit-border-radius: 12px;
     margin: 0px;
@@ -977,10 +1013,10 @@ table#selectOption {
     background-clip: padding-box;
     background-color: transparent;
     zoom: 1;
-    position:absolute;
-    height:100%;
+    position: absolute;
+    height: 100%;
     width: 100%;
-    overflow:hidden;
+    overflow: hidden;
 }
 .ribDialog .wrap_left {
     width: 385px;
@@ -1000,10 +1036,10 @@ table#selectOption {
     background-repeat: no-repeat;
 }
 .ribDialog .div-bottom{
-    position:absolute;
-    bottom:0px;
-    width:385px;
-    height:80px;
+    position: absolute;
+    bottom: 0px;
+    width: 385px;
+    height: 80px;
 }
 .ribDialog .ui-dialog-buttonpane {
     border-top-width: 0px;
@@ -1025,9 +1061,9 @@ table#selectOption {
     height: 10px;
 }
 .ribDialog .bottom {
-    position:absolute;
-    bottom:32px;
-    left:145px;
+    position: absolute;
+    bottom: 32px;
+    left: 145px;
 }
 .ribDialog label {
     float: left;
@@ -1039,18 +1075,18 @@ table#selectOption {
     padding: 0px;
 }
 .ribDialog input[type="text"] {
-    padding:0px;
+    padding: 0px;
     margin-left: 0px;
     height: 19px;
     width: 216px;
 }
 .ribDialog form {
-    height:100%;
+    height: 100%;
 }
 .ribDialog select {
     margin-left: 0px;
     width: 220px;
-    height:23px;
+    height: 23px;
     background: #eaf1f4;
 }
 .ribDialog .uploadStyle {
@@ -1063,7 +1099,7 @@ table#selectOption {
     margin-top: 15px;
 }
 .mt30 {
-    margin-top:30px;
+    margin-top: 30px;
 }
 .mt200 {
     margin-top: 200px;
@@ -1093,46 +1129,8 @@ table#selectOption {
     float: right;
 }
 .ribDialog .buttonStyle {
-    display:block;
-    width:60px;
-    height:12px;
-    font-size:12px;
-    text-align:center;
-    color:#424242;
-    border:1px solid #a1a1a1;
-    line-height:12px;
-    padding:8px 20px 7px 20px;
-    background-color: #fbfbfb;
-    background-image: -webkit-gradient(linear, left top, left bottom, from(#fbfbfb), to(#ececec));
-    background-image: -webkit-linear-gradient(top, #fbfbfb, #ececec);
-    background-image:
-    -moz-linear-gradient(top, #fbfbfb, #ececec);
-    background-image:
-    -ms-linear-gradient(top, #fbfbfb, #ececec);
-    background-image:
-    -o-linear-gradient(top, #fbfbfb, #ececec);
-    background-image:
-    linear-gradient(to bottom, #fbfbfb, #ececec);
-    -webkit-border-radius: 6px;
-    -moz-border-radius: 6px;
-    border-radius: 6px;
-    -moz-background-clip: padding; -webkit-background-clip: padding-box; background-clip: padding-box;
-    text-decoration:none;
-}
-.ribDialog .buttonStyle:hover {
-    color:#eee;
-    background-color: #cccccc;
-    border-color:#424242;
-    background-image: -webkit-gradient(linear, left top, left bottom, from(#cccccc), to(#777777));
-    background-image: -webkit-linear-gradient(top, #cccccc, #777777);
-    background-image:
-    -moz-linear-gradient(top, #cccccc, #777777);
-    background-image:
-    -ms-linear-gradient(top, #cccccc, #777777);
-    background-image:
-    -o-linear-gradient(top, #cccccc, #777777);
-    background-image:
-    linear-gradient(to bottom, #cccccc, #777777);
+    width: 60px;
+    height: 12px;
 }
 .ribDialog .linkStyle {
     background: none !important;
@@ -1158,8 +1156,8 @@ table#selectOption {
     clear: both;
     margin: 0px;
     height: 23px;
-    margin-left:20px;
-    vertical-align:middle;
+    margin-left: 20px;
+    vertical-align: middle;
     line-height: 23px;
 }
 .ribDialog .fieldLabel {
@@ -1196,54 +1194,56 @@ table#selectOption {
 }
 
 .projectBox {
-    float:left;
-    margin:20px;
-    width:230px;
-    height:170px;
-    border:3px solid #fff;
-    background:#fff;
-    position:relative;
-    overflow:hidden;
+    float: left;
+    margin: 20px;
+    width: 230px;
+    height: 170px;
+    border: 3px solid #fff;
+    background: #fff;
+    position: relative;
+    overflow: hidden;
     -webkit-border-radius: 10px;
-    -webkit-box-shadow:  3px 3px 3px rgba(0,0,0,.15);
+    -webkit-box-shadow: 3px 3px 3px rgba(0,0,0,.15);
 }
 
 .projectBox.ui-state-active {
-    border:3px solid #4ae57b;
+    border: 3px solid #4ae57b;
+    -webkit-border-radius: 13px;
 }
 
 .titleBar {
-    width:230px;
-    height:31px;
-    position:relative;
-    background:#545f6a;
+    width: 230px;
+    height: 31px;
+    position: relative;
+    background: #545f6a;
     -webkit-border-radius: 10px 10px 0 0;
 }
 
 .titleBar span {
-    margin:.5em;
-    padding:0;
-    position:absolute;
-    width:140px;
-    height:31px;
-    color:#fff;
-    font-size:0.8em;
+    margin: .5em;
+    padding: 0;
+    position: absolute;
+    width: 140px;
+    height: 31px;
+    color: #fff;
+    font-size: 0.8em;
     font-family: OpenSans-SB;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    font-weight:bold;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: bold;
 }
 
 .openButton {
     background-image: url("images/openButton_up.png");
     background-repeat: no-repeat;
-    position:absolute;
-    padding-top:8px;
-    top:1px;
-    right:1px;
-    height:22px;
-    min-width:71px;
+    position: absolute;
+    padding-top: 8px;
+    top: 1px;
+    right: 1px;
+    height: 22px;
+    min-width: 71px;
     cursor: pointer;
+    -webkit-border-top-right-radius: 9px;
 }
 
 .openButton:hover, .openButton:focus {
@@ -1264,12 +1264,12 @@ table#selectOption {
     font-family: OpenSans;
     font-size: 0.6em;
     color: #444444;
-    text-align:right;
-    line-height:125%;
+    text-align: right;
+    line-height: 125%;
 }
 .projectBox .button {
-    position:absolute;
-    text-decoration:underline;
+    position: absolute;
+    text-decoration: underline;
     padding-top: 5px;
     padding-right: 30px;
     right: 10px;
@@ -1309,6 +1309,14 @@ table#selectOption {
 .addDevice:active {
     background-image: url("images/addDevice_down.png");
 }
+.editDevice {
+    cursor: pointer;
+    padding: 20px;
+    background: url("images/editDevice_up.png") no-repeat center;
+}
+.editDevice:active {
+    background-image: url("images/editDevice_down.png");
+}
 .deviceSetting label
 {
     width: 8em;
@@ -1319,15 +1327,25 @@ table#selectOption {
     margin-top: 2em
 }
 .deviceSetting input {
-    margin-top: 2em
+    margin-top: 2em;
+    margin-left: 1em;
+    margin-right: 1em;
+}
+.deviceSetting input[type='number'] {
+    width:5em;
+    size: 4;
 }
 
-.deviceSetting input.submit
-{
-    margin-left: 4.5em;
-    margin-right: 0.5em;
-    min-width: 10em;
+.deviceSetting #buttonSet{
+    position: absolute;
+    bottom: 0px;
+    width: 100%;
 }
+.deviceSetting #buttonSet * {
+    margin: 0 1em 3em 1em;
+    min-width: 25%;
+}
+
 .rotateDevice {
     cursor: pointer;
     padding: 20px;
@@ -1403,4 +1421,10 @@ input.screenCoordinate::-webkit-inner-spin-button {
 .aboutDlg +.ui-widget-overlay {
     top: -1em;
     left: -1em;
+}
+#exportDialog {
+    padding: 0.8em 1.2em;
+}
+#exportDialog .buttonStyle {
+    margin: 0 0.6em;
 }

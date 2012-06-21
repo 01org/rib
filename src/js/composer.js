@@ -43,6 +43,106 @@ $(document).bind('mobileinit', function() {
 });
 
 $(function() {
+    var isText = function (element) {
+        return element && element.type in {text:0, textarea:0};
+    };
+
+    var enableEditing = function (element) {
+        isText(element) && $(element).removeAttr('readonly');
+        element.contentEditable = true;
+        $(element).toggleClass('adm-editing');
+        $(element).focus();
+    };
+
+    var disableEditing = function (element) {
+        isText(element) && $(element).attr('readonly', true);
+        $(element).removeAttr('contentEditable');
+        $(element).toggleClass('adm-editing');
+        window.getSelection().removeAllRanges();
+        $(element).add(window).unbind('.editing');
+    };
+
+    var getTextNodeContents = function (element) {
+        if (isText(element)) {
+            // Text[area] nodes store string in value, not textContent
+            return element.value;
+        } else {
+            // Only return text of TEXT_NODE elements, not other
+            // potential child nodes
+            return $(element).contents().filter( function() {
+                return (this.nodeType === 3);
+            }).text();
+        }
+    };
+
+    var setTextNodeContents = function (element, string) {
+        var children;
+        if (isText(element)) {
+            // Text[area] nodes need to set value, not textContent
+            element.value = string;
+        } else {
+            // Need to make sure we don't overwrite child nodes, so
+            // first, detach them...
+            children = $(element).children().detach();
+            // next, set the text node string...
+            element.textContent = string;
+            // finally, re-attach (append) the children...
+            $(element).append(children);
+        }
+    };
+
+    var finishEditing = function (ev) {
+        var editable = ev && ev.data && ev.data.isEditable(),
+            exitKeys = {9:'TAB',13:'ENTER',27:'ESC'},
+            prop, text, elem;
+
+        if (ev && ev.currentTarget === window && ev.type === 'mousedown') {
+            elem = $('.adm-editing[contenteditable]', ev.view.document)[0];
+        } else {
+            elem = ev.target;
+        }
+
+        if (!editable || (elem.contentEditable !== 'true') ||
+            (ev.type === 'keydown' && !(ev.which in exitKeys))) {
+            return true;
+        }
+
+        text = getTextNodeContents(elem);
+        prop = editable.propertyName;
+
+        // Save and exit edit mode
+        if (ev.which === 13 || ev.which === 9 ||
+            ev.type === 'focusout' || ev.type === 'mousedown') {
+            // Only update if values differ
+            if (ev.data.getProperty(prop) !== text) {
+                // Attempt to set the ADM property
+                if (!ev.data.setProperty(prop,text).result){
+                    // Revert if setProperty fails
+                    setTextNodeContents(elem, ev.data.getProperty(prop));
+                }
+            }
+
+            // Special case for TAB key
+            if (ev.which === 9 && ev.type === 'keydown') {
+                ev.view.top.focus();
+                ev.stopImmediatePropagation();
+                ev.stopPropagation();
+                ev.preventDefault();
+            }
+
+        // Revert and exit edit mode
+        } else if (ev.which === 27 && ev.type === 'keydown') {
+            setTextNodeContents(elem, ev.data.getProperty(prop));
+
+        // Do nothing for other keys
+        } else {
+            return true;
+        }
+
+        // Turn off editing...
+        disableEditing(elem);
+    };
+
     var handleSelect = function (e, ui){
         if ($(ui).data('role') === 'content' ||
             $(ui).data('role') === 'page') {
@@ -179,6 +279,58 @@ $(function() {
         }
     };
 
+    var addNewNodeOnDrop = function (domParent, domChildren, adm, pid,
+                                     nodeRef, role, domNode) {
+        var newNode, domSibling, sid, admChildren, domIndex, debug;
+
+        debug = (window.top.$.rib && window.top.$.rib.debug());
+        domIndex = domChildren.index(domNode);
+
+        // Append first(only)/last child to this container
+        if (domIndex >= domChildren.length-1 || role === 'page') {
+            if (adm.addChild(pid, nodeRef, true)) {
+                newNode = adm.addChild(pid, nodeRef);
+                debug && console.log('Appended node',role);
+                newNode && adm.setSelected(newNode);
+            } else {
+                console.warn('Append child failed:',role);
+            }
+        } else if (domIndex > 0) {
+            // Insert nth child into this container
+            domSibling = $(domNode, domParent).prev('.adm-node');
+            sid = domSibling.attr('data-uid');
+            if (adm.insertChildAfter(sid, nodeRef, true)) {
+                newNode = adm.insertChildAfter(sid, nodeRef);
+                debug && console.log('Inserted nth node',role);
+                newNode && adm.setSelected(newNode);
+            } else {
+                console.warn('Insert nth child failed:',role);
+            }
+        } else {
+            // Add 1st child into an empty container
+            if (domChildren.length-1 <= 0) {
+                if (adm.addChild(pid, nodeRef, true)) {
+                    newNode = adm.addChild(pid, nodeRef);
+                    debug && console.log('Added 1st node',role);
+                    newNode && adm.setSelected(newNode);
+                } else {
+                    console.warn('Add 1st child failed:',role);
+                }
+            } else {
+                // Insert 1st child into non-empty container
+                admChildren = adm.toNode(pid).getChildren();
+                sid = admChildren.length && admChildren[0].getUid();
+                if (adm.insertChildBefore(sid, nodeRef, true)) {
+                    newNode = adm.insertChildBefore(sid, nodeRef);
+                    debug && console.log('Inserted 1st node', role);
+                    newNode && adm.setSelected(newNode);
+                } else {
+                    console.warn('Insert 1st child failed:', role);
+                }
+            }
+        }
+    };
+
     window.top.$.rib = window.top.$.rib || {};
     window.top.$.rib.dndfilter = dndfilter;
 
@@ -231,6 +383,7 @@ $(function() {
         $(e.target).subtree('.adm-node:not(.delegation),.orig-adm-node').each(
         function (index, node) {
             var admNode, widgetType, delegate, events,
+                editable,
                 delegateNode,
                 adm = window.parent.ADM,
                 bw = window.parent.BWidget;
@@ -239,9 +392,12 @@ $(function() {
             if (adm && bw) {
                 admNode = adm.getDesignRoot()
                     .findNodeByUid($(node).attr('data-uid')),
-                widgetType = admNode.getType(),
-                delegate = bw.getWidgetAttribute(widgetType, 'delegate'),
-                events = bw.getWidgetAttribute(widgetType, 'events');
+                editable = admNode && admNode.isEditable(),
+                widgetType = admNode && admNode.getType(),
+                delegate = widgetType &&
+                           bw.getWidgetAttribute(widgetType, 'delegate'),
+                events = widgetType &&
+                         bw.getWidgetAttribute(widgetType, 'events');
 
                 if (delegate) {
                     if (typeof delegate === "function") {
@@ -289,6 +445,78 @@ $(function() {
             }
         });
 
+        // For nodes marked as "editable", attach double-click and blur handlers
+        $(e.target).subtree('.adm-editable').each( function (index, node) {
+            var admNode, editable, theNode = node,
+                adm = window.parent.ADM,
+                bw = window.parent.BWidget;
+
+            if (adm && bw) {
+                admNode = adm.getDesignRoot()
+                    .findNodeByUid($(node).attr('data-uid')),
+                editable = admNode && admNode.isEditable();
+
+                if (editable && typeof(editable) === 'object') {
+                    if (editable.selector &&
+                        $(editable.selector,node).length) {
+                        theNode = $(editable.selector,node)[0];
+                    }
+                    // LABELs don't cause blur when we focuse them, and they
+                    // never match the ':focus' pseudo selector, so we must
+                    // wrap their textContents in a span so we can get the
+                    // desired focus and tabindex behaviors
+                    if (theNode.nodeName === "LABEL") {
+                        theNode = $(theNode).wrapInner('<span>').find('span');
+                    }
+                    $(theNode).addClass('adm-text-content');
+                    // Set the tabindex explicitly, and ordered...
+                    $(theNode).attr('tabindex','-1');
+
+                    // Bind double-click handler
+                    $(node).dblclick(function(e) {
+                        var rng= document.createRange && document.createRange(),
+                            sel= window.getSelection && window.getSelection(),
+                            content, children;
+
+                        if (!admNode.isSelected()) return true;
+
+                        content = $(e.currentTarget)
+                                      .subtree('.adm-text-content')[0];
+
+                        // enable editing...
+                        enableEditing(content);
+
+                        // pre-select the text contents/value
+                        if (content.select) {   // Text input/area
+                            content.select();
+                        } else if (rng && sel) { // Everything else
+                            // Temp. detach children, leaving only TEXT_NODEs.
+                            // We need to do this for elements that have no
+                            // text themseleves, but do have children that do,
+                            // we don't want the descendant TEXT_NODE contents
+                            children = $(content).children().detach();
+                            rng.selectNodeContents(content);
+                            sel.removeAllRanges();
+                            sel.addRange(rng);
+                            // Re-attach children, if there were any
+                            children.length && $(content).append(children);
+                        }
+
+                        // Bind to keydown to capture esc, tab and enter keys
+                        $(content).bind('keydown.editing focusout.editing',
+                                         admNode, finishEditing);
+
+                        // Bind to mousedown on window to handle "focus" changes
+                        $(e.view).bind('mousedown.editing',
+                                       admNode, finishEditing);
+
+                        e.preventDefault();
+                        return true;
+                    });
+                }
+            }
+        });
+
         // Configure "sortable" behaviors
         targets = $(e.target).subtree('.nrc-sortable-container,body .ui-page');
 
@@ -308,6 +536,12 @@ $(function() {
                 cancel: '> :not(.adm-node,.orig-adm-node)',
                 items: '> *.adm-node:not(.ui-header,.ui-content,.ui-footer),' +
                     '> .ui-controlgroup-controls > .adm-node,' +
+                    // Treating ui-collapse-content as item will make it easier
+                    // to target with other items during sort.
+                    '> .ui-collapsible-content,' +
+                    // Collapsible's items are under .ui-collapsible-content
+                    '> .ui-collapsible-content > .adm-node,' +
+                    '> ul > li.adm-node,' +
                     '> *.orig-adm-node:not(.ui-header,.ui-content,.ui-footer)',
                 start: function(event, ui){
                     trackOffsets('start:   ',ui,$(this).data('sortable'));
@@ -349,13 +583,18 @@ $(function() {
                         s.overflowOffset.left = sP.offsetWidth/2
                             - s.options.scrollSensitivity;
                     }
+
+                    targets.removeClass('ui-state-active');
+                    // The highlighted container should always be where the
+                    // placeholder is located
+                    ui.placeholder.closest('.nrc-sortable-container')
+                        .addClass('ui-state-active');
                 },
                 over: function(event, ui){
-                    $('.ui-sortable.ui-state-active')
-                        .removeClass('ui-state-active');
-                    $(this).addClass('ui-state-active');
                     trackOffsets('over:    ',ui,$(this).data('sortable'));
 
+                    if ($(this).is('.nrc-sortable-container.ui-collapsible'))
+                        $(this).trigger('expand');
                     if (ui && ui.placeholder) {
                         var s = ui.placeholder.siblings('.adm-node:visible,' +
                                                       '.orig-adm-node:visible'),
@@ -380,8 +619,10 @@ $(function() {
                     }
                 },
                 out: function(event, ui){
-                    $(this).removeClass('ui-state-active');
                     trackOffsets('out:     ',ui,$(this).data('sortable'));
+                    if ($(this).is('.nrc-sortable-container.ui-collapsible') &&
+                        $(this).subtree('.ui-selected').length === 0)
+                        $(this).trigger('collapse');
                 },
                 stop: function(event, ui){
                     trackOffsets('stop:    ',ui,$(this).data('sortable'));
@@ -458,62 +699,18 @@ $(function() {
                             return false;
                         }
 
-                        children = $(this).children('.adm-node')
+                        children = $($(this).sortable('option', 'items'), this)
                                           .add(ui.item);
-                        idx = children.index(ui.item);
-
-                        // Append first(only)/last child to this container
-                        if (idx >= children.length-1 || role === 'page') {
-                            if (adm.addChild(pid, type, true)) {
-                                node = adm.addChild(pid, type);
-                                debug && console.log('Appended node',role);
-                                if (node) adm.setSelected(node.getUid());
-                            } else {
-                                console.warn('Append child failed:',role);
-                            }
-                        } else if (idx > 0) {
-                            // Insert nth child into this container
-                            sibling = $(ui.item, this).prev('.adm-node');
-                            sid = sibling.attr('data-uid');
-                            if (adm.insertChildAfter(sid, type, true)) {
-                                node = adm.insertChildAfter(sid, type);
-                                debug && console.log('Inserted nth node',role);
-                                if (node) adm.setSelected(node.getUid());
-                            } else {
-                                console.warn('Insert nth child failed:',role);
-                            }
-                        } else {
-                            // Add 1st child into an empty container
-                            if (children.length-1 <= 0) {
-                                if (adm.addChild(pid, type, true)) {
-                                    node = adm.addChild(pid, type);
-                                    debug && console.log('Added 1st node',role);
-                                    if (node) adm.setSelected(node.getUid());
-                                } else {
-                                    console.warn('Add 1st child failed:',role);
-                                }
-                            } else {
-                                // Insert 1st child into non-empty container
-                                sibling = $(this).children('.adm-node:first');
-                                sid = sibling.attr('data-uid');
-                                if (adm.insertChildBefore(sid, type, true)) {
-                                    node = adm.insertChildBefore(sid, type);
-                                    debug && console.log('Inserted 1st node',
-                                                         role);
-                                    if (node) adm.setSelected(node.getUid());
-                                } else {
-                                    console.warn('Insert 1st child failed:',
-                                                 role);
-                                }
-                            }
-                        }
+                        addNewNodeOnDrop(this, children, adm, pid, type,
+                                         role, ui.item);
                         ui.item.remove();
                         return;
 
                     // Sorted from layoutView: move a node
                     } else {
-                        idx = ui.item.parent().children('.adm-node')
-                                              .index(ui.item);
+                        children = ui.item.parent().children('.adm-node')
+                                          .add(ui.item);
+                        idx = children.index(ui.item);
                         cid = ui.item.attr('data-uid');
                         // closest() will select current element if it matches
                         // the selector, so we start with its parent.
@@ -522,46 +719,52 @@ $(function() {
                                               '.orig-adm-node.ui-sortable')
                                      .attr('data-uid');
                         node = cid && root.findNodeByUid(cid);
-                        newParent = pid && root.findNodeByUid(pid);
-                        zones = newParent && bw.getZones(newParent.getType());
-                        card = newParent && zones &&
-                               bw.getZoneCardinality(newParent.getType(),
-                                                     zones[0]);
-
-                        // Notify the ADM that element has been moved
-                        if ((zones && zones.length===1 && card !== '1')) {
-                            if (!node ||
-                                !adm.moveNode(node, newParent, zones[0],
-                                              idx)) {
-                                console.warn('Move node failed');
-                                ui.item.remove();
-                                return false;
-                            } else {
-                                debug && console.log('Moved node');
-                                if (node) adm.setSelected(node.getUid());
-                            }
-                        } else if (node && newParent &&
-                                   newParent.getType() === 'Header') {
-                            for (var z=0; z < zones.length; z++) {
-                                if (adm.moveNode(node, newParent, zones[z],
-                                    0, true)) {
-                                    newZone = zones[z];
-                                    break;
-                                }
-                            }
-                            if (newZone) {
-                                adm.moveNode(node, newParent, newZone, 0);
-                                debug && console.log('Moved node');
-                                if (node) adm.setSelected(node.getUid());
-                            } else {
-                                console.warn('Move node failed');
-                                ui.item.remove();
-                                return false;
-                            }
+                        if (event && event.ctrlKey) {
+                            node = adm.copySubtree(node); // Clone it
+                            addNewNodeOnDrop(this, children, adm, pid, node,
+                                             role, ui.item);
                         } else {
-                            console.warn('Move node failed: invalid zone');
-                            ui.item.remove();
-                            return false;
+                            newParent = pid && root.findNodeByUid(pid);
+                            zones = newParent && bw.getZones(newParent.getType());
+                            card = newParent && zones &&
+                                   bw.getZoneCardinality(newParent.getType(),
+                                                         zones[0]);
+
+                            // Notify the ADM that element has been moved
+                            if ((zones && zones.length===1 && card !== '1')) {
+                                if (!node ||
+                                    !adm.moveNode(node, newParent, zones[0],
+                                                  idx)) {
+                                    console.warn('Move node failed');
+                                    ui.item.remove();
+                                    return false;
+                                } else {
+                                    debug && console.log('Move node worked');
+                                    if (node) adm.setSelected(node.getUid());
+                                }
+                            } else if (node && newParent &&
+                                       newParent.getType() === 'Header') {
+                                for (var z=0; z < zones.length; z++) {
+                                    if (adm.moveNode(node, newParent, zones[z],
+                                        0, true)) {
+                                        newZone = zones[z];
+                                        break;
+                                    }
+                                }
+                                if (newZone) {
+                                    adm.moveNode(node, newParent, newZone, 0);
+                                    debug && console.log('Move node worked');
+                                    if (node) adm.setSelected(node.getUid());
+                                } else {
+                                    console.warn('Move node failed');
+                                    ui.item.remove();
+                                    return false;
+                                }
+                            } else {
+                                console.warn('Move node failed: invalid zone');
+                                ui.item.remove();
+                                return false;
+                            }
                         }
                     }
                 }
@@ -696,6 +899,13 @@ $(function() {
         $(item).removeClass('ui-unselecting')
                .removeClass('ui-selecting')
                .addClass('ui-selected');
+
+        // Force focus
+        window.getSelection().removeAllRanges();
+        var foo = $('.adm-text-content', item)[0] || window.top;
+        var bar = $(':focus')[0] || document.activeElement;
+        $(foo).focus();
+        $(bar).blur();
 
         adm.setSelected((item?$(item).attr('data-uid'):item));
     }
