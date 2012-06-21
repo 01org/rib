@@ -645,7 +645,135 @@ $(function() {
         getFile();
     }
 
-    /***************** export functions out *********************/
+/***************** export functions out *********************/
+
+    /**
+     * Acceptable uploaded file types
+     *
+     * Each type object contains:
+     *     mime {String} Recommended mimeType of related input element
+     *     suffix {Array} Array of acceptable suffix of uploaded file
+     */
+    $.rib.fileTypes = {
+        js: {
+            mime: 'text/javascript',
+            suffix: ['js'],
+        },
+        image: {
+            mime: 'image/*',
+            suffix: ['jpg', 'png', 'svg', 'bmp',
+                'gif', 'jpeg', 'jpm', 'jp2', 'jpx',
+                'xml', 'cgm', 'ief'],
+        },
+        css: {
+            mime: 'text/css',
+            suffix: ['css'],
+            savePath: '{project}/css/'
+        },
+        any: {
+            mime: '*',
+            suffix: ['*'],
+        }
+    };
+
+    /**
+     * Check if the uploaded file is acceptable, currently just check suffix
+     *
+     * @param {String} type File type to check
+     * @param {File} file Uploaded file object which is an instance of 'File'
+     *
+     * @return {Bool} Return true if the file is acceptable, otherwise return false
+     */
+    $.rib.checkFileType = function (type, file) {
+        var arrString, rule;
+        arrString = $.rib.fileTypes[type.toLowerCase()].suffix.join('|');
+        rule = new RegExp("\\.(" + arrString + ")$", "i");
+        // TODO: May need to read the "content-type" to check the type
+        return rule.test(file.name);
+    };
+
+    /**
+     * Trigger an native dialog to upload file in a container
+     *
+     * @param {String} type File type to upload
+     * @param {Jquery Object} container DOM element where native dialog will be triggered
+     * @param {function(File)=} success Success callback with uploaded file as its parameter
+     * @param {function()=} error Error callback
+     *
+     * @return {None}
+     */
+    $.rib.upload = function (fileType, container, success, error) {
+        var input, mimeType;
+        container = container || $('body');
+        mimeType = $.rib.fileTypes[fileType.toLowerCase()].mime;
+        input = $('<input type="file" accept="' + mimeType +'"/>')
+                .addClass('hidden-accessible').appendTo(container);
+        input.change(function (e) {
+            var file;
+            if (e.currentTarget.files.length === 1) {
+                file = e.currentTarget.files[0];
+                if ($.rib.checkFileType(fileType, file)) {
+                    success && success(file)
+                } else {
+                    console.warn("Unexpected uploaded file.");
+                    // TODO: confirm with user if still use the file
+                    error && error();
+                }
+            } else {
+                if (e.currentTarget.files.length <= 1) {
+                    console.warn("No files specified to import");
+                } else {
+                    console.warn("Multiple file import not supported");
+                }
+                error && error();
+            }
+            // remove the temp input element
+            input.remove();
+        });
+        input.click();
+    };
+
+    /**
+     * Trigger an native dialog to upload file in a container,
+     * and save the file in a parent directory. If the parent directy is not exist,
+     * it will be create, but it only work
+     *
+     * @param {String} type File type to upload
+     * @param {String} parentDir Directory where the uploaded file to be saved in
+     * @param {Jquery Object} container DOM element where native dialog will be triggered
+     * @param {function(File)=} success Success callback with uploaded file as its parameter
+     * @param {function()=} error Error callback
+     *
+     * @return {None}
+     */
+    $.rib.uploadAndSave = function (fileType, parentDir, container, success, error) {
+        var handler = function (file) {
+            var successHandler, errorCreateDir;
+            successHandler = function (dirEntry) {
+                if (!dirEntry.isDirectory) {
+                    console.error(dirEntry.fullPath + " is not a directory in sandbox.");
+                    return;
+                }
+                // Write uploaded file to sandbox
+                $.rib.fsUtils.write(parentDir + file.name, file, function(newFile){
+                    success && success(newFile);
+                });
+            };
+            errorCreateDir = function (e) {
+                if (e.code === FileError.NOT_FOUND_ERR) {
+                    // Create a Untitled project and open it in onEnd function
+                    $.rib.fsUtils.mkdir(parentDir, successHandler);
+                } else {
+                    $.rib.fsUtils.onError(e);
+                    error && error();
+                }
+            };
+            $.rib.fsUtils.pathToEntry(parentDir, successHandler, errorCreateDir);
+        };
+
+        $.rib.upload(fileType, container, handler, error)
+    }
+
     // Export serialization functions into $.rib namespace
     $.rib.ADMToJSONObj = ADMToJSONObj;
     $.rib.JSONToProj = JSONToProj;
