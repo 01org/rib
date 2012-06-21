@@ -634,7 +634,8 @@ var BWidgetRegistry = {
             },
             transition: {
                 type: "string",
-                options: [ "slide", "slideup", "slidedown", "pop", "fade", "flip" ],
+                options: [ "slide", "slideup", "slidedown", "pop", "fade", "flip",
+                           "turn", "flow", "slidefade", "none"],
                 defaultValue: "slide",
                 htmlAttribute: "data-transition"
             },
@@ -651,6 +652,51 @@ var BWidgetRegistry = {
             }
         },
         template: '<a data-role="button">%TEXT%</a>'
+    },
+
+    /**
+     * Represents a image
+     */
+    Image: {
+        parent: "Base",
+        paletteImageName: "tizen_image.svg",
+        template: '<img/>',
+        properties: {
+            src: {
+                type: "string",
+                defaultValue: "src/css/images/widgets/tizen_image.svg",
+                htmlAttribute: "src",
+                forceAttribute: true
+            },
+            alt: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: "alt"
+            },
+            width: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: "width"
+            },
+            height: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: "height"
+            },
+            align: {
+                type: "string",
+                options:[ "left", "center", "right" ],
+                defaultValue: "left",
+                htmlAttribute: {
+                    name: "style",
+                    value: {
+                        "left": "display:block;margin:auto auto auto 0px",
+                        "center": "display:block;margin: 0 auto",
+                        "right": "display:block;margin: auto 0px auto auto"
+                    }
+                }
+            },
+        },
     },
 
     /**
