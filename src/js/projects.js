@@ -348,16 +348,21 @@ $(function () {
      *     used to create a project, such as: { "name": XXX, "theme":XXXX }
      * @param {function()=} success Success callback.
      * @param {function(FileError)=} error Error callback.
-     * @param {ADMNode}[optional] design An ADM design used to create a project.
+     * @param {Object}[optional] data Extra data provided to create project, may contains:
+     *                                {
+     *                                    "pid": pid,
+     *                                    "design": design
+     *                                    ....
+     *                                }
      *
      * success callback passed the pid of the new created project.
      * error callback passed the generated file error.
      *
      * @return {None}.
      */
-    pmUtils.createProject = function (properties, success, error, design) {
+    pmUtils.createProject = function (properties, success, error, data) {
         var newPid, successHandler, buildDesign, errorHandler;
-        newPid = pmUtils.getValidPid();
+        newPid = data.pid || pmUtils.getValidPid();
         buildDesign = function () {
             var newDesign, newPage, config;
             // build a new design
@@ -383,8 +388,8 @@ $(function () {
                 pmUtils.setProperties(newPid, properties);
                 pmUtils.setProperty(newPid, "accessDate", new Date());
 
-                if (design && (design instanceof ADMNode)) {
-                    ADM.setDesignRoot(design);
+                if (data.design && (data.design instanceof ADMNode)) {
+                    ADM.setDesignRoot(data.design);
                 } else {
                     ADM.setDesignRoot(buildDesign());
                 }
@@ -624,14 +629,32 @@ $(function () {
      * @return {Bool} True if success, false when fails.
      */
     pmUtils.exportProject = function () {
-        var pid, pInfo, design, obj, resultProject;
+        var pid, pInfo, design, obj, resultProject, extraHandler;
         pid = pmUtils.getActive();
         pInfo = pmUtils._projectsInfo[pid];
         if (!pInfo) {
             console.error("Error: Invalid pid for project");
         }
-        design = ADM.getDesignRoot();
-        obj = $.rib.ADMToJSONObj(design);
+        // deep copy of current design
+        design = ADM.copySubtree(ADM.getDesignRoot());
+        extraHandler = function (node, object) {
+            var props, p, value, pType, rootUrl, projectDir;
+            // change sandbox URL
+            rootUrl = $.rib.fsUtils.fs.root.toURL();
+            projectDir = rootUrl.replace(/\/$/, "") + pmUtils.ProjectDir + "/" + pid + "/";
+            props = node.getProperties();
+            for (p in props) {
+                value = props[p];
+                pType = BWidget.getPropertyType(node.getType(), p);
+                if (pType === "url-upload") {
+                    value = value.replace(projectDir, "{projectFolder}");
+                    value = value.replace(rootUrl, "{fsRoot}");
+                    // change the related object
+                    object.properties[p] = value;
+                }
+            }
+        };
+        obj = $.rib.ADMToJSONObj(design, extraHandler);
         // Following is for the serializing part
         if (typeof obj === "object") {
             obj.pInfo = pInfo;
@@ -667,8 +690,29 @@ $(function () {
         var reader = new FileReader();
 
         reader.onloadend = function(e) {
-            var properties, design, resultProject;
-            resultProject = $.rib.zipToProj(e.target.result);
+            var properties, design, designData,
+                resultProject, extraHandler, newPid;
+            // new pid for imported project
+            newPid = pmUtils.getValidPid();
+            // extra Handler when build ADM tree
+            extraHandler = function (node, obj) {
+                var props, p, value, pType, projectDir, rootUrl;
+                rootUrl = $.rib.fsUtils.fs.root.toURL();
+                projectDir = rootUrl.replace(/\/$/, "") + pmUtils.ProjectDir + "/" + newPid + "/";
+                props = node.getProperties();
+                for (p in props) {
+                    value = props[p];
+                    pType = BWidget.getPropertyType(node.getType(), p);
+                    if (pType === "url-upload") {
+                        value = value.replace("{projectFolder}", projectDir);
+                        value = value.replace("{fsRoot}", rootUrl);
+                        // set the new value for the property
+                        node.setProperty(p, value);
+                    }
+                }
+            };
+            designData = $.rib.zipToProj(e.target.result);
+            resultProject = $.rib.JSONToProj(designData, extraHandler);
             if (!resultProject) {
                 alert("Invalid imported project.");
                 return;
@@ -678,7 +722,7 @@ $(function () {
             design = resultProject.design;
 
             if (design && (design instanceof ADMNode)) {
-                $.rib.pmUtils.createProject(properties, success, error, design);
+                $.rib.pmUtils.createProject(properties, success, error, {"pid": newPid, "design": design});
             } else {
                 console.error("Imported project failed");
                 error && error();

@@ -398,7 +398,7 @@ $(function() {
         } catch (e) {
             designData = data;
         }
-        return JSONToProj(designData);
+        return designData;
     }
 
     /*******************************************************
