@@ -39,6 +39,7 @@ body.ui-tabs.ui-widget {
     -webkit-border-bottom-left-radius: 0px;
     -webkit-border-bottom-right-radius: 0px;
     border: none;
+    font-family: OpenSans-SB;
 }
 
 /****************************************/
