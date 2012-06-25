@@ -113,7 +113,6 @@ var BWidgetRegistry = {
      */
     Base: {
         parent: null,
-        allowIn: [],
         applyProperties: function (node, code) {
             var id = node.getProperty("id");
             if (id && node.isPropertyExplicit("id")) {
@@ -121,9 +120,8 @@ var BWidgetRegistry = {
             }
             return code;
         },
-        showInPalette: false,
-        selectable: false,
-        moveable: false,
+        selectable: true,
+        moveable: true,
         properties: {
             id: {
                 type: "string",
@@ -209,14 +207,34 @@ var BWidgetRegistry = {
             }
         ],
     },
-
+    /**
+    *Support background images using <div>
+    */
+    Background:{
+        parent: "Base",
+        properties: {
+            background: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: {
+                    name: "style",
+                    value: function (propValue) {
+                        return "background-image:url('" + propValue + "');" +
+                            "background-attachment:scroll;" +
+                            "background-repeat:no-repeat;" +
+                            "background-size:cover;";
+                    }
+                }
+            }
+        }
+    },
     /**
      * Represents a page or dialog in the application. Includes "top" zone
      * for an optional header, "content" zone for the Content area, and "bottom"
      * zone for an optional footer.
      */
     Page: {
-        parent: "Base",
+        parent: "Background",
         allowIn: "Design",
         showInPalette: false,
         selectable: true,
@@ -264,7 +282,7 @@ var BWidgetRegistry = {
      * for optional buttons, and "bottom" zone for an optional navbar.
      */
     Header: {
-        parent: "Base",
+        parent: "Background",
         allowIn: "Page",
         dragHeader: true,
         paletteImageName: "jqm_header.svg",
@@ -315,7 +333,7 @@ var BWidgetRegistry = {
      * Represents a footer object at the bottom of a page.
      */
     Footer: {
-        parent: "Base",
+        parent: "Background",
         allowIn: "Page",
         dragHeader: true,
         paletteImageName: "jqm_footer.svg",
@@ -618,6 +636,51 @@ var BWidgetRegistry = {
             }
         },
         template: '<a data-role="button">%TEXT%</a>'
+    },
+
+    /**
+     * Represents a image
+     */
+    Image: {
+        parent: "Base",
+        paletteImageName: "tizen_image.svg",
+        template: '<img/>',
+        properties: {
+            src: {
+                type: "string",
+                defaultValue: "src/css/images/widgets/tizen_image.svg",
+                htmlAttribute: "src",
+                forceAttribute: true
+            },
+            alt: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: "alt"
+            },
+            width: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: "width"
+            },
+            height: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: "height"
+            },
+            align: {
+                type: "string",
+                options:[ "left", "center", "right" ],
+                defaultValue: "left",
+                htmlAttribute: {
+                    name: "style",
+                    value: {
+                        "left": "display:block;margin:auto auto auto 0px",
+                        "center": "display:block;margin: 0 auto",
+                        "right": "display:block;margin: auto 0px auto auto"
+                    }
+                }
+            },
+        },
     },
 
     /**
@@ -1865,7 +1928,7 @@ var BWidget = {
     init: function () {
         // effects: add the type and displayLabel properties to widget
         //          registry objects
-        var type;
+        var type, parentName;
         for (type in BWidgetRegistry) {
             if (BWidgetRegistry.hasOwnProperty(type)) {
                 BWidgetRegistry[type].type = type;
@@ -1900,6 +1963,11 @@ var BWidget = {
                 }
                 if (type === "OptionHeader") {
                     BWidgetRegistry[type].displayLabel = "Option Header";
+                }
+                parentName = BWidgetRegistry[type].parent;
+                while (parentName) {
+                    BWidgetRegistry[type] = $.extend(true, {}, BWidgetRegistry[parentName], BWidgetRegistry[type]);
+                    parentName = BWidgetRegistry[parentName].parent;
                 }
             }
         }
