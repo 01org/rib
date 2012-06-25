@@ -385,14 +385,36 @@ $(function() {
     /*
      * This function is to find valid design.json in imported file and build ADMTree according it
      */
-    function zipToProj(data) {
-        var zip, designData;
+    function zipToProj(pid, data) {
+        var zip, designData, successHandler, errorCreateDir, projectDir;
+        projectDir = $.rib.pmUtils.ProjectDir + "/" + pid + "/";
         try {
             zip = new ZipFile(data);
             zip.filelist.forEach(function(zipInfo, idx, array) {
                 // if find a file name contians "json" then get its data
                 if (zipInfo.filename.indexOf("json") !== -1) {
                     designData = zip.extract(zipInfo.filename);
+                }
+                // if the file is custom image located in "images/" folder,
+                // then copy them to sandbox
+                if (zipInfo.filename.indexOf("images/") === 0) {
+                    successHandler = function (dirEntry) {
+                        if (!dirEntry.isDirectory) {
+                            console.error(dirEntry.fullPath + " is not a directory in sandbox.");
+                            return;
+                        }
+                        // Write uploaded file to sandbox
+                        $.rib.fsUtils.write(projectDir + zipInfo.filename, zip.extract(zipInfo.filename), null, null, false, true);
+                    };
+                    $.rib.fsUtils.pathToEntry(projectDir + "images", successHandler, function (e) {
+                        // if "images/" folder don't exist, then create it.
+                        if (e.code === FileError.NOT_FOUND_ERR) {
+                            // Create a Untitled project and open it in onEnd function
+                            $.rib.fsUtils.mkdir(projectDir + "images", successHandler);
+                        } else {
+                            $.rib.fsUtils.onError(e);
+                        }
+                    });
                 }
             });
         } catch (e) {
@@ -601,12 +623,30 @@ $(function() {
         return $exportNoticeDialog;
     }
 
+    function addInternalFiles(zip) {
+        var imageDir;
+        imageDir = $.rib.pmUtils.ProjectDir + "/" + $.rib.pmUtils.getActive() + "/images/";
+        $.rib.fsUtils.ls(imageDir, function (entries) {
+            $.each(entries, function(index, fileEntry) {
+                fileEntry.file(function(file) {
+                    var reader = new FileReader();
+
+                    reader.onloadend = function(e) {
+                        zip.add("images/" + fileEntry.name, e.target.result, {binary:true});
+                    };
+                    reader.readAsBinaryString(file);
+                });
+            });
+        });
+    }
+
     function exportPackage (resultProject) {
         var zip, resultHTML, files, i;
         zip = new JSZip();
         resultHTML = generateHTML();
         resultHTML && zip.add("index.html", resultHTML.html);
         resultProject && zip.add("project.json", resultProject);
+        addInternalFiles(zip);
         files = [
             'src/css/images/ajax-loader.png',
             'src/css/images/icons-18-white.png',

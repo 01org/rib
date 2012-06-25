@@ -362,7 +362,10 @@ $(function () {
      */
     pmUtils.createProject = function (properties, success, error, data) {
         var newPid, successHandler, buildDesign, errorHandler;
-        newPid = data.pid || pmUtils.getValidPid();
+        newPid = pmUtils.getValidPid();
+        if (data && data.pid) {
+            newPid = data.pid;
+        }
         buildDesign = function () {
             var newDesign, newPage, config;
             // build a new design
@@ -388,7 +391,7 @@ $(function () {
                 pmUtils.setProperties(newPid, properties);
                 pmUtils.setProperty(newPid, "accessDate", new Date());
 
-                if (data.design && (data.design instanceof ADMNode)) {
+                if (data && data.design && (data.design instanceof ADMNode)) {
                     ADM.setDesignRoot(data.design);
                 } else {
                     ADM.setDesignRoot(buildDesign());
@@ -529,7 +532,11 @@ $(function () {
         successHandler = function (result) {
             var design, project;
             project = $.rib.JSONToProj(result);
-            design = project.design;
+            if (project && project.design) {
+                design = project.design;
+            } else {
+                console.error("Faild to build ADM from JSON in openProject.");
+            }
             if (design && (design instanceof ADMNode)) {
                 // set current pid as active pid
                 pmUtils._activeProject = pid;
@@ -711,7 +718,7 @@ $(function () {
                     }
                 }
             };
-            designData = $.rib.zipToProj(e.target.result);
+            designData = $.rib.zipToProj(newPid, e.target.result);
             resultProject = $.rib.JSONToProj(designData, extraHandler);
             if (!resultProject) {
                 alert("Invalid imported project.");
