@@ -2048,6 +2048,17 @@ var BWidget = {
     },
 
     /**
+     * Tests whether this widget type should be shown in the outline view
+     *
+     * @param {String} widgetType The type of the widget.
+     * @return {Boolean} true if this widget is to be shown in the outline view,
+     *                   false if not or it is undefined.
+     */
+    isShowInOutlineView: function (widgetType) {
+        return  BWidget.isPaletteWidget(widgetType) || (widgetType === "Page");
+    },
+
+    /**
      * Tests whether this widget type should be shown with a drag header bar.
      *
      * @param {String} widgetType The type of the widget.
