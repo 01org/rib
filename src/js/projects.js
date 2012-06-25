@@ -678,10 +678,20 @@ $(function () {
      * @return {None}.
      */
     pmUtils.syncProject = function (pid, design, success, error) {
-        var syncDesign, syncInfo, saveWrite;
-        pid = pid || pmUtils._acitveProject;
+        var syncDesign, syncInfo, saveWrite,
+            forceDirty, designDirty, pInfoDirty;
+        // If we need to write to unactive project, then the dirty
+        // flag should be true forcely
+        if (pid && (pid !== pmUtils._activeProject)) {
+            forceDirty = true;
+        }
+        pid = pid || pmUtils._activeProject;
         design = design || ADM.getDesignRoot();
-        if (!(pmUtils.designDirty || pmUtils.pInfoDirty)) {
+
+        designDirty = forceDirty || pmUtils.designDirty;
+        pInfoDirty = forceDirty || pmUtils.pInfoDirty;
+
+        if (!(designDirty || pInfoDirty)) {
             success && success();
             return;
         }
@@ -716,15 +726,15 @@ $(function () {
         };
         syncInfo = function (pid, success, error) {
             var pInfo, metadataPath, successHandler, data;
-            if (!pmUtils.pInfoDirty) {
+            if (!pInfoDirty) {
                 success && success();
                 return;
             }
             pInfo = pmUtils._projectsInfo[pid];
             metadataPath = pmUtils.getMetadataPath(pid);
             successHandler = function () {
-                // clean pInfo dirty flag
-                pmUtils.pInfoDirty = false;
+                // Clean pInfo dirty flag, if the project is active
+                (!forceDirty) && (pmUtils.pInfoDirty = false);
                 success && success();
             };
             try {
@@ -736,11 +746,11 @@ $(function () {
             }
             saveWrite(metadataPath, data, successHandler, error);
         };
-        if (pmUtils.designDirty) {
+        if (designDirty) {
             // sync pInfo in the success handler of syncDesign
             syncDesign(pid, design, function () {
-                // clean design dirty flag
-                pmUtils.designDirty = false;
+                // clean design dirty flag, if the project is active
+                (!forceDirty) && (pmUtils.designDirty = false);
                 syncInfo(pid, success, error);
             }, error);
         } else {
