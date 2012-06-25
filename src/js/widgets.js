@@ -2240,7 +2240,7 @@ var BWidget = {
         // build hierarchical stack so child properties will override parents
         while (widget) {
             if (widget.properties && widget.properties[property]) {
-                return widget.properties[property];
+                return jQuery.extend(true, {}, widget.properties[property]);
             }
             widgetType = widget.parent;
             widget = BWidgetRegistry[widgetType];
