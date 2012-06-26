@@ -889,6 +889,51 @@ $(function () {
         return arr.sort(orderFunc);
     };
 
+    pmUtils.addRefCount = function (ref) {
+        if (!pmUtils.resourceRef) {
+            pmUtils.resourceRef = {};
+        }
+        if (!pmUtils.resourceRef[ref]) {
+            pmUtils.resourceRef[ref] = 1;
+        } else {
+            pmUtils.resourceRef[ref]++;
+        }
+        return;
+    };
+
+    pmUtils.reduceRefCount = function (ref) {
+        if (!pmUtils.resourceRef || !pmUtils.resourceRef[ref]) {
+            console.warn('No reference count for ' + ref + 'in reduceRefCount');
+            return;
+        } else {
+            pmUtils.resourceRef[ref]--;
+            // TODO: ask user to decide whether to delete.
+            if (pmUtils.resourceRef[ref] <= 0) {
+                if ($.rib.inSandbox(ref)) {
+                    $.rib.fsUtils.rm(ref.replace($.rib.fsUtils.fs.root.toURL(), "/"));
+                }
+                delete pmUtils.resourceRef[ref];
+            }
+        }
+    };
+
+    pmUtils.deleteRef = function (ref) {
+        if (!pmUtils.resourceRef || !pmUtils.resourceRef[ref]) {
+            console.warn('No reference count ' + ref + 'in deleteRef');
+            return;
+        } else {
+            delete pmUtils.resourceRef[ref];
+        }
+    };
+
+    pmUtils.getRefCount = function (ref) {
+        if (!pmUtils.resourceRef || !pmUtils.resourceRef[ref]) {
+            return 0;
+        } else {
+            return pmUtils.resourceRef[ref];
+        }
+    };
+
     /************ export pmUtils to $.rib **************/
     $.rib.pmUtils = pmUtils;
 });

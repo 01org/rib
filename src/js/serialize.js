@@ -850,6 +850,14 @@ $(function() {
         $.rib.upload(fileType, container, handler, error)
     }
 
+    $.rib.inSandbox = function (url) {
+        var rootUrl = $.rib.fsUtils.fs.root.toURL();
+        if (url && url.indexOf(rootUrl) === 0) {
+            return true;
+        } else {
+            return false;
+        }
+    };
     // Export serialization functions into $.rib namespace
     $.rib.ADMToJSONObj = ADMToJSONObj;
     $.rib.JSONToProj = JSONToProj;
