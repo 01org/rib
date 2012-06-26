@@ -643,7 +643,24 @@ $(function() {
     function exportPackage (resultProject) {
         var zip, resultHTML, files, i;
         zip = new JSZip();
-        resultHTML = generateHTML();
+        resultHTML = generateHTML(null, function (admNode, domNode) {
+            var props, p, value, pType, rootUrl, projectDir;
+            // change sandbox URL for index.html
+            rootUrl = $.rib.fsUtils.fs.root.toURL();
+            projectDir = rootUrl.replace(/\/$/, "") + $.rib.pmUtils.ProjectDir + "/" + $.rib.pmUtils.getActive() + "/";
+            props = admNode.getProperties();
+            for (p in props) {
+                value = props[p];
+                pType = BWidget.getPropertyType(admNode.getType(), p);
+                if (pType === "url-upload") {
+                    // Just delete the project folder sandbox URL
+                    value = value.replace(projectDir, "");
+                    // TODO: need to handle other directory in sandbox
+                    // change the attribute for serialized DOM element 
+                    domNode.attr(p, value);
+                }
+            }
+        });
         resultHTML && zip.add("index.html", resultHTML.html);
         resultProject && zip.add("project.json", resultProject);
         addInternalFiles(zip);
