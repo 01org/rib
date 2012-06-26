@@ -580,7 +580,7 @@ var BWidgetRegistry = {
                 htmlAttribute: "data-rel"
             },
             icon: {
-                type: "string",
+                type: "datalist",
                 options: [ "none", "alert", "arrow-d", "arrow-l", "arrow-r",
                            "arrow-u", "back", "check", "delete", "forward",
                            "gear", "grid", "home", "info", "minus", "plus",

@@ -294,6 +294,53 @@
                             },
                         });
                         break;
+                    case "datalist":
+                        $('<div class="title"/>')
+                            .append(
+                                $('<input type="text" value=""/>')
+                                    .attr('id', valueId)
+                                    .addClass('labelInput')
+                                    .click({'p': p, 'value': value}, function(e){
+                                        var o, value = e.data.value, p = e.data.p;
+                                        value.find('ul').html("");
+                                        for(o in options[p]) {
+                                            $('<li>' + options[p][o] + '</li>').appendTo(value.find('ul'));
+                                        }
+                                        $(this).toggleClass('datalist-input');
+                                        value.find('.droplist').toggle();
+                                        return false;
+                                    })
+                                    .keyup({ 'p' : p, 'value' : value}, function(e){
+                                        var matchedOptions = [], o,
+                                            inputedText = this.value,
+                                            value = e.data.value;
+                                        matchedOptions = $.grep(options[e.data.p], function(item, i){
+                                            return item.indexOf(inputedText) >= 0;
+                                        });
+                                        value.find('ul').html("");
+
+                                        for (o in matchedOptions) {
+                                            $('<li>' + matchedOptions[o] + '</li>')
+                                                .appendTo(value.find('ul'));
+                                        }
+                                        $(this).addClass('datalist-input');
+                                        value.find('.droplist').show();
+                                    })
+                            )
+                            .append(
+                                $('<div style="display:none"/>')
+                                .addClass('droplist')
+                                .append('<ul/>')
+                            )
+                        .appendTo(value);
+                        value.delegate(".droplist li", "click", {'valueId': valueId, 'value': value}, function(e) {
+                            var value = e.data.value,
+                                valueId = e.data.valueId;
+                            value.find('#'+ valueId).val($(this).text()).change().end()
+                                 .find('.droplist').hide().end();
+                        });
+                        value.find('#'+ valueId).val(valueVal);
+                        break;
                     default:
                         // handle property has options
                         if (options[p]) {
