@@ -348,16 +348,24 @@ $(function () {
      *     used to create a project, such as: { "name": XXX, "theme":XXXX }
      * @param {function()=} success Success callback.
      * @param {function(FileError)=} error Error callback.
-     * @param {ADMNode}[optional] design An ADM design used to create a project.
+     * @param {Object}[optional] data Extra data provided to create project, may contains:
+     *                                {
+     *                                    "pid": pid,
+     *                                    "design": design
+     *                                    ....
+     *                                }
      *
      * success callback passed the pid of the new created project.
      * error callback passed the generated file error.
      *
      * @return {None}.
      */
-    pmUtils.createProject = function (properties, success, error, design) {
+    pmUtils.createProject = function (properties, success, error, data) {
         var newPid, successHandler, buildDesign, errorHandler;
         newPid = pmUtils.getValidPid();
+        if (data && data.pid) {
+            newPid = data.pid;
+        }
         buildDesign = function () {
             var newDesign, newPage, config;
             // build a new design
@@ -383,8 +391,8 @@ $(function () {
                 pmUtils.setProperties(newPid, properties);
                 pmUtils.setProperty(newPid, "accessDate", new Date());
 
-                if (design && (design instanceof ADMNode)) {
-                    ADM.setDesignRoot(design);
+                if (data && data.design && (data.design instanceof ADMNode)) {
+                    ADM.setDesignRoot(data.design);
                 } else {
                     ADM.setDesignRoot(buildDesign());
                 }
@@ -446,15 +454,41 @@ $(function () {
             destPid = pmUtils.getValidPid();
 
         fsUtils.cp(basePath + srcPid, basePath + destPid, function (copy) {
-            pmUtils._projectsInfo[destPid] = {};
-            // copy the source project infomation
-            pmUtils.setProperties(destPid, pmUtils._projectsInfo[srcPid]);
-
-            // update access date for the new project
-            pmUtils.setProperty(destPid, "accessDate", new Date());
-
-            // just sync project info only
-            pmUtils.syncProject(destPid, null, success, error);
+            // change filesystem url in design json file
+            // read the design file and build ADM design according it
+            $.rib.fsUtils.read(copy.fullPath + "/design.json", function (result) {
+                var design, project, changeURL;
+                // eachHandler when build ADM to JSON
+                changeURL = function (node, obj) {
+                    var props, p, value, pType, origStr, rootUrl;
+                    rootUrl = $.rib.fsUtils.fs.root.toURL();
+                    origStr = rootUrl.replace(/\/$/, "") + basePath + srcPid;
+                    props = node.getProperties();
+                    for (p in props) {
+                        value = props[p];
+                        pType = BWidget.getPropertyType(node.getType(), p);
+                        if ((pType === "url-upload")&&(value.indexOf(origStr) >= 0)) {
+                            value = value.replace(origStr, copy.toURL());
+                            // set the new value for the property
+                            node.setProperty(p, value);
+                        }
+                    }
+                };
+                // build ADM tree from JSON
+                project = $.rib.JSONToProj(result, changeURL);
+                design = project.design;
+                if (design && (design instanceof ADMNode)) {
+                    pmUtils._projectsInfo[destPid] = {};
+                    // copy the source project infomation
+                    project.pInfo = $.extend(true, {}, pmUtils._projectsInfo[srcPid]);
+                    project.pInfo.name += "-copy";
+                    pmUtils.setProperties(destPid, project.pInfo);
+                    // update access date for the new project
+                    pmUtils.setProperty(destPid, "accessDate", new Date());
+                    // sync project, the project is not active now
+                    pmUtils.syncProject(destPid, design, success, error);
+                }
+            });
         }, error);
     };
 
@@ -498,7 +532,11 @@ $(function () {
         successHandler = function (result) {
             var design, project;
             project = $.rib.JSONToProj(result);
-            design = project.design;
+            if (project && project.design) {
+                design = project.design;
+            } else {
+                console.error("Faild to build ADM from JSON in openProject.");
+            }
             if (design && (design instanceof ADMNode)) {
                 // set current pid as active pid
                 pmUtils._activeProject = pid;
@@ -598,14 +636,32 @@ $(function () {
      * @return {Bool} True if success, false when fails.
      */
     pmUtils.exportProject = function () {
-        var pid, pInfo, design, obj, resultProject;
+        var pid, pInfo, design, obj, resultProject, extraHandler;
         pid = pmUtils.getActive();
         pInfo = pmUtils._projectsInfo[pid];
         if (!pInfo) {
             console.error("Error: Invalid pid for project");
         }
-        design = ADM.getDesignRoot();
-        obj = $.rib.ADMToJSONObj(design);
+        // deep copy of current design
+        design = ADM.copySubtree(ADM.getDesignRoot());
+        extraHandler = function (node, object) {
+            var props, p, value, pType, rootUrl, projectDir;
+            // change sandbox URL
+            rootUrl = $.rib.fsUtils.fs.root.toURL();
+            projectDir = rootUrl.replace(/\/$/, "") + pmUtils.ProjectDir + "/" + pid + "/";
+            props = node.getProperties();
+            for (p in props) {
+                value = props[p];
+                pType = BWidget.getPropertyType(node.getType(), p);
+                if (pType === "url-upload") {
+                    value = value.replace(projectDir, "{projectFolder}");
+                    value = value.replace(rootUrl, "{fsRoot}");
+                    // change the related object
+                    object.properties[p] = value;
+                }
+            }
+        };
+        obj = $.rib.ADMToJSONObj(design, extraHandler);
         // Following is for the serializing part
         if (typeof obj === "object") {
             obj.pInfo = pInfo;
@@ -641,8 +697,29 @@ $(function () {
         var reader = new FileReader();
 
         reader.onloadend = function(e) {
-            var properties, design, resultProject;
-            resultProject = $.rib.zipToProj(e.target.result);
+            var properties, design, designData,
+                resultProject, extraHandler, newPid;
+            // new pid for imported project
+            newPid = pmUtils.getValidPid();
+            // extra Handler when build ADM tree
+            extraHandler = function (node, obj) {
+                var props, p, value, pType, projectDir, rootUrl;
+                rootUrl = $.rib.fsUtils.fs.root.toURL();
+                projectDir = rootUrl.replace(/\/$/, "") + pmUtils.ProjectDir + "/" + newPid + "/";
+                props = node.getProperties();
+                for (p in props) {
+                    value = props[p];
+                    pType = BWidget.getPropertyType(node.getType(), p);
+                    if (pType === "url-upload") {
+                        value = value.replace("{projectFolder}", projectDir);
+                        value = value.replace("{fsRoot}", rootUrl);
+                        // set the new value for the property
+                        node.setProperty(p, value);
+                    }
+                }
+            };
+            designData = $.rib.zipToProj(newPid, e.target.result);
+            resultProject = $.rib.JSONToProj(designData, extraHandler);
             if (!resultProject) {
                 alert("Invalid imported project.");
                 return;
@@ -652,7 +729,7 @@ $(function () {
             design = resultProject.design;
 
             if (design && (design instanceof ADMNode)) {
-                $.rib.pmUtils.createProject(properties, success, error, design);
+                $.rib.pmUtils.createProject(properties, success, error, {"pid": newPid, "design": design});
             } else {
                 console.error("Imported project failed");
                 error && error();
@@ -678,10 +755,20 @@ $(function () {
      * @return {None}.
      */
     pmUtils.syncProject = function (pid, design, success, error) {
-        var syncDesign, syncInfo, saveWrite;
-        pid = pid || pmUtils._acitveProject;
+        var syncDesign, syncInfo, saveWrite,
+            forceDirty, designDirty, pInfoDirty;
+        // If we need to write to unactive project, then the dirty
+        // flag should be true forcely
+        if (pid && (pid !== pmUtils._activeProject)) {
+            forceDirty = true;
+        }
+        pid = pid || pmUtils._activeProject;
         design = design || ADM.getDesignRoot();
-        if (!(pmUtils.designDirty || pmUtils.pInfoDirty)) {
+
+        designDirty = forceDirty || pmUtils.designDirty;
+        pInfoDirty = forceDirty || pmUtils.pInfoDirty;
+
+        if (!(designDirty || pInfoDirty)) {
             success && success();
             return;
         }
@@ -716,15 +803,15 @@ $(function () {
         };
         syncInfo = function (pid, success, error) {
             var pInfo, metadataPath, successHandler, data;
-            if (!pmUtils.pInfoDirty) {
+            if (!pInfoDirty) {
                 success && success();
                 return;
             }
             pInfo = pmUtils._projectsInfo[pid];
             metadataPath = pmUtils.getMetadataPath(pid);
             successHandler = function () {
-                // clean pInfo dirty flag
-                pmUtils.pInfoDirty = false;
+                // Clean pInfo dirty flag, if the project is active
+                (!forceDirty) && (pmUtils.pInfoDirty = false);
                 success && success();
             };
             try {
@@ -736,11 +823,11 @@ $(function () {
             }
             saveWrite(metadataPath, data, successHandler, error);
         };
-        if (pmUtils.designDirty) {
+        if (designDirty) {
             // sync pInfo in the success handler of syncDesign
             syncDesign(pid, design, function () {
-                // clean design dirty flag
-                pmUtils.designDirty = false;
+                // clean design dirty flag, if the project is active
+                (!forceDirty) && (pmUtils.designDirty = false);
                 syncInfo(pid, success, error);
             }, error);
         } else {
@@ -800,6 +887,51 @@ $(function () {
             return (b.date - a.date);
         };
         return arr.sort(orderFunc);
+    };
+
+    pmUtils.addRefCount = function (ref) {
+        if (!pmUtils.resourceRef) {
+            pmUtils.resourceRef = {};
+        }
+        if (!pmUtils.resourceRef[ref]) {
+            pmUtils.resourceRef[ref] = 1;
+        } else {
+            pmUtils.resourceRef[ref]++;
+        }
+        return;
+    };
+
+    pmUtils.reduceRefCount = function (ref) {
+        if (!pmUtils.resourceRef || !pmUtils.resourceRef[ref]) {
+            console.warn('No reference count for ' + ref + 'in reduceRefCount');
+            return;
+        } else {
+            pmUtils.resourceRef[ref]--;
+            // TODO: ask user to decide whether to delete.
+            if (pmUtils.resourceRef[ref] <= 0) {
+                if ($.rib.inSandbox(ref)) {
+                    $.rib.fsUtils.rm(ref.replace($.rib.fsUtils.fs.root.toURL(), "/"));
+                }
+                delete pmUtils.resourceRef[ref];
+            }
+        }
+    };
+
+    pmUtils.deleteRef = function (ref) {
+        if (!pmUtils.resourceRef || !pmUtils.resourceRef[ref]) {
+            console.warn('No reference count ' + ref + 'in deleteRef');
+            return;
+        } else {
+            delete pmUtils.resourceRef[ref];
+        }
+    };
+
+    pmUtils.getRefCount = function (ref) {
+        if (!pmUtils.resourceRef || !pmUtils.resourceRef[ref]) {
+            return 0;
+        } else {
+            return pmUtils.resourceRef[ref];
+        }
     };
 
     /************ export pmUtils to $.rib **************/

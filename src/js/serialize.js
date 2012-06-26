@@ -28,18 +28,27 @@ var DEBUG = true,
         });
     },
 
-    generateHTML = function () {
-        var doc = constructNewDocument($.rib.getDefaultHeaders());
+    /**
+     * Generate HTML from ADM tree.
+     *
+     * @param {ADMNode} design ADM design root to be serialized.
+     * @param {function(ADMNode, DOMElement)=} handler Extra handler for each node.
+     *
+     * @return {Object} return the generated object contains the relative html string
+     */
+    generateHTML = function (design, handler) {
+        design = design || ADM.getDesignRoot();
+        var doc = constructNewDocument($.rib.getDefaultHeaders(design));
 
         function renderClean(admNode, domNode) {
             $(domNode).data('uid', admNode.getUid());
             if (domNode.hasClass("rib-remove")) {
                 domNode.replaceWith(domNode.text());
             }
+            handler && handler(admNode, domNode);
         };
 
-        serializeADMSubtreeToDOM(ADM.getDesignRoot(), $(doc).find('body'),
-                                 renderClean);
+        serializeADMSubtreeToDOM(design, $(doc).find('body'), renderClean);
         return { doc: doc,
                  html: formatHTML(xmlserializer.serializeToString(doc))
         };
@@ -277,70 +286,67 @@ $(function() {
      * AMD design root to this design, which sends a designReset event.
      *
      * @param {Object} obj The JSON object to parse
+     * @param {function(ADMNode, Object)=} eachHandler Extra handler for each pair of
+     *                                                 ADM node and the related object.
+     *
      * @return {ADMNode/null} the design build from the text if success, null if failed.
      */
-    function JSONToProj(text) {
-        var result, design, parsedObject, resultProject = {};
+    function JSONToProj(text, eachHandler) {
+        var result, design, parsedObject, resultProject = {}, add_child;
 
-        function add_child(parent, nodes) {
-            if (typeof(nodes) !== "object") {
+        add_child = function (node, srcObject) {
+            var children, child, zone,
+                properties, childNode,
+                item, val, result, i;
+
+            if ((typeof srcObject !== "object") || !(node instanceof ADMNode)) {
                 return false;
             }
+            properties = srcObject.properties;
+            try {
+                // Set properties for current node
+                for (item in properties) {
+                    // parser the properties and set the value to the node
+                    val = properties[item];
+                    // if we can't get value, we set item's value as default
+                    if (!val){
+                        val = node.getPropertyDefault(item);
+                    }
 
-            if (typeof(nodes.length) == "undefined") {
-                return false;
-            }
-
-            var child, childType, zone,
-                properties = {},
-                item, val, node, result, i;
-
-            for (i = 0; i < nodes.length; i++) {
-                node = nodes[i];
-                childType = node.type;
-                zone = node.zone;
-                properties = node.properties;
-                try {
-                    child =  ADM.createNode(childType, true);
+                    // NOTE: It's important that we pass "true" for the fourth
+                    // parameter here (raw) to disable "property hook"
+                    // functions like the grid one that adds or removes child
+                    // Block elements based on the property change
+                    node.setProperty(item, val, null, true);
+                }
+                // Scan children nodes
+                children = srcObject.children;
+                for (i = 0; i < children.length; i++) {
+                    child = children[i];
+                    childNode = ADM.createNode(child.type, true);
 
                     // add child node to current node
-                    if (!parent.addChildToZone(child, zone)) {
-                        dumplog("add child type "+ childType + " failed");
+                    if (!node.addChildToZone(childNode, child.zone)) {
+                        dumplog("add child type "+ child.type + " failed");
                         return false;
                     }
-
-                    // set properties of child
-                    for (item in properties) {
-                        // parser the properties and set the value to the node
-                        val = properties[item];
-                        // if we can't get value, we set item's value as default
-                        if (!val){
-                            val = child.getPropertyDefault(item);
-                        }
-
-                        // NOTE: It's important that we pass "true" for the fourth
-                        // parameter here (raw) to disable "property hook"
-                        // functions like the grid one that adds or removes child
-                        // Block elements based on the property change
-                        child.setProperty(item, properties[item], null, true);
-                    }
-                }catch (e) {
-                    if (!confirm("Error creating " + childType +
-                                (item ? " when setting property '" +
-                                item + "'" : "") + " - " + e +
-                                ".\n\nContinue loading the design?"))
-                        return false;
-                }
-
-                if (node.children.length !== 0) {
-                    result = add_child(child, node.children);
+                    result = add_child(childNode, child);
                     if (!result) {
                         return false;
                     }
                 }
+            }catch (e) {
+                if (!confirm("Error when " + (i ? " adding new child '" +
+                             child.type + "'" : "setting property '" +
+                             item + "'") + " - " + e +
+                            ".\n\nContinue loading the design?"))
+                    return false;
             }
+            // call extra handler for each relative pair
+            eachHandler && eachHandler(node, srcObject);
             return true;
-        }
+        };
+        /************************ add_child function end *************************/
 
         try {
             parsedObject = $.parseJSON(text);
@@ -358,7 +364,7 @@ $(function() {
 
         // add children in ADM
         try {
-            result = add_child(design, parsedObject.children);
+            result = add_child(design, parsedObject);
         } catch(e) {
             result = null;
             alert("Invalid design file.");
@@ -379,8 +385,9 @@ $(function() {
     /*
      * This function is to find valid design.json in imported file and build ADMTree according it
      */
-    function zipToProj(data) {
-        var zip, designData;
+    function zipToProj(pid, data) {
+        var zip, designData, successHandler, errorCreateDir, projectDir;
+        projectDir = $.rib.pmUtils.ProjectDir + "/" + pid + "/";
         try {
             zip = new ZipFile(data);
             zip.filelist.forEach(function(zipInfo, idx, array) {
@@ -388,17 +395,46 @@ $(function() {
                 if (zipInfo.filename.indexOf("json") !== -1) {
                     designData = zip.extract(zipInfo.filename);
                 }
+                // if the file is custom image located in "images/" folder,
+                // then copy them to sandbox
+                if (zipInfo.filename.indexOf("images/") === 0) {
+                    successHandler = function (dirEntry) {
+                        if (!dirEntry.isDirectory) {
+                            console.error(dirEntry.fullPath + " is not a directory in sandbox.");
+                            return;
+                        }
+                        // Write uploaded file to sandbox
+                        $.rib.fsUtils.write(projectDir + zipInfo.filename, zip.extract(zipInfo.filename), null, null, false, true);
+                    };
+                    $.rib.fsUtils.pathToEntry(projectDir + "images", successHandler, function (e) {
+                        // if "images/" folder don't exist, then create it.
+                        if (e.code === FileError.NOT_FOUND_ERR) {
+                            // Create a Untitled project and open it in onEnd function
+                            $.rib.fsUtils.mkdir(projectDir + "images", successHandler);
+                        } else {
+                            $.rib.fsUtils.onError(e);
+                        }
+                    });
+                }
             });
         } catch (e) {
             designData = data;
         }
-        return JSONToProj(designData);
+        return designData;
     }
 
     /*******************************************************
      * ADM to JSON Direction
      ******************************************************/
-    function ADMToJSONObj(ADMTreeNode) {
+    /**
+     * Serialize ADMTree to an common javascript Object.
+     *
+     * @param {ADMNode} ADMTreeNode ADM node to be serialized.
+     * @param {function(ADMNode, Object)=} handler Extra handler for each pair of
+     *                                             ADM node and the related object.
+     * @return {Bool} return the serialized Object if success, null when fails
+     */
+    function ADMToJSONObj(ADMTreeNode, handler) {
         ADMTreeNode = ADMTreeNode || ADM.getDesignRoot();
         if (ADMTreeNode instanceof ADMNode) {
             // Save staff in ADMNode
@@ -413,9 +449,11 @@ $(function() {
             children = ADMTreeNode.getChildren();
             if (children.length > 0) {
                 for (i = 0; i < children.length; i++) {
-                    JSObject.children[i] = ADMToJSONObj(children[i]);
+                    JSObject.children[i] = ADMToJSONObj(children[i], handler);
                 }
             }
+            // run handler to handle every node
+            handler && handler(ADMTreeNode, JSObject);
             return JSObject;
         } else {
             console.log("warning: children of ADMNode must be ADMNode");
@@ -423,7 +461,9 @@ $(function() {
         }
     }
 
-    function getDefaultHeaders() {
+    function getDefaultHeaders(design) {
+        var i, props, el, designRoot;
+        designRoot = design || ADM.getDesignRoot();
         var i, props, el;
 
         $.rib.defaultHeaders = $.rib.defaultHeaders || [];
@@ -431,7 +471,7 @@ $(function() {
         if ($.rib.defaultHeaders.length > 0)
             return $.rib.defaultHeaders;
 
-        props = ADM.getDesignRoot().getProperty('metas');
+        props = designRoot.getProperty('metas');
         for (i in props) {
             // Skip design only header properties
             if (props[i].hasOwnProperty('designOnly') && props[i].designOnly) {
@@ -450,7 +490,7 @@ $(function() {
             el = el + '>';
             $.rib.defaultHeaders.push(el);
         }
-        props = ADM.getDesignRoot().getProperty('libs');
+        props = designRoot.getProperty('libs');
         for (i in props) {
             // Skip design only header properties
             if (props[i].hasOwnProperty('designOnly') && props[i].designOnly) {
@@ -463,7 +503,7 @@ $(function() {
             el = el + '></script>';
             $.rib.defaultHeaders.push(el);
         }
-        props = ADM.getDesignRoot().getProperty('css');
+        props = designRoot.getProperty('css');
         for (i in props) {
             // Skip design only header properties
             if (props[i].hasOwnProperty('designOnly') && props[i].designOnly) {
@@ -583,12 +623,47 @@ $(function() {
         return $exportNoticeDialog;
     }
 
+    function addInternalFiles(zip) {
+        var imageDir;
+        imageDir = $.rib.pmUtils.ProjectDir + "/" + $.rib.pmUtils.getActive() + "/images/";
+        $.rib.fsUtils.ls(imageDir, function (entries) {
+            $.each(entries, function(index, fileEntry) {
+                fileEntry.file(function(file) {
+                    var reader = new FileReader();
+
+                    reader.onloadend = function(e) {
+                        zip.add("images/" + fileEntry.name, e.target.result, {binary:true});
+                    };
+                    reader.readAsBinaryString(file);
+                });
+            });
+        });
+    }
+
     function exportPackage (resultProject) {
         var zip, resultHTML, files, i;
         zip = new JSZip();
-        resultHTML = generateHTML();
+        resultHTML = generateHTML(null, function (admNode, domNode) {
+            var props, p, value, pType, rootUrl, projectDir;
+            // change sandbox URL for index.html
+            rootUrl = $.rib.fsUtils.fs.root.toURL();
+            projectDir = rootUrl.replace(/\/$/, "") + $.rib.pmUtils.ProjectDir + "/" + $.rib.pmUtils.getActive() + "/";
+            props = admNode.getProperties();
+            for (p in props) {
+                value = props[p];
+                pType = BWidget.getPropertyType(admNode.getType(), p);
+                if (pType === "url-upload") {
+                    // Just delete the project folder sandbox URL
+                    value = value.replace(projectDir, "");
+                    // TODO: need to handle other directory in sandbox
+                    // change the attribute for serialized DOM element 
+                    domNode.attr(p, value);
+                }
+            }
+        });
         resultHTML && zip.add("index.html", resultHTML.html);
         resultProject && zip.add("project.json", resultProject);
+        addInternalFiles(zip);
         files = [
             'src/css/images/ajax-loader.png',
             'src/css/images/icons-18-white.png',
@@ -597,7 +672,8 @@ $(function() {
             'src/css/images/icons-36-black.png',
             'src/css/images/icon-search-black.png',
             'src/css/images/web-ui-fw_noContent.png',
-            'src/css/images/web-ui-fw_volume_icon.png'
+            'src/css/images/web-ui-fw_volume_icon.png',
+            'src/css/images/widgets/tizen_image.svg'
         ];
         function getDefaultHeaderFiles (type) {
             var headers, files = [];
@@ -645,7 +721,143 @@ $(function() {
         getFile();
     }
 
-    /***************** export functions out *********************/
+/***************** export functions out *********************/
+
+    /**
+     * Acceptable uploaded file types
+     *
+     * Each type object contains:
+     *     mime {String} Recommended mimeType of related input element
+     *     suffix {Array} Array of acceptable suffix of uploaded file
+     */
+    $.rib.fileTypes = {
+        js: {
+            mime: 'text/javascript',
+            suffix: ['js'],
+        },
+        image: {
+            mime: 'image/*',
+            suffix: ['jpg', 'png', 'svg', 'bmp',
+                'gif', 'jpeg', 'jpm', 'jp2', 'jpx',
+                'xml', 'cgm', 'ief'],
+        },
+        css: {
+            mime: 'text/css',
+            suffix: ['css'],
+            savePath: '{project}/css/'
+        },
+        any: {
+            mime: '*',
+            suffix: ['*'],
+        }
+    };
+
+    /**
+     * Check if the uploaded file is acceptable, currently just check suffix
+     *
+     * @param {String} type File type to check
+     * @param {File} file Uploaded file object which is an instance of 'File'
+     *
+     * @return {Bool} Return true if the file is acceptable, otherwise return false
+     */
+    $.rib.checkFileType = function (type, file) {
+        var arrString, rule;
+        arrString = $.rib.fileTypes[type.toLowerCase()].suffix.join('|');
+        rule = new RegExp("\\.(" + arrString + ")$", "i");
+        // TODO: May need to read the "content-type" to check the type
+        return rule.test(file.name);
+    };
+
+    /**
+     * Trigger an native dialog to upload file in a container
+     *
+     * @param {String} type File type to upload
+     * @param {Jquery Object} container DOM element where native dialog will be triggered
+     * @param {function(File)=} success Success callback with uploaded file as its parameter
+     * @param {function()=} error Error callback
+     *
+     * @return {None}
+     */
+    $.rib.upload = function (fileType, container, success, error) {
+        var input, mimeType;
+        container = container || $('body');
+        mimeType = $.rib.fileTypes[fileType.toLowerCase()].mime;
+        input = $('<input type="file" accept="' + mimeType +'"/>')
+                .addClass('hidden-accessible').appendTo(container);
+        input.change(function (e) {
+            var file;
+            if (e.currentTarget.files.length === 1) {
+                file = e.currentTarget.files[0];
+                if ($.rib.checkFileType(fileType, file)) {
+                    success && success(file)
+                } else {
+                    console.warn("Unexpected uploaded file.");
+                    // TODO: confirm with user if still use the file
+                    error && error();
+                }
+            } else {
+                if (e.currentTarget.files.length <= 1) {
+                    console.warn("No files specified to import");
+                } else {
+                    console.warn("Multiple file import not supported");
+                }
+                error && error();
+            }
+            // remove the temp input element
+            input.remove();
+        });
+        input.click();
+    };
+
+    /**
+     * Trigger an native dialog to upload file in a container,
+     * and save the file in a parent directory. If the parent directy is not exist,
+     * it will be create, but it only work
+     *
+     * @param {String} type File type to upload
+     * @param {String} parentDir Directory where the uploaded file to be saved in
+     * @param {Jquery Object} container DOM element where native dialog will be triggered
+     * @param {function(File)=} success Success callback with uploaded file as its parameter
+     * @param {function()=} error Error callback
+     *
+     * @return {None}
+     */
+    $.rib.uploadAndSave = function (fileType, parentDir, container, success, error) {
+        var handler = function (file) {
+            var successHandler, errorCreateDir;
+            successHandler = function (dirEntry) {
+                if (!dirEntry.isDirectory) {
+                    console.error(dirEntry.fullPath + " is not a directory in sandbox.");
+                    return;
+                }
+                // Write uploaded file to sandbox
+                $.rib.fsUtils.write(parentDir + file.name, file, function(newFile){
+                    success && success(newFile);
+                });
+            };
+            errorCreateDir = function (e) {
+                if (e.code === FileError.NOT_FOUND_ERR) {
+                    // Create a Untitled project and open it in onEnd function
+                    $.rib.fsUtils.mkdir(parentDir, successHandler);
+                } else {
+                    $.rib.fsUtils.onError(e);
+                    error && error();
+                }
+            };
+            $.rib.fsUtils.pathToEntry(parentDir, successHandler, errorCreateDir);
+        };
+
+        $.rib.upload(fileType, container, handler, error)
+    }
+
+    $.rib.inSandbox = function (url) {
+        var rootUrl = $.rib.fsUtils.fs.root.toURL();
+        if (url && url.indexOf(rootUrl) === 0) {
+            return true;
+        } else {
+            return false;
+        }
+    };
     // Export serialization functions into $.rib namespace
     $.rib.ADMToJSONObj = ADMToJSONObj;
     $.rib.JSONToProj = JSONToProj;

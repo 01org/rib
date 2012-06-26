@@ -80,6 +80,40 @@
             }
         },
 
+        _scanADMNodeRef: function (node, addFlag, widget) {
+            var props, p, propertyType, rootUrl;
+            props = node.getProperties();
+            //rootUrl = $.rib.fsUtils.fs.root.toURL();
+            for (p in props) {
+                propertyType = BWidget.getPropertyType(node.getType(), p);
+                //if (propertyType === "url-upload" && $.rib.inSandbox(props[p])) {
+                if (propertyType === "url-upload" && $.rib.inSandbox(props[p])) {
+                    //if (addFlag && props[p].indexOf(rootUrl) >= 0) {
+                    if (addFlag) {
+                        $.rib.pmUtils.addRefCount(props[p]);
+                    } else {
+                        $.rib.pmUtils.reduceRefCount(props[p]);
+                    }
+                }
+            }
+            return;
+        },
+        _scanADMTreeRef: function (node, addFlag, widget) {
+            // Only handle ADMNodes
+            if (!(node instanceof ADMNode)) {
+                return;
+            }
+            widget._scanADMNodeRef(node, addFlag)
+            if (node.getChildrenCount() !== 0) {
+            // Recurse over any children
+                var children = node.getChildren();
+                for (var i=0; i<children.length; i++) {
+                    widget._scanADMTreeRef(children[i], addFlag, widget);
+                }
+            }
+            return;
+        },
+
         refresh: function(event, widget) {
             var pidArr, stage, container;
             widget = widget || this;
@@ -97,6 +131,12 @@
             // Mark the active project box
             $('#'+$.rib.pmUtils.getActive(), container)
                 .addClass('ui-state-active');
+            if (event && event.name === "designReset") {
+                // reset pmUtils.resourceRef
+                $.rib.pmUtils.resourceRef = {};
+                // Scan the resource refernce count
+                widget._scanADMTreeRef(event.design, true, widget);
+            }
         },
 
         // Private functions
@@ -177,10 +217,30 @@
 
         _modelUpdatedHandler: function(event, widget) {
             widget = widget || this;
+            var propertyType, node;
             // if the designDirty is false, then set it
             if (!($.rib.pmUtils.designDirty)) {
                 $.rib.pmUtils.designDirty = true;
             }
+            node = event.node;
+            switch (event.type) {
+                case 'nodeAdded':
+                    widget._scanADMNodeRef(node, true, widget);
+                    break;
+                case 'nodeRemoved':
+                    widget._scanADMNodeRef(node, false, widget);
+                    break;
+                case 'propertyChanged':
+                    propertyType = BWidget.getPropertyType(node.getType(), event.property);
+                    if (propertyType === "url-upload") {
+                        $.rib.inSandbox(event.newValue) && $.rib.pmUtils.addRefCount(event.newValue);
+                        $.rib.inSandbox(event.oldValue) && $.rib.pmUtils.reduceRefCount(event.oldValue);
+                    }
+                    break;
+                default:
+                    break;
+            }
+
         },
 
         _createSettingDialog: function() {
