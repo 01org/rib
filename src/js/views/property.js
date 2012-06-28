@@ -62,7 +62,8 @@
             var node;
             widget = widget || this;
             if (event) {
-                if (event.node && !(event.name === "modelUpdated" &&
+                if (event.node && BWidget.isShownInPropertyView(event.node.getType())
+                    && !(event.name === "modelUpdated" &&
                     event.type === "nodeRemoved")) {
                     widget._showProperties(event.node);
                 } else {
@@ -301,13 +302,22 @@
                                 .attr('id', valueId)
                                 .addClass('title')
                                 .appendTo(value);
-                            //add options to select list
-                            for (o in options[p]) {
-                                //TODO make it simple
-                                $('<option value="' + options[p][o] +
-                                  '">' +options[p][o] + '</option>')
+                            //Forbid changing the style of the first page to "Dialog", we don't want
+                            //to user adjust style of the first page
+                            if (type === 'Page' &&
+                                    node.getDesign().getChildren()[0] === node &&
+                                    p === 'style') {
+                                $('<option value="page">page</option>')
                                     .appendTo(value.find("#" + valueId));
-                                value.find('#'+ valueId).val(valueVal);
+                            } else {
+                                //add options to select list
+                                for (o in options[p]) {
+                                    //TODO make it simple
+                                    $('<option value="' + options[p][o] +
+                                            '">' +options[p][o] + '</option>')
+                                        .appendTo(value.find("#" + valueId));
+                                    value.find('#'+ valueId).val(valueVal);
+                                }
                             }
                         } else {
                             $('<input type ="text" value="">')

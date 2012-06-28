@@ -241,7 +241,23 @@ var BWidgetRegistry = {
         showInPalette: false,
         selectable: true,
         moveable: false,
-        template: '<div data-role="page"></div>',
+        template: function (node) {
+            var prop, code, design = node.getDesign();
+            //make sure style of the first page  can only be page
+            if (design.getChildren()[0] === node) {
+                code =  $('<div data-role="page"></div>');
+            } else {
+                code = $('<div data-role="' + node.getProperty("style") + '"></div>');
+            }
+            code.attr("id", node.getProperty("id"));
+
+            // don't write data-theme if it's using the default
+            prop = node.getProperty("theme");
+            if (prop !== "default") {
+                code.attr("data-theme", prop);
+            }
+            return code;
+        },
         properties: {
             id: {
                 type: "string",
@@ -253,6 +269,11 @@ var BWidgetRegistry = {
                 options: [ "default", "a", "b", "c", "d", "e" ],
                 defaultValue: "default",
                 htmlAttribute: "data-theme"
+            },
+            style: {
+                type: "string",
+                options: ["page", "dialog"],
+                defaultValue: "page",
             }
         },
         redirect: {
@@ -2160,6 +2181,28 @@ var BWidget = {
     },
 
     /**
+     * Tests whether this widget type should be shown in the property view
+     *
+     * @param {String} widgetType The type of the widget.
+     * @return {Boolean} true if this widget is to be shown in the property view,
+     *                   false if not or it is undefined.
+     */
+    isShownInPropertyView: function (widgetType) {
+        return  BWidget.isPaletteWidget(widgetType) || (widgetType === "Page");
+    },
+
+    /**
+     * Tests whether this widget type should be shown in the outline view
+     *
+     * @param {String} widgetType The type of the widget.
+     * @return {Boolean} true if this widget is to be shown in the outline view,
+     *                   false if not or it is undefined.
+     */
+    isShowInOutlineView: function (widgetType) {
+        return  BWidget.isPaletteWidget(widgetType) || (widgetType === "Page");
+    },
+
+    /**
      * Tests whether this widget type should be shown with a drag header bar.
      *
      * @param {String} widgetType The type of the widget.
@@ -2363,7 +2406,7 @@ var BWidget = {
         // build hierarchical stack so child properties will override parents
         while (widget) {
             if (widget.properties && widget.properties[property]) {
-                return widget.properties[property];
+                return jQuery.extend(true, {}, widget.properties[property]);
             }
             widgetType = widget.parent;
             widget = BWidgetRegistry[widgetType];
