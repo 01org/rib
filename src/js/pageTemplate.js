@@ -18,7 +18,8 @@ $(function() {
         options :{
             design: null,
             pageTemplate: "Blank Page",
-            layout: ['Content']
+            layout: ['Content'],
+            pageStyle: 'page'
         },
         /**
          * Creates an new page according to page configure.
@@ -30,6 +31,7 @@ $(function() {
             var design = config.design || ADM.getDesignRoot(),
                 pageTemplate = config.pageTemplate || this.options[pageTemplate],
                 layout = this.options.layout.concat(config.layout),
+                style = config.pageStyle || this.options[pageStyle],
                 newPage, result;
 
             if (!design.instanceOf("Design")) {
@@ -40,6 +42,12 @@ $(function() {
             // create New ADM page node
             newPage = ADM.createNode('Page');
             if (!newPage) {
+                return null;
+            }
+
+            //set page style
+            result = newPage.setProperty('style', style);
+            if (!result.result) {
                 return null;
             }
 

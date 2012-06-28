@@ -169,11 +169,14 @@
             if (node.getType() === "Page") {
                 //set page id
                 var id = node.getProperty('id'),
-                    titleNode = domNode.find("> a > .pageTitle");
+                    titleNode = domNode.find("> a > .pageTitle"),
+                    widgetNode = domNode.find( "> a > .widgetType"),
+                    style = node.getProperty('style');
                 if (titleNode.length === 0)
                     titleNode = $('<span/>').addClass('pageTitle')
                         .appendTo(domNode.find("> a"));
                 titleNode.text(' (' + id + ')');
+                widgetNode.text(style);
             }
         },
         _render: function (domNode, data) {
