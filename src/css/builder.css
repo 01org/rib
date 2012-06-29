@@ -660,6 +660,7 @@ body.ui-tabs.ui-widget {
     font-size: 12px;
     color: #111111;
     font-style: normal;
+    text-transform: capitalize;
 }
 .treeView span.widgetType:hover {
     color: #2c7a94;
@@ -1335,13 +1336,15 @@ div.propertyItems label[for|=id] {
     size: 4;
 }
 
-.deviceSetting #buttonSet{
-    position: absolute;
+center.title {
+    margin: 1em 1em 1.5em 1em;
+}
+#buttonSet{
     bottom: 0px;
     width: 100%;
 }
-.deviceSetting #buttonSet * {
-    margin: 0 1em 3em 1em;
+#buttonSet * {
+    margin: 1.5em 1em 1.5em 1em;
     min-width: 25%;
 }
 

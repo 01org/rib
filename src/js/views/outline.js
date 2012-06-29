@@ -93,25 +93,28 @@
 
         _modelUpdatedHandler: function(event, widget) {
             widget = widget || this;
-            switch (event.type) {
-            case "nodeAdded":
-                widget.addNode(event.node);
-                break;
-            case "nodeRemoved":
-                widget.removeNode(event.node, event.parent);
-                break;
-            case "nodeMoved":
-                widget.moveNode(event.node, event.oldParent);
-                break;
-            case "propertyChanged":
-                widget.removeNode(event.node);
-                widget.addNode(event.node);
-                widget.setSelected(widget._getSelected());
-                break;
-            default:
-                console.warning('Unknown type of modelUpdated event:'
+            if (event.node &&
+                BWidget.showInOutline(event.node.getType())) {
+                switch (event.type) {
+                    case "nodeAdded":
+                        widget.addNode(event.node);
+                        break;
+                    case "nodeRemoved":
+                        widget.removeNode(event.node, event.parent);
+                        break;
+                    case "nodeMoved":
+                        widget.moveNode(event.node, event.oldParent);
+                        break;
+                    case "propertyChanged":
+                        widget.removeNode(event.node);
+                        widget.addNode(event.node);
+                        widget.setSelected(widget._getSelected());
+                        break;
+                    default:
+                        console.warning('Unknown type of modelUpdated event:'
                                 + event.type);
-                break;
+                        break;
+                }
             }
         },
         _getParent: function (node) {
@@ -136,8 +139,7 @@
             }
 
             type = admNode.getType();
-            showInOutline = BWidget.isPaletteWidget(type) ||
-                (type === "Page");
+            showInOutline = BWidget.showInOutline(type);
             label = BWidget.getDisplayLabel(type);
             if (showInOutline) {
                 treeNode[label] = childNodes;
@@ -167,11 +169,14 @@
             if (node.getType() === "Page") {
                 //set page id
                 var id = node.getProperty('id'),
-                    titleNode = domNode.find("> a > .pageTitle");
+                    titleNode = domNode.find("> a > .pageTitle"),
+                    widgetNode = domNode.find( "> a > .widgetType"),
+                    style = node.getProperty('style');
                 if (titleNode.length === 0)
                     titleNode = $('<span/>').addClass('pageTitle')
                         .appendTo(domNode.find("> a"));
                 titleNode.text(' (' + id + ')');
+                widgetNode.text(style);
             }
         },
         _render: function (domNode, data) {

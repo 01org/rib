@@ -49,6 +49,10 @@
  *                     a required property name (see #3 above).  Existance of
  *                     this object implies the textContent node of the
  *                     resulting DOM element is editable in-line
+ *  16) showInProperty: boolean, whether widget is shown in property view (
+ *                      default: true)
+ *  17) showInOutline: boolean, whether widget is shown in outline view (
+ *                      default: true)
  *
  * Each zone description in the array should be an object with:
  *   1) name identifying the zone point
@@ -138,6 +142,8 @@ var BWidgetRegistry = {
         parent: "Base",
         allowIn: [],
         showInPalette: false,
+        showInProperty: false,
+        showInOutline: false,
         selectable: false,
         moveable: false,
         properties: {
@@ -239,7 +245,23 @@ var BWidgetRegistry = {
         showInPalette: false,
         selectable: true,
         moveable: false,
-        template: '<div data-role="page"></div>',
+        template: function (node) {
+            var prop, code, design = node.getDesign();
+            //make sure style of the first page  can only be page
+            if (design.getChildren()[0] === node) {
+                code =  $('<div data-role="page"></div>');
+            } else {
+                code = $('<div data-role="' + node.getProperty("style") + '"></div>');
+            }
+            code.attr("id", node.getProperty("id"));
+
+            // don't write data-theme if it's using the default
+            prop = node.getProperty("theme");
+            if (prop !== "default") {
+                code.attr("data-theme", prop);
+            }
+            return code;
+        },
         properties: {
             id: {
                 type: "string",
@@ -251,6 +273,11 @@ var BWidgetRegistry = {
                 options: [ "default", "a", "b", "c", "d", "e" ],
                 defaultValue: "default",
                 htmlAttribute: "data-theme"
+            },
+            style: {
+                type: "string",
+                options: ["page", "dialog"],
+                defaultValue: "page",
             }
         },
         redirect: {
@@ -394,6 +421,8 @@ var BWidgetRegistry = {
         parent: "Base",
         allowIn: "Page",
         showInPalette: false,
+        showInProperty: false,
+        showInOutline: false,
         selectable: false,
         moveable: false,
         template: '<div data-role="content"></div>',
@@ -1126,6 +1155,8 @@ var BWidgetRegistry = {
         parent: "Base",
         allowIn: "SelectMenu",
         showInPalette: false,
+        showInProperty: false,
+        showInOutline: false,
         selectable: false,
         moveable: false,
         properties: {
@@ -1789,6 +1820,8 @@ var BWidgetRegistry = {
     Block: {
         parent: "Base",
         showInPalette: false,
+        showInProperty: false,
+        showInOutline: false,
         selectable: false,
         outlineLabel: function (node) {
             var columns, row, col, children, map;
@@ -2157,6 +2190,36 @@ var BWidget = {
     isPaletteWidget: function (widgetType) {
         var widget = BWidgetRegistry[widgetType];
         if (typeof widget === "object" && widget.showInPalette !== false) {
+            return true;
+        }
+        return false;
+    },
+
+    /**
+     * Tests whether this widget type should be shown in the property view
+     *
+     * @param {String} widgetType The type of the widget.
+     * @return {Boolean} true if this widget is to be shown in the property view,
+     *                   false if not or it is undefined.
+     */
+    showInProperty: function (widgetType) {
+        var widget = BWidgetRegistry[widgetType];
+        if (typeof widget === "object" && widget.showInProperty !== false) {
+            return true;
+        }
+        return false;
+    },
+
+    /**
+     * Tests whether this widget type should be shown in the outline view
+     *
+     * @param {String} widgetType The type of the widget.
+     * @return {Boolean} true if this widget is to be shown in the outline view,
+     *                   false if not or it is undefined.
+     */
+    showInOutline: function (widgetType) {
+        var widget = BWidgetRegistry[widgetType];
+        if (typeof widget === "object" && widget.showInOutline !== false) {
             return true;
         }
         return false;
