@@ -26,27 +26,22 @@
                     "Color": ["#0._hidden_node.tizen_input_color"]
                 }
             ],
-            "List views": [
-                 "List", "OrderedList", "SplitList", "IconList", "ThumbnailsList", "ListItem", "IconListItem",
-                     "ThumbnailsListItem", "SplitListItem", "ListDivider", "ListButton", "ImgButton", "IconButton"
-            ],
             "List views": [ {
-                    "OrderedList": ["OrderedList"],
+                    "OrderedList": ["OrderedList", "ListItem", "ListDivider"],
                     "UnorderedList": [ {
                             "Single": [ {
-                                    "Simple": ["List", "ListItem"],
-                                    "Button": ["List", "ListItem", "ListButton"],
-                                    "Text": ["List"],
-                                    "Divider": ["List", "ListDivider"],
-                                    "Icon": ["IconList", "IconListItem", "IconButton"],
-                                    "Thumbnails": ["ThumbnailsList", "ThumbnailsListItem", "ImgButton"]
+                                    "Simple": ["List", "ListItem", "ListDivider"],
+                                    "Button": ["ButtonList", "ListButtonItem", "ListButton", "ListDivider"],
+                                    "Text": ["TextList", "ListTextItem", "ListDivider", "TextButton"],
+                                    "Icon": ["IconList", "IconListItem", "IconButton", "ListDivider"],
+                                    "Thumbnails": ["ThumbnailsList", "ThumbnailsListItem", "ImgButton", "ListDivider"]
                                 }
                             ],
                             "Split": [ {
-                                    "Simple": ["SplitList"],
-                                    "Text": ["SplitList"],
-                                    "Icon": ["IconList", "IconListItem", "IconButton"],
-                                    "Thumbnails": ["ThumbnailsList", "ThumbnailsListItem", "ImgButton"]
+                                    "Simple": ["SimpleSplitList", "SimpleSplitListItem"],
+                                    "Text": ["TextSplitList", "TextSplitListItem", "TextButton"],
+                                    "Icon": ["IconSplitList", "IconListItem", "IconButton"],
+                                    "Thumbnails": ["SplitList", "ThumbnailsListItem", "ImgButton"]
                                 }
                             ]
                         }

@@ -1291,55 +1291,85 @@ var BWidgetRegistry = {
             {
                 name: "default",
                 cardinality: "N",
-                allow: [ "ListItem", "ListDivider", "ListButton" ]
+                allow: [ "ListItem", "ListDivider" ]
             }
-        ]
+        ],
+        init: function (node) {
+            // initial state is three button ListItem
+            var i;
+            for (i = 0; i < 3; i++) {
+                var ListItem = ADM.createNode("ListItem");
+                ListItem.setProperty("text", "ListItem");
+                //BWidget.getInitializationFunction("ListItem")(ListItem);
+                node.addChild(ListItem);
+            }
+        }
+    },
+
+    /**
+     * Represents a unordered button list element.
+     */
+    ButtonList: {
+        parent: "List",
+        paletteImageName: "jqm_buttonlist.svg",
+        template: '<ul data-role="listview">',
+        zones: [
+            {
+                name: "default",
+                cardinality: "N",
+                allow: [ "ListButtonItem"]
+            }
+        ],
+        init: function (node) {
+            // initial state is three button ListItem
+            var i;
+            for (i = 0; i < 3; i++) {
+                var ButtonListItem = ADM.createNode("ListButtonItem");
+                ButtonListItem.setProperty("listitemtype", "button");
+                BWidget.getInitializationFunction("ListButtonItem")(ButtonListItem);
+                node.addChild(ButtonListItem);
+            }
+        }
+    },
+
+    /**
+     * Represents a unordered button list element.
+     */
+    TextList: {
+        parent: "List",
+        paletteImageName: "jqm_textlist.svg",
+        template: '<ul data-role="listview">',
+        zones: [
+            {
+                name: "default",
+                cardinality: "N",
+                allow: [ "ListTextItem" ]
+            }
+        ],
+        init: function (node) {
+            // initial state is three button ListItem
+            var i;
+            for (i = 0; i < 3; i++) {
+                var TextListItem = ADM.createNode("ListTextItem");
+                TextListItem.setProperty("listitemtype", "text");
+                BWidget.getInitializationFunction("ListTextItem")(TextListItem);
+                node.addChild(TextListItem);
+            }
+        }
     },
 
     /**
      * Represents a icon list element.
      */
     IconList: {
-        parent: "Base",
+        parent: "List",
         paletteImageName: "jqm_iconlist.svg",
-        dragHeader: true,
-        newGroup: true,
-        properties: {
-            inset: {
-                type: "boolean",
-                defaultValue: "true",
-                htmlAttribute: "data-inset",
-                // because data-inset="false" is the real default, do this:
-                forceAttribute: true
-                // FIXME: would be better to distinguish from the default that
-                //        occurs if you leave it off, vs. the default we think
-                //        the user is most likely to want
-            },
-            filter: {
-                type: "boolean",
-                defaultValue: "false",
-                htmlAttribute: "data-filter"
-            },
-            theme: {
-                type: "string",
-                options: [ "default", "a", "b", "c", "d", "e" ],
-                defaultValue: "default",
-                htmlAttribute: "data-theme"
-            },
-            divider: {
-                displayName: "divider theme",
-                type: "string",
-                options: [ "default", "a", "b", "c", "d", "e" ],
-                defaultValue: "default",
-                htmlAttribute: "data-divider-theme"
-            }
-        },
         template: '<ul data-role="listview">',
         zones: [
             {
                 name: "default",
                 cardinality: "N",
-                allow: [ "IconListItem", "ThumbnailsListItem" ]
+                allow: [ "IconListItem" ]
             }
         ],
         init: function (node) {
@@ -1355,40 +1385,8 @@ var BWidgetRegistry = {
      * Represents a Thumbnails list element.
      */
     ThumbnailsList: {
-        parent: "Base",
+        parent: "List",
         paletteImageName: "jqm_thumbnailslist.svg",
-        dragHeader: true,
-        newGroup: true,
-        properties: {
-            inset: {
-                type: "boolean",
-                defaultValue: "true",
-                htmlAttribute: "data-inset",
-                // because data-inset="false" is the real default, do this:
-                forceAttribute: true
-                // FIXME: would be better to distinguish from the default that
-                //        occurs if you leave it off, vs. the default we think
-                //        the user is most likely to want
-            },
-            filter: {
-                type: "boolean",
-                defaultValue: "false",
-                htmlAttribute: "data-filter"
-            },
-            theme: {
-                type: "string",
-                options: [ "default", "a", "b", "c", "d", "e" ],
-                defaultValue: "default",
-                htmlAttribute: "data-theme"
-            },
-            divider: {
-                displayName: "divider theme",
-                type: "string",
-                options: [ "default", "a", "b", "c", "d", "e" ],
-                defaultValue: "default",
-                htmlAttribute: "data-divider-theme"
-            }
-        },
         template: '<ul data-role="listview">',
         zones: [
             {
@@ -1410,8 +1408,48 @@ var BWidgetRegistry = {
      * Represents an ordered list element.
      */
     OrderedList: {
-        parent: "List",
-        template: '<ol data-role="listview">'
+        parent: "Base",
+        dragHeader: true,
+        displayLabel: "Ordered List",
+        paletteImageName: "jqm_ordered_list.svg",
+        properties: {
+            inset: {
+                type: "boolean",
+                defaultValue: true,
+                htmlAttribute: "data-inset",
+                // because data-inset="false" is the real default, do this:
+                forceAttribute: true
+                // FIXME: would be better to distinguish from the default that
+                //        occurs if you leave it off, vs. the default we think
+                //        the user is most likely to want
+            },
+            filter: {
+                type: "boolean",
+                defaultValue: false,
+                htmlAttribute: "data-filter"
+            },
+            theme: {
+                type: "string",
+                options: [ "default", "a", "b", "c", "d", "e" ],
+                defaultValue: "default",
+                htmlAttribute: "data-theme"
+            },
+            divider: {
+                displayName: "divider theme",
+                type: "string",
+                options: [ "default", "a", "b", "c", "d", "e" ],
+                defaultValue: "default",
+                htmlAttribute: "data-divider-theme"
+            }
+        },
+        template: '<ol data-role="listview">',
+        zones: [
+            {
+                name: "default",
+                cardinality: "N",
+                allow: [ "ListItem", "ListDivider" ]
+            }
+        ],
     },
 
     /**
@@ -1468,6 +1506,72 @@ var BWidgetRegistry = {
     },
 
     /**
+     * Represents a Split list element.
+     */
+    SimpleSplitList: {
+        parent: "SplitList",
+        paletteImageName: "jqm_simplesplitlist.svg",
+        zones: [
+            {
+                name: "default",
+                cardinality: "N",
+                allow: [ "SimpleSplitListItem"]
+            }
+        ],
+        init: function (node) {
+            // initial state is three SplitListItem
+            var i;
+            for (i = 0; i < 3; i++) {
+                node.addChild(ADM.createNode("SimpleSplitListItem"));
+            }
+        }
+    },
+
+    /**
+     * Represents a Split list element.
+     */
+    TextSplitList: {
+        parent: "SplitList",
+        paletteImageName: "jqm_textsplitlist.svg",
+        zones: [
+            {
+                name: "default",
+                cardinality: "N",
+                allow: [ "TextSplitListItem"]
+            }
+        ],
+        init: function (node) {
+            // initial state is three SplitListItem
+            var i;
+            for (i = 0; i < 3; i++) {
+                node.addChild(ADM.createNode("TextSplitListItem"));
+            }
+        }
+    },
+
+    /**
+     * Represents a Split list element.
+     */
+    IconSplitList: {
+        parent: "SplitList",
+        paletteImageName: "jqm_iconsplitlist.svg",
+        zones: [
+            {
+                name: "default",
+                cardinality: "N",
+                allow: [ "IconSplitListItem"]
+            }
+        ],
+        init: function (node) {
+            // initial state is three SplitListItem
+            var i;
+            for (i = 0; i < 3; i++) {
+                node.addChild(ADM.createNode("IconSplitListItem"));
+            }
+        }
+    },
+
+    /**
      * Represents a list item element.
      */
     ListItem: {
@@ -1489,7 +1593,27 @@ var BWidgetRegistry = {
                 options: [ "default", "a", "b", "c", "d", "e" ],
                 defaultValue: "default",
                 htmlAttribute: "data-theme"
+            },
+            listitemtype: {
+                type: "string",
+                options: [ "default", "button", "text", "divider" ],
+                defaultValue: "default",
             }
+        },
+        template: '<li>%TEXT%</li>'
+    },
+
+    /**
+     * Represents a list button item element.
+     */
+    ListButtonItem: {
+        parent: "ListItem",
+        displayLabel: "List Button Item",
+        paletteImageName: "jqm_list_button_item.svg",
+        allowIn: [ "ButtonList" ],
+        editable: {
+            selector: "",
+            propertyName: "text"
         },
         template: '<li>%TEXT%</li>',
         zones: [
@@ -1499,6 +1623,36 @@ var BWidgetRegistry = {
                 allow: [ "ListButton" ]
             }
         ],
+        init: function (node) {
+            // initial state is three buttons
+            var widgit;
+
+            widgit = ADM.createNode("ListButton")
+            node.addChild(widgit);
+        }
+    },
+
+    /**
+     * Represents a list text item element.
+     */
+    ListTextItem: {
+        parent: "ListItem",
+        displayLabel: "List Text Item",
+        paletteImageName: "jqm_list_text_item.svg",
+        allowIn: [ "TextList" ],
+        template: '<li></li>',
+        zones: [
+            {
+                name: "left",
+                cardinality: "1",
+                allow: [ "TextButton" ]
+            },
+        ],
+        init: function (node) {
+            // initial state is three buttons
+
+            node.addChild(ADM.createNode("TextButton"));
+        }
     },
 
     /**
@@ -1605,13 +1759,89 @@ var BWidgetRegistry = {
     },
 
     /**
+     * Represents a SplitListItem element.
+     */
+    SimpleSplitListItem: {
+        parent: "SplitListItem",
+        displayLabel: "Simple Split List Item",
+        paletteImageName: "jqm_simplesplitlist_item.svg",
+        allowIn: [ "SimpleSplitList" ],
+        zones: [
+            {
+                name: "left",
+                cardinality: "2",
+                allow: [ "ListButton" ]
+            }
+        ],
+        init: function (node) {
+            // initial state is three buttons
+            node.addChild(ADM.createNode("ListButton"));
+            node.addChild(ADM.createNode("ListButton"));
+        }
+    },
+
+    /**
+     * Represents a SplitListItem element.
+     */
+    IconSplitListItem: {
+        parent: "SplitListItem",
+        displayLabel: "Icon Split List Item",
+        paletteImageName: "jqm_splitlist_item.svg",
+        allowIn: [ "IconSplitList" ],
+        zones: [
+            {
+                name: "left",
+                cardinality: "1",
+                allow: [ "IconButton" ]
+            },
+            {
+                name: "right",
+                cardinality: "1",
+                allow: [ "ListButton" ]
+            }
+        ],
+        init: function (node) {
+            // initial state is three buttons
+            node.addChild(ADM.createNode("IconButton"));
+            node.addChild(ADM.createNode("ListButton"));
+        }
+    },
+
+    /**
+     * Represents a SplitListItem element.
+     */
+    TextSplitListItem: {
+        parent: "SplitListItem",
+        displayLabel: "Text Split List Item",
+        paletteImageName: "jqm_textsplitlist_item.svg",
+        allowIn: [ "TextSplitList" ],
+        zones: [
+            {
+                name: "left",
+                cardinality: "1",
+                allow: [ "TextButton" ]
+            },
+            {
+                name: "right",
+                cardinality: "1",
+                allow: [ "ListButton" ]
+            }
+        ],
+        init: function (node) {
+            // initial state is three buttons
+            node.addChild(ADM.createNode("TextButton"));
+            node.addChild(ADM.createNode("ListButton"));
+        }
+    },
+
+    /**
      * Represents a list divider element.
      */
     ListDivider: {
         parent: "Base",
         displayLabel: "List Divider",
         paletteImageName: "jqm_list_divider.svg",
-        allowIn: [ "List", "OrderedList" ],
+        allowIn: [ "List", "OrderedList", "ButtonList", "TextList", "IconList", "ThumbnailsList" ],
         editable: {
             selector: "",
             propertyName: "text"
@@ -1633,7 +1863,7 @@ var BWidgetRegistry = {
         parent: "Base",
         displayLabel: "List Button",
         paletteImageName: "jqm_list_button.svg",
-        allowIn: [ "ListItem", "SplitListItem" ],
+        allowIn: [ "ListButtonItem", "SplitListItem", "SimpleSplitListItem", "TextSplitListItem", "IconSplitListItem" ],
         editable: {
             selector: "a",
             propertyName: "text"
@@ -1659,7 +1889,6 @@ var BWidgetRegistry = {
         },
         template: function (node) {
             var prop, countBubble, code = $('<a>%TEXT%</a><');
-//            var anchor = code.find('a');
 
             prop = node.getProperty("countbubble");
             // Add the count bubble if countbubble property is not blank
@@ -1681,7 +1910,7 @@ var BWidgetRegistry = {
         parent: "Base",
         displayLabel: "list Icon Button",
         paletteImageName: "jqm_list_icon_button.svg",
-        allowIn: [ "IconListItem", "SplitListItem" ],
+        allowIn: [ "IconListItem", "SplitListItem", "IconSplitListItem" ],
         properties: {
             text: {
                 type: "string",
@@ -1693,6 +1922,11 @@ var BWidgetRegistry = {
                 htmlAttribute: "href",
                 htmlSelector: "a"
             },
+            iconsrc: {
+                type: "url-uploadable",
+                defaultValue: "src/css/images/widgets/tizen_image.svg",
+                forceAttribute: true
+            },
             countbubble: {
                 type: "string",
                 displayName: "count bubble",
@@ -1700,7 +1934,7 @@ var BWidgetRegistry = {
             }
         },
         template: function(node) {
-            var prop, countBubble, code = $('<a>%TEXT%</a><');
+            var prop, iconsrc, countBubble, code = $('<a>%TEXT%</a><');
             prop = node.getProperty("countbubble");
             // Add the count bubble if countbubble property is not blank
             if (prop.trim() != '') {
@@ -1709,28 +1943,16 @@ var BWidgetRegistry = {
                     .html(prop);
                 code.append(countBubble);
             };
-
+            prop = node.getProperty("iconsrc");
+            // Add the count bubble if iconsrc property is not blank
+            if (prop.trim() != '') {
+                iconsrc = $('<img/>')
+                        .attr('src', prop)
+                        .attr('width','16')
+                        .attr('class', 'ui-li-icon');
+                code.append(iconsrc);
+            };
             return code;
-        },
-        zones: [
-            {
-                name: "left",
-                cardinality: "1",
-                allow: [ "Image" ]
-            },
-            {
-                name: "right",
-                cardinality: "N",
-                allow: [ "Text" ]
-            }
-        ],
-        init: function (node) {
-            // initial state is three image
-            var image = ADM.createNode("Image");
-            image.setProperty("isIcon", true);
-            image.setProperty("width", "16");
-            image.setProperty("height", "11");
-            node.addChild(image);
         }
     },
 
@@ -1775,6 +1997,44 @@ var BWidgetRegistry = {
             text.setProperty("text", "Thumbnails List Item");
             node.addChild(text);
             node.addChild(image);
+        }
+    },
+
+    /**
+     * Represents a button. A Image property holds the button text.
+     */
+    TextButton: {
+        parent: "Base",
+        displayLabel: "list Text Button",
+        paletteImageName: "jqm_list_text_button.svg",
+        allowIn: [ "ListTextItem", "TextSplitListItem" ],
+        properties: {
+            target: {
+                type: "string",
+                defaultValue: "",
+                htmlAttribute: "href",
+                htmlSelector: "a"
+            }
+        },
+        template:'<a></a>',
+        zones: [
+            {
+                name: "right",
+                cardinality: "N",
+                allow: [ "Text" ]
+            }
+        ],
+        init: function (node) {
+            // initial state is three Image and Texts
+            var widgit;
+            widgit = ADM.createNode("Text");
+            widgit.setProperty("type", "h3");
+            widgit.setProperty("text", "Text List Item");
+            node.addChild(widgit);
+            widgit = ADM.createNode("Text");
+            widgit.setProperty("type", "p");
+            widgit.setProperty("text", "Text List Item");
+            node.addChild(widgit);
         }
     },
 
