@@ -26,8 +26,27 @@
                     "Color": ["#0._hidden_node.tizen_input_color"]
                 }
             ],
-            "List Views": [
-                 "List", "OrderedList", "ListItem", "ListDivider", "ListButton"
+            "List views": [ {
+                    "OrderedList": ["OrderedList", "ListItem", "ListDivider"],
+                    "UnorderedList": [ {
+                            "Single": [ {
+                                    "Simple": ["List", "ListItem", "ListDivider"],
+                                    "Button": ["ButtonList", "ListButtonItem", "ListButton", "ListDivider"],
+                                    "Text": ["TextList", "ListTextItem", "ListDivider", "TextButton"],
+                                    "Icon": ["IconList", "IconListItem", "IconButton", "ListDivider"],
+                                    "Thumbnails": ["ThumbnailsList", "ThumbnailsListItem", "ImgButton", "ListDivider"]
+                                }
+                            ],
+                            "Split": [ {
+                                    "Simple": ["SimpleSplitList", "SimpleSplitListItem"],
+                                    "Text": ["TextSplitList", "TextSplitListItem", "TextButton"],
+                                    "Icon": ["IconSplitList", "IconListItem", "IconButton"],
+                                    "Thumbnails": ["SplitList", "ThumbnailsListItem", "ImgButton"]
+                                }
+                            ]
+                        }
+                    ]
+                }
             ],
             "Output": ["ProgressBar"],
             "Image": ["Image"]
