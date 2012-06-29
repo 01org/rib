@@ -314,6 +314,53 @@
                             },
                         });
                         break;
+                    case "datalist":
+                        $('<div class="title"/>')
+                            .append('<input type="text" value=""/>')
+                            .append('<div style="display:none"/>')
+                            .children(':first')
+                                .attr('id', valueId)
+                                .addClass('labelInput')
+                                .click({'p': p, 'value': value}, function(e){
+                                    var o, value = e.data.value, p = e.data.p;
+                                    value.find('ul').html("");
+                                    for(o in options[p]) {
+                                        $('<li>' + options[p][o] + '</li>').appendTo(value.find('ul'));
+                                    }
+                                    $(this).toggleClass('datalist-input');
+                                    value.find('.drop').toggle();
+                                })
+                                .keyup({ 'p' : p, 'value' : value}, function(e){
+                                    var temp = [], o,
+                                        filter = this.value,
+                                        value = e.data.value;
+                                    temp = $.grep(options[e.data.p], function(e, i){
+                                        return e.indexOf(filter) >= 0;
+                                    });
+                                    value.find('ul').html("");
+
+                                    for (o in temp) {
+                                        $('<li>' + temp[o] + '</li>')
+                                            .appendTo(value.find('ul'));
+                                    }
+                                    $(this).addClass('datalist-input');
+                                    value.find('.drop').show();
+                                })
+                            .end()
+                            .children(':last')
+                                .addClass('drop')
+                                .append('<ul/>')
+                            .end()
+                        .appendTo(value);
+
+                        value.delegate("li", "click", {'valueId': valueId, 'value': value}, function(e) {
+                            var value = e.data.value,
+                                valueId = e.data.valueId;
+                            value.find('#'+ valueId).val($(this).text()).change().end()
+                                 .find('.drop').hide().end();
+                        });
+                        value.find('#'+ valueId).val(valueVal);
+                        break;
                     default:
                         // handle property has options
                         if (options[p]) {
