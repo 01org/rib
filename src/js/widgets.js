@@ -545,15 +545,14 @@ var BWidgetRegistry = {
     },
 
     /**
-     * Represents a Control Group object. Includes an "data-type" property
-     * that should be "vertical" or "horizontal"
+     * Represents a Vertical Button Group
      */
-    ButtonGroup: {
+    VButtonGroup: {
         parent: "Base",
         dragHeader: true,
         paletteImageName: "jqm_vertical_button_group.svg",
-        template: '<div data-role="controlgroup"></div>',
-        displayLabel: "Button Group",
+        template: '<div data-role="controlgroup" data-type="vertical"></div>',
+        displayLabel: "Vertical Button Group",
         zones: [
             {
                 name: "default",
@@ -561,16 +560,6 @@ var BWidgetRegistry = {
                 allow: "Button"
             }
         ],
-        properties: {
-            // TODO: Look into why, if this property is renamed "type",
-            //       the ButtonGroup goes crazy and doesn't work
-            orientation: {
-                type: "string",
-                options: [ "vertical", "horizontal" ],
-                defaultValue: "vertical",
-                htmlAttribute: "data-type"
-            }
-        },
         init: function (node) {
             // initial state is three buttons
             var i;
@@ -578,6 +567,16 @@ var BWidgetRegistry = {
                 node.addChild(new ADMNode("Button"));
             }
         }
+    },
+
+    /**
+     * Represents a Horizontal Button Group
+     */
+    HButtonGroup: {
+        parent: "VButtonGroup",
+        paletteImageName: "jqm_horizontal_button_group.svg",
+        template: '<div data-role="controlgroup" data-type="horizontal"></div>',
+        displayLabel: "Horizontal Button Group"
     },
 
     /**
