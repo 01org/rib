@@ -386,27 +386,6 @@ $(function() {
         }
     }
 
-    /*
-     * This function is to find valid design.json in imported file and build ADMTree according it
-     */
-    function zipToProj(data) {
-        var zip, designData, ribRule;
-        // Accept file subffixed with ".json" or ".rib"
-        ribRule = /\.(json|rib)$/i;
-        try {
-            zip = new ZipFile(data);
-            zip.filelist.forEach(function(zipInfo, idx, array) {
-                // use file suffixed with ".json" or ".rib", case insensitive
-                if (ribRule.test(zipInfo.filename)) {
-                    designData = zip.extract(zipInfo.filename);
-                }
-            });
-        } catch (e) {
-            designData = data;
-        }
-        return JSONToProj(designData);
-    }
-
     /*******************************************************
      * ADM to JSON Direction
      ******************************************************/
@@ -647,7 +626,8 @@ $(function() {
             'src/css/images/icons-36-black.png',
             'src/css/images/icon-search-black.png',
             'src/css/images/web-ui-fw_noContent.png',
-            'src/css/images/web-ui-fw_volume_icon.png'
+            'src/css/images/web-ui-fw_volume_icon.png',
+            'src/css/images/widgets/tizen_image.svg'
         ];
 
         function getDefaultHeaderFiles (type) {
@@ -684,22 +664,63 @@ $(function() {
             files.push(iconPath);
         }
         ribFile && zip.add(projName + ".json", ribFile);
-        resultHTML = generateHTML();
+        resultHTML = generateHTML(null, function (admNode, domNode) {
+            var props, p, value, pType, rootUrl, newPath, attrName, attrValue;
+            // change sandbox URL for index.html
+            rootUrl = $.rib.fsUtils.fs.root.toURL();
+            props = admNode.getProperties();
+            for (p in props) {
+                value = props[p];
+                pType = BWidget.getPropertyType(admNode.getType(), p);
+                // if the value type is url-uploadable, and value is in sandbox
+                if ((pType === "url-uploadable") && (value.indexOf(rootUrl) === 0)) {
+                    // put all sandbox images as "images/fileName"
+                    newPath = "images" + value.substr(value.lastIndexOf('/'), value.length);
+                    // add the image file to the needed list
+                    files.push({"src":value,
+                               "dst":newPath});
+                    // change the attribute for serialized DOM element
+                    attrName = BWidget.getPropertyHTMLAttribute(admNode.getType(), p);
+                    if (typeof attrName  === "object") {
+                        if (typeof attrName.value  === "function") {
+                            attrValue = attrName.value(newPath);
+                        } else {
+                            attrValue = attrName.value[newPath];
+                        }
+                        attrName = attrName.name;
+                    } else {
+                        attrValue = newPath;
+                    }
+                    domNode.attr(attrName, attrValue);
+                }
+            }
+        });
         resultHTML && zip.add("index.html", resultHTML.html);
         // projName now is the whole package name
         projName = projName + '.' + type;
 
         i = 0;
         files.forEach(function (file, index) {
+            var req, srcPath, dstPath;
             // We have to do ajax request not using jquery as we can't get "arraybuffer" response from jquery
-            var req = window.ActiveXObject ? new window.ActiveXObject( "Microsoft.XMLHTTP" ): new XMLHttpRequest();
+            req = window.ActiveXObject ? new window.ActiveXObject( "Microsoft.XMLHTTP" ): new XMLHttpRequest();
+            if ((typeof file === "object") && file.dst && file.src) {
+                srcPath = file.src;
+                dstPath = file.dst;
+            } else if(typeof file === "string") {
+                srcPath = file;
+                dstPath = file;
+            } else {
+                console.error("Envalid path for exported Zip.");
+                return;
+            }
             req.onload = function() {
                 var uIntArray = new Uint8Array(this.response);
                 var charArray = new Array(uIntArray.length);
                 for (var j = 0; j < uIntArray.length; j ++) {
                     charArray[j] = String.fromCharCode(uIntArray[j]);
                 }
-                zip.add(file, btoa(charArray.join('')), {base64:true});
+                zip.add(dstPath, btoa(charArray.join('')), {base64:true});
                 if (i === files.length - 1){
                     var content = zip.generate(true);
                     exportFile(projName, content, true);
@@ -707,7 +728,7 @@ $(function() {
                 i++;
             }
             try {
-                req.open("GET", file, true);
+                req.open("GET", srcPath, true);
                 req.responseType = 'arraybuffer';
             } catch (e) {
                 alert(e);
@@ -743,7 +764,6 @@ $(function() {
     // Export serialization functions into $.rib namespace
     $.rib.ADMToJSONObj = ADMToJSONObj;
     $.rib.JSONToProj = JSONToProj;
-    $.rib.zipToProj = zipToProj;
 
     $.rib.getDefaultHeaders = getDefaultHeaders;
     $.rib.getDesignHeaders = getDesignHeaders;
