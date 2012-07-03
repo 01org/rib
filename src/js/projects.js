@@ -677,28 +677,51 @@ $(function () {
         var reader = new FileReader();
 
         reader.onloadend = function(e) {
-            var properties, design, designData,
-                resultProject, extraHandler, newPid;
+            var properties, design, designData, designRule,
+                copyRule, copyFiles, data, zip, successHandler,
+                resultProject, extraHandler, newPid, projectDir, rootUrl;
+            data = e.target.result;
             // new pid for imported project
             newPid = pmUtils.getValidPid();
-            // extra Handler when build ADM tree
+            designRule = /\.(json|rib)$/i;
+            copyRule = /^images\//i;
+            copyFiles = [];
+            try {
+                zip = new ZipFile(data);
+            } catch (e) {
+                console.warn("Failed to parse imported file as zip.");
+            }
+            if (zip && zip.filelist) {
+                zip.filelist.forEach(function(zipInfo, idx, array){
+                    if (designRule.test(zipInfo.filename)) {
+                        designData = zip.extract(zipInfo.filename);
+                    }
+                    if (copyRule.test(zipInfo.filename)) {
+                        copyFiles.push(zipInfo.filename);
+                    }
+                });
+            } else {
+                // Try to parse imported data as json
+                console.warn("Try to parse imported file as JSON.");
+                designData = data;
+            }
+
+            rootUrl = $.rib.fsUtils.fs.root.toURL();
+            projectDir = pmUtils.ProjectDir + "/" + newPid + "/";
+            // Extra Handler when build ADM tree
             extraHandler = function (node, obj) {
-                var props, p, value, pType, projectDir, rootUrl;
-                rootUrl = $.rib.fsUtils.fs.root.toURL();
-                projectDir = rootUrl.replace(/\/$/, "") + pmUtils.ProjectDir + "/" + newPid + "/";
+                var props, p, value, pType;
                 props = node.getProperties();
                 for (p in props) {
                     value = props[p];
                     pType = BWidget.getPropertyType(node.getType(), p);
-                    if (pType === "url-uploadable") {
-                        value = value.replace("{projectFolder}", projectDir);
-                        value = value.replace("{fsRoot}", rootUrl);
-                        // set the new value for the property
+                    if (pType === "url-uploadable" && value.indexOf("{projectFolder}") === 0) {
+                        value = value.replace("{projectFolder}", $.rib.fsUtils.pathToUrl(projectDir));
+                        // Set the new value for the property
                         node.setProperty(p, value);
                     }
                 }
             };
-            designData = $.rib.zipToProj(e.target.result);
             resultProject = $.rib.JSONToProj(designData, extraHandler);
             if (!resultProject) {
                 alert("Invalid imported project.");
@@ -707,9 +730,44 @@ $(function () {
             // Get properties from imported file
             properties = resultProject.pInfo || {"name":"Imported Project"};
             design = resultProject.design;
+            successHandler = function () {
+                var copyHandler, count;
+                if (copyFiles.length <= 0) {
+                    success && success();
+                    return;
+                }
+                count = 0;
+                copyHandler = function (dirEntry) {
+                    if (!dirEntry.isDirectory) {
+                        console.error(dirEntry.fullPath + " is not a directory to save files in sandbox.");
+                        return;
+                    }
+                    // Copy needed files to sandbox
+                    $.each(copyFiles, function(i, fileName) {
+                        $.rib.fsUtils.write(projectDir + fileName, zip.extract(fileName), function (newFile) {
+                            count++;
+                            if (count === copyFiles.length) {
+                                success && success();
+                            }
+                        }, function(e) {
+                            count++;
+                            console.error("Error when copy " + projectDir + fileName + " to sandbox.");
+                            $.rib.fsUtils.onError(e);
+                        }, false, true);
+                    });
+                }
+                $.rib.fsUtils.pathToEntry(projectDir + "images", copyHandler, function(e) {
+                    // If "images/" directory not exist then create it
+                    if (e.code === FileError.NOT_FOUND_ERR) {
+                        $.rib.fsUtils.mkdir(projectDir + "images", copyHandler);
+                    } else {
+                        $.rib.fsUtils.onError(e);
+                    }
+                });
+            };
 
             if (design && (design instanceof ADMNode)) {
-                $.rib.pmUtils.createProject(properties, success, error, {"pid": newPid, "design": design});
+                $.rib.pmUtils.createProject(properties, successHandler, error, {"pid": newPid, "design": design});
             } else {
                 console.error("Imported project failed");
                 error && error();
