@@ -1018,9 +1018,8 @@ ADM.copySubtree = function (node) {
     for (prop in props) {
         if (node.isPropertyExplicit(prop) &&
             !BWidget.getPropertyAutoGenerate(type, prop)) {
-            // do a deep copy of the property to avoid any cross-referencing
-            newNode.setProperty(prop, $.extend(true, {}, props[prop]),
-                                undefined, true);
+            // setProperty will do deep copy of the propety value
+            newNode.setProperty(prop, props[prop], undefined, true);
         }
     }
 
@@ -1949,7 +1948,8 @@ ADMNode.prototype.isPropertyExplicit = function (property) {
  *                  relevant info for performing an undo of this operation.
  */
 ADMNode.prototype.setProperty = function (property, value, data, raw) {
-    var orig, func, changed, type, rval = { };
+    var orig, func, changed, type, rval = { },
+        temp = {}, eventData;
     type = BWidget.getPropertyType(this.getType(), property);
     if (!type) {
         console.error("Error: attempted to set non-existent property: " +
@@ -1992,11 +1992,15 @@ ADMNode.prototype.setProperty = function (property, value, data, raw) {
                 rval.transactionData = func(this, value, data);
         }
         orig = this._properties[property];
+        temp[property] = value;
+        $.extend(true, this._properties, temp);
+        eventData = { type: "propertyChanged",
+                      node: this,
+                      property: property,
+                      oldValue: orig};
+        $.extend(true, eventData, {newValue: value});
         this._properties[property] = value;
-        this.fireModelEvent("modelUpdated",
-                            { type: "propertyChanged", node: this,
-                              property: property, oldValue: orig,
-                              newValue: value });
+        this.fireModelEvent("modelUpdated", eventData);
         rval.result = true;
     }
     return rval;
