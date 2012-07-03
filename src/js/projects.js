@@ -609,28 +609,35 @@ $(function () {
      * @return {Bool} True if success, false when fails.
      */
     pmUtils.exportProject = function () {
-        var pid, pInfo, design, obj, resultProject, extraHandler;
+        var pid, pInfo, design, obj, resultProject, extraHandler,
+            innerFiles = [];
         pid = pmUtils.getActive();
         pInfo = pmUtils._projectsInfo[pid];
         if (!pInfo) {
             console.error("Error: Invalid pid for project");
         }
-        // deep copy of current design
+        // Deep copy of current design
         design = ADM.copySubtree(ADM.getDesignRoot());
         extraHandler = function (node, object) {
-            var props, p, value, pType, rootUrl, projectDir;
-            // change sandbox URL
+            var props, p, value, pType, rootUrl, projectDir, newPath;
+            // Change sandbox URL
             rootUrl = $.rib.fsUtils.fs.root.toURL();
             projectDir = rootUrl.replace(/\/$/, "") + pmUtils.ProjectDir + "/" + pid + "/";
             props = node.getProperties();
             for (p in props) {
                 value = props[p];
                 pType = BWidget.getPropertyType(node.getType(), p);
-                if (pType === "url-uploadable") {
+                if ((pType === "url-uploadable") && (value.indexOf(rootUrl) === 0)) {
+                    // Put all sandbox images as "images/fileName"
+                    newPath = "images" + value.substr(value.lastIndexOf('/'));
+                    // Add the image file to the needed list
+                    innerFiles.push({"src":value,
+                               "dst":newPath});
                     value = value.replace(projectDir, "{projectFolder}");
-                    value = value.replace(rootUrl, "{fsRoot}");
-                    // change the related object
+                    // Change the related object
                     object.properties[p] = value;
+                    // Set the new value for the property
+                    node.setProperty(p, newPath);
                 }
             }
         };
@@ -640,7 +647,7 @@ $(function () {
             obj.pInfo = pInfo;
             resultProject = JSON.stringify(obj);
             try {
-                $.rib.exportPackage(resultProject);
+                $.rib.exportPackage(design, resultProject, innerFiles);
             } catch (e) {
                 console.error("Export to package failed");
                 return false;
