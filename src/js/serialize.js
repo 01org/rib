@@ -386,27 +386,6 @@ $(function() {
         }
     }
 
-    /*
-     * This function is to find valid design.json in imported file and build ADMTree according it
-     */
-    function zipToProj(data) {
-        var zip, designData, ribRule;
-        // Accept file subffixed with ".json" or ".rib"
-        ribRule = /\.(json|rib)$/i;
-        try {
-            zip = new ZipFile(data);
-            zip.filelist.forEach(function(zipInfo, idx, array) {
-                // use file suffixed with ".json" or ".rib", case insensitive
-                if (ribRule.test(zipInfo.filename)) {
-                    designData = zip.extract(zipInfo.filename);
-                }
-            });
-        } catch (e) {
-            designData = data;
-        }
-        return designData;
-    }
-
     /*******************************************************
      * ADM to JSON Direction
      ******************************************************/
@@ -757,7 +736,6 @@ $(function() {
     // Export serialization functions into $.rib namespace
     $.rib.ADMToJSONObj = ADMToJSONObj;
     $.rib.JSONToProj = JSONToProj;
-    $.rib.zipToProj = zipToProj;
 
     $.rib.getDefaultHeaders = getDefaultHeaders;
     $.rib.getDesignHeaders = getDesignHeaders;
