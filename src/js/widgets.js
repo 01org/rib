@@ -297,14 +297,35 @@ var BWidgetRegistry = {
         showInPalette: false,
         selectable: true,
         moveable: false,
-        template: '<div data-role="page"></div>',
+        template: function (node) {
+            var prop, code, design = node.getDesign();
+            //make sure style of the first page  can only be page
+            if (design.getChildren()[0] === node) {
+                code =  $('<div data-role="page"></div>');
+            } else {
+                code = $('<div data-role="' + node.getProperty("style") + '"></div>');
+            }
+            code.attr("id", node.getProperty("id"));
+
+            // don't write data-theme if it's using the default
+            prop = node.getProperty("theme");
+            if (prop !== "default") {
+                code.attr("data-theme", prop);
+            }
+            return code;
+        },
         properties: {
             id: {
                 type: "string",
                 autoGenerate: "page",
                 htmlAttribute: "id"
             },
-            theme: BCommonProperties.theme
+            theme: BCommonProperties.theme,
+            style: {
+                type: "string",
+                options: ["page", "dialog"],
+                defaultValue: "page",
+            }
         },
         redirect: {
             zone: "content",

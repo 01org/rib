@@ -243,6 +243,7 @@
                 dialog.find('#pagePicker').get(0).selectedIndex = 0;
                 dialog.find('#header_layout').attr("checked", true);
                 dialog.find('#footer_layout').attr("checked", true);
+                dialog.find('input:radio[name=Layout]')[0].checked = true;
             }
             catch (err) {
                 console.error(err.message);
@@ -256,6 +257,12 @@
                     dialog = $('#pageDialog');
 
                 options.pageTemplate = dialog.find("#pagePicker").val();
+                //get style of new page
+                if (dialog.find('input:radio[name=Layout]:checked').next().html() === 'Dialog') {
+                    options.pageStyle = 'dialog';
+                } else {
+                    options.pageStyle = 'page';
+                }
                 //get checkbox value
                 if (dialog.find('#header_layout').is(":checked")) {
                     layout.push('Header');
@@ -297,14 +304,12 @@
                         '<select id="pagePicker" size="1"></select></li>' +
                         '<li class="m150 mt30"><label for="Layout">Layout</label>' +
                         '<fieldset><ul>' +
-                        /*
                         '<li>' +
                         '<input class="fieldInput" type="radio" name="Layout"/>' +
                         '<label class="fieldLabel" for="layout">Normal Page</label></li>' +
                         '<li>' +
                         '<input class="fieldInput" type="radio" name="Layout"/>' +
                         '<label class="fieldLabel" for="layout">Dialog</label></li>' +
-                        */
                         '<li>' +
                         '<input id="header_layout" class="fieldInput" type="checkbox" name="Header"/>' +
                         '<label class="fieldLabel" for="layout">Header</label></li>' +
