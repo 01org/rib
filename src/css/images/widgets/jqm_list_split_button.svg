@@ -24,7 +24,7 @@
 	<path fill="#999999" d="M120,25v20H14V25H120 M121,24H13v22h108V24L121,24z"/>
 </g>
 <rect fill="#627278" width="5" height="54"/>
-<text transform="matrix(1 0 0 1 11.9209 16.1611)" font-family="'OpenSans-Semibold'" font-size="11" id="jqm_list_split_button_title">List Split Button</text>
+<text transform="matrix(1 0 0 1 11.9209 16.1611)" font-family="'OpenSans-Semibold'" font-size="11" id="jqm_list_split_button_title">Split List Button</text>
 <circle fill="#BCBEC0" cx="108" cy="35" r="7"/>
 <polyline fill="none" stroke="#FFFFFF" stroke-width="2" stroke-miterlimit="10" points="111,33.188 107.852,36.335 104.516,33 "/>
 <line fill="none" stroke="#999999" stroke-miterlimit="10" x1="67.5" y1="24" x2="67.5" y2="46"/>
