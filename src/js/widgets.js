@@ -658,14 +658,7 @@ var BWidgetRegistry = {
     Image: {
         parent: "Base",
         paletteImageName: "tizen_image.svg",
-        template: function(node) {
-            var prop, code = $('<img/>');
-            code = BWidgetRegistry.Base.applyProperties(node, code);
-            if (node.getProperty("isIcon")) {
-                code.attr("class", "ui-li-icon");
-            }
-            return code;
-        },
+        template: '<img/>',
         properties: {
             src: {
                 type: "url-uploadable",
@@ -1428,12 +1421,7 @@ var BWidgetRegistry = {
                 defaultValue: false,
                 htmlAttribute: "data-filter"
             },
-            theme: {
-                type: "string",
-                options: [ "default", "a", "b", "c", "d", "e" ],
-                defaultValue: "default",
-                htmlAttribute: "data-theme"
-            },
+            theme: BCommonProperties.theme,
             divider: {
                 displayName: "divider theme",
                 type: "string",
@@ -1588,12 +1576,7 @@ var BWidgetRegistry = {
                 type: "string",
                 defaultValue: "",
             },
-            theme: {
-                type: "string",
-                options: [ "default", "a", "b", "c", "d", "e" ],
-                defaultValue: "default",
-                htmlAttribute: "data-theme"
-            },
+            theme: BCommonProperties.theme,
             listitemtype: {
                 type: "string",
                 options: [ "default", "button", "text", "divider" ],
@@ -1668,12 +1651,7 @@ var BWidgetRegistry = {
                 type: "string",
                 defaultValue: "List Item",
             },
-            theme: {
-                type: "string",
-                options: [ "default", "a", "b", "c", "d", "e" ],
-                defaultValue: "default",
-                htmlAttribute: "data-theme"
-            }
+            theme: BCommonProperties.theme,
         },
         template: '<li></li>',
         zones: [
@@ -1731,12 +1709,7 @@ var BWidgetRegistry = {
                 type: "string",
                 defaultValue: "List Item",
             },
-            theme: {
-                type: "string",
-                options: [ "default", "a", "b", "c", "d", "e" ],
-                defaultValue: "default",
-                htmlAttribute: "data-theme"
-            }
+            theme: BCommonProperties.theme,
         },
         template: '<li></li>',
         zones: [
