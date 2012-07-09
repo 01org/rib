@@ -44,8 +44,13 @@ $(function () {
             thumbnail: {
                 type: "string",
                 defaultValue: ""
-            }
-        }
+            },
+            theme: {
+                type: "string",
+                defaultValue: "Default"
+            },
+        },
+        themesList: {}
     };
 
     /* Asynchronous. init pmUtils.
@@ -108,6 +113,18 @@ $(function () {
                         });
                     }
                 });
+            });
+            //fill themes info into pmUtils.themesList
+            var themePath = $.rib.fsUtils.fs.root.toURL() + 'themes.json';
+            $.ajax({
+                    type: 'GET',
+                    url: themePath,
+                    dataType: 'json',
+                    success: function(data) {
+                        $.each(data, function(key, val) {
+                            pmUtils.themesList[key] = val;
+                        });},
+                   async: false
             });
             return;
         };
@@ -260,7 +277,7 @@ $(function () {
      * @return {Bool} True if success, false if failed.
      */
     pmUtils.setProperties = function (pid, properties) {
-        var i, pInfo, temp;
+        var i, pInfo, temp, themeName, props, p;
         // get the original object of pInfo
         pid && (pInfo = pmUtils._projectsInfo[pid]);
         if (!(pid && pInfo) || typeof properties !== "object") {
@@ -269,6 +286,21 @@ $(function () {
         }
         for ( i in properties) {
             if (pmUtils.propertySchema.hasOwnProperty(i)) {
+                if (i === 'theme' &&
+                    pmUtils.getProperty(pid, 'theme') !== properties[i]) {
+                    themeName = properties[i];
+                    //get css value of default template
+                    props = BWidget.getPropertyDefault("Design", "css");
+                    if (themeName !== 'Default') {
+                        var p = {};
+                        p.designOnly = false;
+                        p.value = $.rib.fsUtils.fs.root.toURL() + themeName + ".css";
+                        props.push(p);
+                    }
+                    //update css property of ADM design
+                    ADM.getDesignRoot().setProperty('css', props);
+                }
+
                 // if the item has schema then check the type
                 pmUtils.setProperty(pid, i, properties[i]);
             } else {
@@ -799,6 +831,57 @@ $(function () {
             return (b.date - a.date);
         };
         return arr.sort(orderFunc);
+    };
+
+    /**
+     * upload a new theme to projects
+     *
+     * @param {String} theme file
+     * @return {Bool} return true if success, false when fails
+     */
+    pmUtils.uploadTheme = function (themeFile) {
+        var themeName = themeFile.name.replace(/.css$/g, "");
+        var parserSwatchers = function(buffer) {
+            var swatchers = [], lines = [], arr, i,
+                re = /^\.ui-bar-([a-z]) {$/i;
+            lines = buffer.split('\n');
+            for (i = 0; i < lines.length; i++) {
+                arr =re.exec(lines[i]);
+                //if theme is not found in swatcher, add it into swatchers
+                if (arr && jQuery.inArray(arr[1], swatchers) === -1) {
+                    swatchers.push(arr[1]);
+                }
+            }
+            return swatchers;
+        };
+        //write themeFile to sandbox
+        $.rib.fsUtils.write('/' + themeFile.name, themeFile, function() {
+            //read file to buffer
+            $.rib.fsUtils.read('/' + themeFile.name, function(result) {
+                try {
+                    var swathchers = parserSwatchers(result);
+                    pmUtils.themesList[themeName] = swathchers;
+                    //update themes.json in sandbox
+                    $.rib.fsUtils.write('/themes.json', JSON.stringify(pmUtils.themesList));
+                } catch(e) {
+                    alert(e.stack);
+                    return false;
+                }
+            });
+        });
+    };
+
+    /**
+     * get all themes in projects
+     *
+     * @return {array} return array of theme names
+     */
+    pmUtils.getAllThemes = function () {
+        var themes = ['Default'];
+        for ( var p in pmUtils.themesList ) {
+            themes.push(p);
+        }
+        return themes;
     };
 
     /************ export pmUtils to $.rib **************/

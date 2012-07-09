@@ -38,7 +38,8 @@ var DEBUG = true,
      */
     generateHTML = function (design, extraHandler) {
         design = design || ADM.getDesignRoot();
-        var doc = constructNewDocument($.rib.getDefaultHeaders(design));
+        var  headers = $.rib.getHeaders(),
+             doc = constructNewDocument(headers);
 
         function renderer(admNode, domNode) {
             // clean code
@@ -445,6 +446,45 @@ $(function() {
         }
     }
 
+    function getHeaders() {
+        var getCustomizedHeaders = function() {
+            var ch = {
+                'meta': [],
+                'script': [],
+                'link': []
+            };
+            //check whether project use customized theme
+            var pmUtils = $.rib.pmUtils,
+                pid = pmUtils.getActive(), theme;
+
+            theme = pid && pmUtils.getProperty(pid, 'theme');
+            if (theme && theme !== 'Default') {
+                var cusLink = '<link href="' + $.rib.fsUtils.fs.root.toURL() + theme +
+                    '.css" rel="stylesheet">';
+                ch.link.push(cusLink);
+            }
+            return ch;
+        };
+        var dh = $.rib.getDefaultHeaders(),
+            ch = getCustomizedHeaders(),
+            m,s;
+        $.each(dh, function(idx) {
+            if (/<meta/.test(this)) {
+                m = idx+1; // Insert our Meta after LAST one
+                return;
+            }
+            if (/<script.*jquery-[0-9]*\.[0-9]*\.[0-9]*\.js/.test(this)) {
+                s = s || idx+1; // Insert our Script after FIRST one
+                return;
+            }
+            // No need to handle "<link/>" entries, as we just append
+            // our <link> at the end of all the headers
+        });
+        return [].concat(dh.slice(0,m), ch.meta,
+                dh.slice(m,s), ch.script,
+                dh.slice(s),   ch.link);
+    }
+
     function getDefaultHeaders(design) {
         var i, props, el, designRoot;
         designRoot = design || ADM.getDesignRoot();
@@ -744,7 +784,7 @@ $(function() {
     $.rib.ADMToJSONObj = ADMToJSONObj;
     $.rib.JSONToProj = JSONToProj;
     $.rib.zipToProj = zipToProj;
-
+    $.rib.getHeaders = getHeaders;
     $.rib.getDefaultHeaders = getDefaultHeaders;
     $.rib.getDesignHeaders = getDesignHeaders;
 

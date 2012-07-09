@@ -1079,7 +1079,6 @@ div.propertyItems label[for|=id] {
 .ribDialog select {
     margin-left: 0px;
     width: 220px;
-    height: 23px;
     background: #eaf1f4;
 }
 .ribDialog .uploadStyle {

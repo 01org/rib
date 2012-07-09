@@ -528,7 +528,9 @@ $(function() {
                     input.remove();
                 });
                 setTimeout(function() {
-                    input.click();
+                    input.removeClass('hidden-accessible')
+                         .click()
+                         .addClass('hidden-accessible');
                 }, 0);
             },
 

@@ -110,6 +110,11 @@
             if ((!event) || (name === 'load' ||
                              name === 'designReset' ||
                              name === 'modelUpdated')) {
+                //if theme of active project changed, re-generate document
+                if (name  === 'modelUpdated' &&
+                    event.node && event.node.getType() === 'Design') {
+                    widget._createDocument();
+                }
                 widget._serializeADMDesignToDOM();
 /* FIXME: Calling serializeADMSubtreeToDom is not actually forcing the
           the DOM to update, but it should work...
@@ -313,7 +318,7 @@
         // headers are already "sorted" and in the order in which they should
         // be inserted into the <head/> node of the document being created...
         _getCustomHeaders: function() {
-            var dh = $.rib.getDefaultHeaders(),   // default headers
+            var dh = $.rib.getHeaders(),   // default headers
                 ch = this.options.customHeaders, // our custom headers
                 m, s;
 

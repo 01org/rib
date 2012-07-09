@@ -93,25 +93,28 @@
 
         _modelUpdatedHandler: function(event, widget) {
             widget = widget || this;
-            switch (event.type) {
-            case "nodeAdded":
-                widget.addNode(event.node);
-                break;
-            case "nodeRemoved":
-                widget.removeNode(event.node, event.parent);
-                break;
-            case "nodeMoved":
-                widget.moveNode(event.node, event.oldParent);
-                break;
-            case "propertyChanged":
-                widget.removeNode(event.node);
-                widget.addNode(event.node);
-                widget.setSelected(widget._getSelected());
-                break;
-            default:
-                console.warning('Unknown type of modelUpdated event:'
+            if (event.node &&
+                BWidget.isShownInOutline(event.node.getType())) {
+                switch (event.type) {
+                    case "nodeAdded":
+                        widget.addNode(event.node);
+                        break;
+                    case "nodeRemoved":
+                        widget.removeNode(event.node, event.parent);
+                        break;
+                    case "nodeMoved":
+                        widget.moveNode(event.node, event.oldParent);
+                        break;
+                    case "propertyChanged":
+                        widget.removeNode(event.node);
+                        widget.addNode(event.node);
+                        widget.setSelected(widget._getSelected());
+                        break;
+                    default:
+                        console.warning('Unknown type of modelUpdated event:'
                                 + event.type);
-                break;
+                        break;
+                }
             }
         },
         _getParent: function (node) {
@@ -136,8 +139,7 @@
             }
 
             type = admNode.getType();
-            showInOutline = BWidget.isPaletteWidget(type) ||
-                (type === "Page");
+            showInOutline = BWidget.isShownInOutline(type);
             label = BWidget.getDisplayLabel(type);
             if (showInOutline) {
                 treeNode[label] = childNodes;
