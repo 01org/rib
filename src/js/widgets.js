@@ -14,6 +14,9 @@
  * widget.
  */
 var BCommonProperties = {
+    /*
+     * Common html attribute properties
+     */
     checked: {
         type: "string",
         options: [ "not checked", "checked" ],
@@ -62,6 +65,15 @@ var BCommonProperties = {
         options: [ "default", "a", "b", "c", "d", "e" ],
         defaultValue: "default",
         htmlAttribute: "data-theme"
+    },
+
+    /*
+     * Event properties
+     */
+    click: {
+        type: "event",
+        defaultValue: "",
+        showInProperty: false
     }
 };
 
@@ -160,6 +172,8 @@ var BCommonProperties = {
  *   9)        validIn:  Parent widget in which this property is valid
  *
  *  10)      invalidIn:  Parent widget in which this property is not valid
+ *  11) showInProperty:  optional boolean for the property user-exposed in
+ *                       property view (default true)
  *
  * @class
  */
@@ -647,7 +661,8 @@ var BWidgetRegistry = {
                         "false": ""
                     }
                 }
-            }
+            },
+            click: BCommonProperties.click
         },
         template: '<a data-role="button">%TEXT%</a>'
     },
@@ -2661,6 +2676,25 @@ var BWidget = {
             throw new Error("widget type invalid in getWidgetAttribute");
         }
         return widget[attribute];
+    },
+
+    /**
+     * Tests whether this property should be shown in the property view.
+     *
+     * @param {String} widgetType The type of the widget.
+     * @param {String} property The name of the requested property.
+     * @return {Boolean} true if this property is to be shown in the property
+     *                   view, or it is undefined.
+     *                   false if the property is not need to show in
+     *                   property view.
+     */
+    showInProperty: function (widgetType, property) {
+        var schema = BWidget.getPropertySchema(widgetType, property);
+        if (schema && typeof(schema.showInProperty) == 'boolean') {
+            return schema.showInProperty;
+        } else {
+            return true;
+        }
     }
 
 };
