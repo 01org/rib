@@ -157,7 +157,7 @@ $(function() {
                        console.log("String type is needed for file which is to be read.");
                        return false;
                    }
-                   var url = fsUtils.fs.root.toURL() + path;
+                   var url = fsUtils.fs.root.toURL() + path.replace(/^\//, "");
                    return url;
                },
 
@@ -528,7 +528,8 @@ $(function() {
                     input.remove();
                 });
                 setTimeout(function() {
-                    input.click();
+                    input.removeClass('hidden-accessible').click();
+                    input.addClass('hidden-accessible');
                 }, 0);
             },
 
