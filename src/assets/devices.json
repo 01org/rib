@@ -15,7 +15,8 @@
                },
                "width": 320,
                "height": 480
-           }
+           },
+           "type": "Phones"
        }
    },
 
@@ -35,7 +36,8 @@
                },
                "width": 1000,
                "height": 600
-           }
+           },
+           "type": "Tablets"
        }
    },
 
@@ -55,7 +57,8 @@
                },
                "width": 895,
                "height": 508
-           }
+           },
+           "type": "Netbooks"
        }
    }
 }
