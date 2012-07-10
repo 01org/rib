@@ -56,13 +56,30 @@ var DEBUG = true,
         };
     },
 
+    getPropertyDomAttribute = function (node, propName, newValue) {
+        var attrName, attrMap, attrValue, propValue;
+        attrName = BWidget.getPropertyHTMLAttribute(node.getType(), propName);
+        propValue = newValue || node.getProperty(propName);
+        attrValue = propValue;
+        if (typeof attrName  === "object") {
+            attrMap = attrName;
+            attrName = attrMap.name;
+            if (typeof attrMap.value  === "function")
+                attrValue = attrMap.value(propValue);
+            else
+                attrValue = attrMap.value[propValue];
+        }
+        return {"name": attrName,
+                "value": attrValue};
+    },
+
     serializeADMNodeToDOM = function (node, domParent) {
         var uid, type, pid, selector,
             parentSelector = 'body',
             parentNode = null,
             template, props, id,
             selMap = {},  // maps selectors to attribute maps
-            attrName, attrValue, propValue, propDefault,
+            attrObject, propValue, propDefault,
             widget, regEx, wrapper, domNodes;
 
         // Check for valid node
@@ -127,22 +144,14 @@ var DEBUG = true,
         // Apply any special ADMNode properties to the template before we
         // create the DOM Element instance
         for (var p in props) {
-            propValue = attrValue = node.getProperty(p);
+            propValue = node.getProperty(p);
 
             switch (p) {
             case "type":
                 break;
             default:
-                attrName = BWidget.getPropertyHTMLAttribute(type, p);
-                if (typeof attrName  === "object") {
-                    var attrMap = attrName;
-                    attrName = attrMap.name;
-                    if (typeof attrMap.value  === "function")
-                        attrValue = attrMap.value(propValue);
-                    else
-                        attrValue = attrMap.value[propValue];
-                }
-                if (attrName) {
+                attrObject = getPropertyDomAttribute(node, p);
+                if (attrObject.name) {
                     propDefault = BWidget.getPropertyDefault(type, p);
 
                     if (propValue !== propDefault ||
@@ -159,7 +168,7 @@ var DEBUG = true,
                         }
 
                         // add attribute mapping to corresponding selector
-                        selMap[selector][attrName] = attrValue;
+                        selMap[selector][attrObject.name] = attrObject.value;
                     }
                 }
                 break;
@@ -684,22 +693,41 @@ $(function() {
             files.push(iconPath);
         }
         ribFile && zip.add(projName + ".json", ribFile);
-        resultHTML = generateHTML();
+        resultHTML = generateHTML(null, function (admNode, domNode){
+            scanSandboxFiles(admNode, function (property, relativePath, urlPath) {
+                // Add the image file to the needed list
+                files.push({
+                    "src":urlPath,
+                    "dst":relativePath});
+            })
+        });
         resultHTML && zip.add("index.html", resultHTML.html);
         // projName now is the whole package name
         projName = projName + '.' + type;
 
         i = 0;
         files.forEach(function (file, index) {
+            var req, srcPath, dstPath;
             // We have to do ajax request not using jquery as we can't get "arraybuffer" response from jquery
             var req = window.ActiveXObject ? new window.ActiveXObject( "Microsoft.XMLHTTP" ): new XMLHttpRequest();
+            req = window.ActiveXObject ? new window.ActiveXObject( "Microsoft.XMLHTTP" ): new XMLHttpRequest();
+            if ((typeof file === "object") && file.dst && file.src) {
+                srcPath = file.src;
+                dstPath = file.dst;
+            } else if(typeof file === "string") {
+                srcPath = file;
+                dstPath = file;
+            } else {
+                console.error("Envalid path for exported Zip.");
+                return;
+            }
             req.onload = function() {
                 var uIntArray = new Uint8Array(this.response);
                 var charArray = new Array(uIntArray.length);
                 for (var j = 0; j < uIntArray.length; j ++) {
                     charArray[j] = String.fromCharCode(uIntArray[j]);
                 }
-                zip.add(file, btoa(charArray.join('')), {base64:true});
+                zip.add(dstPath, btoa(charArray.join('')), {base64:true});
                 if (i === files.length - 1){
                     var content = zip.generate(true);
                     exportFile(projName, content, true);
@@ -707,7 +735,7 @@ $(function() {
                 i++;
             }
             try {
-                req.open("GET", file, true);
+                req.open("GET", srcPath, true);
                 req.responseType = 'arraybuffer';
             } catch (e) {
                 alert(e);
@@ -739,7 +767,36 @@ $(function() {
         return;
     }
 
+    function scanSandboxFiles (admNode, handler) {
+        var props, p, value, urlPath, pType, projectDir, attrObject,
+            relativeRule, innerFiles = [];
+        if (!($.rib.fsUtils.fs && $.rib.pmUtils && $.rib.pmUtils.getActive())) {
+            return;
+        }
+        relativeRule = /^[\w\-_]+(\/[\w\-_]+)*\.?[\w]+$/i;
+        props = admNode.getProperties();
+        projectDir = $.rib.pmUtils.ProjectDir + "/" + $.rib.pmUtils.getActive() + "/";
+        for (p in props) {
+            value = props[p];
+            pType = BWidget.getPropertyType(admNode.getType(), p);
+            if (pType === "url-uploadable" && relativeRule.test(value)) {
+                urlPath = $.rib.fsUtils.pathToUrl(projectDir + value.replace(/^\//, ""));
+                handler && handler(p, value, urlPath);
+            }
+        }
+        return;
+    };
+
     /***************** export functions out *********************/
+    $.rib.useSandboxUrl = function (admNode, domNode) {
+        scanSandboxFiles(admNode, function (property, relativePath, urlPath) {
+            var attrObject = getPropertyDomAttribute(admNode, property, urlPath);
+            // Set the new value for the domNode
+            if (attrObject && attrObject.name && attrObject.value) {
+                $(domNode).attr(attrObject.name, attrObject.value);
+            }
+        })
+    };
     // Export serialization functions into $.rib namespace
     $.rib.ADMToJSONObj = ADMToJSONObj;
     $.rib.JSONToProj = JSONToProj;
