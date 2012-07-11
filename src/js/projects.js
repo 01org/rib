@@ -445,15 +445,41 @@ $(function () {
             destPid = pmUtils.getValidPid();
 
         fsUtils.cp(basePath + srcPid, basePath + destPid, function (copy) {
-            pmUtils._projectsInfo[destPid] = {};
-            // copy the source project infomation
-            pmUtils.setProperties(destPid, pmUtils._projectsInfo[srcPid]);
-
-            // update access date for the new project
-            pmUtils.setProperty(destPid, "accessDate", new Date());
-
-            // just sync project info only
-            pmUtils.syncProject(destPid, null, success, error);
+            // Change filesystem url in design json file
+            // Read the design file and build ADM design accordingly
+            $.rib.fsUtils.read(copy.fullPath + "/design.json", function (result) {
+                var design, project, changeURL;
+                // This function is extraHandler when build ADM to JSON
+                changeURL = function (node, obj) {
+                    var props, p, value, pType, origStr, rootUrl;
+                    rootUrl = $.rib.fsUtils.fs.root.toURL();
+                    origStr = rootUrl.replace(/\/$/, "") + basePath + srcPid;
+                    props = node.getProperties();
+                    for (p in props) {
+                        value = props[p];
+                        pType = BWidget.getPropertyType(node.getType(), p);
+                        if ((pType === "url-uploadable")&&(value.indexOf(origStr) >= 0)) {
+                            value = value.replace(origStr, copy.toURL());
+                            // Set the new value for the property
+                            node.setProperty(p, value);
+                        }
+                    }
+                };
+                // Build ADM tree from JSON
+                project = $.rib.JSONToProj(result, changeURL);
+                design = project.design;
+                if (design && (design instanceof ADMNode)) {
+                    pmUtils._projectsInfo[destPid] = {};
+                    // Copy the source project infomation
+                    project.pInfo = $.extend(true, {}, pmUtils._projectsInfo[srcPid]);
+                    project.pInfo.name += "-copy";
+                    pmUtils.setProperties(destPid, project.pInfo);
+                    // Update access date for the new project
+                    pmUtils.setProperty(destPid, "accessDate", new Date());
+                    // Sync project, the project is not active now
+                    pmUtils.syncProject(destPid, design, success, error);
+                }
+            });
         }, error);
     };
 
@@ -677,10 +703,20 @@ $(function () {
      * @return {None}.
      */
     pmUtils.syncProject = function (pid, design, success, error) {
-        var syncDesign, syncInfo, saveWrite;
-        pid = pid || pmUtils._acitveProject;
+        var syncDesign, syncInfo, saveWrite,
+            forceDirty, designDirty, pInfoDirty;
+        // If we need to write to inactive project, then the dirty
+        // flag should be truly forcible.
+        if (pid && (pid !== pmUtils._activeProject)) {
+            forceDirty = true;
+        }
+        pid = pid || pmUtils._activeProject;
         design = design || ADM.getDesignRoot();
-        if (!(pmUtils.designDirty || pmUtils.pInfoDirty)) {
+
+        designDirty = forceDirty || pmUtils.designDirty;
+        pInfoDirty = forceDirty || pmUtils.pInfoDirty;
+
+        if (!(designDirty || pInfoDirty)) {
             success && success();
             return;
         }
@@ -715,15 +751,15 @@ $(function () {
         };
         syncInfo = function (pid, success, error) {
             var pInfo, metadataPath, successHandler, data;
-            if (!pmUtils.pInfoDirty) {
+            if (!pInfoDirty) {
                 success && success();
                 return;
             }
             pInfo = pmUtils._projectsInfo[pid];
             metadataPath = pmUtils.getMetadataPath(pid);
             successHandler = function () {
-                // clean pInfo dirty flag
-                pmUtils.pInfoDirty = false;
+                // Clean pInfo dirty flag, if the project is active
+                (!forceDirty) && (pmUtils.pInfoDirty = false);
                 success && success();
             };
             try {
@@ -735,11 +771,11 @@ $(function () {
             }
             saveWrite(metadataPath, data, successHandler, error);
         };
-        if (pmUtils.designDirty) {
+        if (designDirty) {
             // sync pInfo in the success handler of syncDesign
             syncDesign(pid, design, function () {
-                // clean design dirty flag
-                pmUtils.designDirty = false;
+                // clean design dirty flag, if the project is active
+                (!forceDirty) && (pmUtils.designDirty = false);
                 syncInfo(pid, success, error);
             }, error);
         } else {
