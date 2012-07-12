@@ -1795,6 +1795,20 @@ ADMNode.prototype.removeChildFromZone = function (zoneName, index, dryrun) {
 };
 
 /**
+ * Tests whether this property should be shown in the property view.
+ *
+ * @param {String}   property The name of the requested property.
+ * @return {Boolean} true if this property is to be shown in the property
+ *                   view, or it is undefined.
+ *                   false if the property is not need to show in
+ *                   property view.
+ */
+ADMNode.prototype.showInProperty = function (property) {
+    return BWidget.showInProperty(this.getType(), property);
+};
+
+
+/**
  * Call the given function on each node of the tree rooted at this node.
  *
  * @param {Function(ADMNode)} The function to call, which takes an ADMNode.
