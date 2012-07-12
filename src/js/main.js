@@ -370,6 +370,11 @@
                 .append('<a id="about">About</a>')
                 .appendTo(this.ui.extras);
             $(window).trigger('resize');
+
+            // Override alert with dialogBox
+            $(document).ready( function () { 
+                $.rib.dialogBox.overrideAlert();
+            });
         },
 
         _tabChanged: function(event, ui) {
