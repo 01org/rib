@@ -335,6 +335,88 @@ body.ui-tabs.ui-widget {
     background-image: url('images/skins/tablet.png');
 }
 
+.view.live .deviceSelect {
+    font-size: 12px;
+    position: relative;
+    display: inline-block;
+    zoom: 1;
+    width: 100px;
+    z-index: 999;
+}
+.view.live .deviceSelect > a {
+    height: 16px;
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    position: relative;
+    border: 1px solid #CCC;
+    border-radius: 2px;
+    line-height: 16px;
+    background-image: -webkit-gradient(linear, left bottom, left top, color-stop(0, #FFF), color-stop(0.5, #E6E6E6));
+}
+.view.live .deviceSelect > a:hover {
+    border: 1px solid black;
+}
+.view.live .deviceSelect > a > span {
+    height: 100%;
+    display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    text-align: left;
+    margin-right: 16px;
+    padding-left: 10px;
+}
+.view.live .deviceSelect .arrow {
+    background-color: #EEE;
+    position: absolute;
+    border-left: 1px solid #CCC;
+    right: 0;
+    top: 0;
+    height: 100%;
+    width: 16px;
+    display: block;
+    -webkit-transform: rotate(90deg);
+    background: url("images/indentRightArrow_up.png") no-repeat 0px
+}
+#deviceSelectMenu, #deviceSelectMenu ul {
+    list-style: none;
+    background: #F9F9F9;
+    font-weight: bold;
+    padding: 0px;
+    margin: 0px;
+    border: solid 1px #CCC;
+    border-bottom: 0px;
+    width: 120px;
+    float: left;
+}
+#deviceSelectMenu li {
+    text-align: left;
+    padding: 0px;
+    margin: 0px;
+    padding-left: 10px;
+    line-height: 16px;
+    position: relative;
+    border-bottom: solid 1px #EEE;
+}
+#deviceSelectMenu li:hover {
+    background-color: #F5E3C0;
+}
+#deviceSelectMenu li ul {
+    position: absolute;
+    left: -999em;
+    width: 120px;
+    font-weight: normal;
+    padding: 0px;
+    margin: 0px;
+}
+#deviceSelectMenu li:hover ul{
+ left: 120px;
+ top: 0px;
+}
+.view.live .deviceSelect .arrow b {
+    display: block;
+}
 .view.live iframe.netbook {
     /* device 'screen' dimensions */
     width: 895px;
@@ -1317,10 +1399,11 @@ div.propertyItems label[for|=id] {
     text-align: right;
     margin-right: 0.5em;
     display: block;
-    margin-top: 2em
+    margin-top: 23px
 }
+.deviceSetting > select,
 .deviceSetting input {
-    margin-top: 2em;
+    margin-top: 23px;
     margin-left: 1em;
     margin-right: 1em;
 }
