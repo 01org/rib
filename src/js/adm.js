@@ -1947,6 +1947,19 @@ ADMNode.prototype.getPropertyDisplayName = function (property) {
 };
 
 /**
+ * Gets the type string for a given instance property.
+ *
+ * @param  {String} property The name of the requested property.
+ * @return {String} The type string for the given property
+ *                  ("number", "string", "boolean", "object", ...).
+ * @throws {Error} If widgetType is invalid, or property not found.
+ */
+
+ADMNode.prototype.getPropertyType = function (property) {
+    return BWidget.getPropertyType(this.getType(), property);
+};
+
+/**
  * Returns whether the property is explicitly set or not. Properties that are
  * explicitly set should be serialized to disk.
  *
