@@ -861,6 +861,108 @@ $(function () {
         return arr.sort(orderFunc);
     };
 
+    /**
+     * Add reference count for a resource in current active project
+     *
+     * @param {String} ref The resource's path relative to project folder.
+     * @return {None}
+     */
+    pmUtils.addRefCount = function (ref) {
+        if (!pmUtils.resourceRef) {
+            pmUtils.resourceRef = {};
+        }
+        if (!pmUtils.resourceRef[ref]) {
+            pmUtils.resourceRef[ref] = 1;
+        } else {
+            pmUtils.resourceRef[ref]++;
+        }
+        return;
+    };
+
+    /**
+     * Reduce reference count for a resource in current active project
+     *
+     * @param {String} ref The resource's path relative to project folder.
+     * @return {None}
+     */
+    pmUtils.reduceRefCount = function (ref) {
+        var projectDir = pmUtils.ProjectDir + "/" + pmUtils.getActive() + "/";
+        if (!pmUtils.resourceRef || !pmUtils.resourceRef[ref]) {
+            console.warn('No reference count for ' + ref + 'in reduceRefCount');
+        } else {
+            pmUtils.resourceRef[ref]--;
+            // Delete the resource if the reference count is 0
+            // TODO: will list all the uploaded resource and show the reference
+            // count of them. It will depend on the user if delete or not.
+            if (pmUtils.resourceRef[ref] <= 0) {
+                if (confirm('Unused resource: "' + ref +
+                            '". \nWould you like to delete it from the project?')) {
+                    $.rib.fsUtils.rm(projectDir + ref);
+                    delete pmUtils.resourceRef[ref];
+                }
+            }
+        }
+        return;
+    };
+
+    /**
+     * Scan the sandbox resources used by ADM node, and update the
+     * reference count accordingly. If the ADM node is a design, reference
+     * count object will be reset to empty first and then create reference
+     * count for all used resource, otherwise, the reference count will go
+     * up or down according to "upFlag"
+     *
+     * @param {ADMNode} node ADM node to scan.
+     * @param {Boolean} upFlag Flag stands for add(true) or delete(false)
+     *                         reference count for resources used in the node.
+     * @return {Boolean} Return true if succeed, false if failed.
+     */
+    pmUtils.scanADMNodeResource = function (node, upFlag) {
+        // Only handle ADMNodes
+        node = node || ADM.getDesignRoot();
+        if (!(node instanceof ADMNode)) {
+            return false;
+        }
+        var scanNodeRef = function (node, upFlag) {
+            var handleRef = function (node, upFlag) {
+                $.rib.scanSandboxFiles(node, function (pName, pValue, urlPath) {
+                    upFlag ? $.rib.pmUtils.addRefCount(pValue) : $.rib.pmUtils.reduceRefCount(pValue);
+                });
+            };
+            handleRef(node, upFlag);
+            if (node.getChildrenCount() !== 0) {
+                // Recurse over any children
+                var children = node.getChildren();
+                for (var i=0; i<children.length; i++) {
+                    scanNodeRef(children[i], upFlag);
+                }
+            }
+        }
+        // if the design is Design root
+        if (node.getType() === "Design") {
+            // reset pmUtils.resourceRef
+            pmUtils.resourceRef = {};
+            upFlag = true;
+        }
+        scanNodeRef(node, upFlag);
+        return true;
+    };
+
+    /**
+     * Get status about used resources in current active project.
+     *
+     * @param {String} ref The resource's path relative to project folder.
+     * @return {Object/None} Return an deep copy of reference count object
+     *                       if succeed, null if failed.
+     */
+    pmUtils.usedResources = function () {
+        if (!pmUtils.resourceRef) {
+            return null;
+        } else {
+            return $.extend(true, {}, pmUtils.resourceRef);
+        }
+    };
+
     /************ export pmUtils to $.rib **************/
     $.rib.pmUtils = pmUtils;
 });

@@ -776,6 +776,7 @@ $(function() {
         })
     };
     // Export serialization functions into $.rib namespace
+    $.rib.scanSandboxFiles = scanSandboxFiles;
     $.rib.ADMToJSONObj = ADMToJSONObj;
     $.rib.JSONToProj = JSONToProj;
 
