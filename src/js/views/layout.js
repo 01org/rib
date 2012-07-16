@@ -374,7 +374,7 @@
             }
 
             // If this node is a "container", make sure it's class reflects this
-            if (admNode.isContainer() || admNode.getType() === 'Header') {
+            if (admNode.isContainer()) {
                 $(domNode).addClass('nrc-sortable-container');
                 if (admNode.getChildrenCount() === 0) {
                     $(domNode).addClass('empty');
@@ -393,6 +393,11 @@
             // If this node is "editable", make sure it's class reflects this
             if (admNode.isEditable()) {
                 $(domNode).addClass('adm-editable');
+            }
+
+            // If this node is a "dialog", make it display as "page" in layout view
+            if (admNode.getType() === "Page" && admNode.getProperty("dialog") === true) {
+                $(domNode).attr('data-role', 'page');
             }
 
             // FIXME: This is a bit of a hack; we're removing the disabled

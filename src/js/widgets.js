@@ -26,7 +26,7 @@ var BCommonProperties = {
         htmlAttribute: "disabled"
     },
     icon: {
-        type: "string",
+        type: "datalist",
         options: [ "none", "alert", "arrow-d", "arrow-l", "arrow-r",
                    "arrow-u", "back", "check", "delete", "forward",
                    "gear", "grid", "home", "info", "minus", "plus",
@@ -184,6 +184,8 @@ var BCommonProperties = {
  *   9)        validIn:  Parent widget in which this property is valid
  *
  *  10)      invalidIn:  Parent widget in which this property is not valid
+ *  11)        visible:  optional boolean for the property user-exposed in
+ *                       property view (default true)
  *
  * @class
  */
@@ -309,7 +311,18 @@ var BWidgetRegistry = {
         showInPalette: false,
         selectable: true,
         moveable: false,
-        template: '<div data-role="page"></div>',
+        template: function (node) {
+            var prop, code, design = node.getDesign();
+            //make sure style of the first page  can only be page
+            if (design.getChildren()[0] === node) {
+                code =  $('<div data-role="page"></div>');
+            } else {
+                code = $('<div data-role="' +
+                        (node.getProperty("dialog")? "dialog" : "page") + '"></div>');
+            }
+
+            return code;
+        },
         properties: {
             id: {
                 type: "string",
@@ -321,6 +334,10 @@ var BWidgetRegistry = {
                 type: "string",
                 defaultValue: "",
                 htmlAttribute: "data-title",
+            },
+            dialog: {
+                type: "boolean",
+                defaultValue: false,
             }
         },
         redirect: {
@@ -348,7 +365,7 @@ var BWidgetRegistry = {
 
     /**
      * Represents a header object at the top of a page. Includes a "text"
-     * property that represents header text. Includes "left" and "right" zones
+ * property that represents header text. Includes "left" and "right" zones
      * for optional buttons, and "bottom" zone for an optional navbar.
      */
     Header: {
@@ -620,8 +637,8 @@ var BWidgetRegistry = {
             opentargetas : {
                 type: "string",
                 displayName: "open target as",
-                options: ["page", "dialog"],
-                defaultValue: "page",
+                options: ["default", "page", "dialog"],
+                defaultValue: "default",
                 htmlAttribute: "data-rel"
             },
             icon: BCommonProperties.icon,
@@ -1024,6 +1041,7 @@ var BWidgetRegistry = {
                 optionItem.value = "Value";
                 prop.children.push(optionItem);
             }
+            node.setProperty("options", prop);
         },
         displayLabel: "Select Menu",
         properties: {
@@ -2388,6 +2406,26 @@ var BWidget = {
             return true;
         }
         return schema;
+    },
+
+
+    /**
+     * Tests whether this property is visible to user, for example, property
+     * view can use it to decide if it will show this property.
+     *
+     * @param {String} widgetType The type of the widget.
+     * @param {String} property The name of the requested property.
+     * @return {Boolean} true if this property is visible to user, or it is
+     *                   undefined.
+     *                   false if this property is invisible to user.
+     */
+    propertyVisible: function (widgetType, property) {
+        var schema = BWidget.getPropertySchema(widgetType, property);
+        if (schema && typeof(schema.visible) == 'boolean') {
+            return schema.visible;
+        } else {
+            return true;
+        }
     },
 
     /**
