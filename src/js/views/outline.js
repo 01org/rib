@@ -167,11 +167,14 @@
             if (node.getType() === "Page") {
                 //set page id
                 var id = node.getProperty('id'),
-                    titleNode = domNode.find("> a > .pageTitle");
+                    titleNode = domNode.find("> a > .pageTitle"),
+                    widgetNode = domNode.find( "> a > .widgetType"),
+                    isDialog = node.getProperty('dialog');
                 if (titleNode.length === 0)
                     titleNode = $('<span/>').addClass('pageTitle')
                         .appendTo(domNode.find("> a"));
                 titleNode.text(' (' + id + ')');
+                widgetNode.text(isDialog? "dialog" : "page");
             }
         },
         _render: function (domNode, data) {

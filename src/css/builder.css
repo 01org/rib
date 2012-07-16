@@ -654,6 +654,7 @@ body.ui-tabs.ui-widget {
     font-size: 12px;
     color: #111111;
     font-style: normal;
+    text-transform: capitalize;
 }
 .treeView span.widgetType:hover {
     color: #2c7a94;
