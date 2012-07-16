@@ -411,10 +411,18 @@ $(function() {
         if (ADMTreeNode instanceof ADMNode) {
             // Save staff in ADMNode
             var JSObject = {},
-                children, i;
+                children, i, props, p, propDefault;
             JSObject.type = ADMTreeNode.getType();
             JSObject.zone = ADMTreeNode.getZone();
-            JSObject.properties = ADMTreeNode.getProperties();
+            // Delete properties which are default
+            props = $.extend(true, {}, ADMTreeNode.getProperties());
+            for (p in props) {
+                propDefault = BWidget.getPropertyDefault(JSObject.type, p);
+                if (JSON.stringify(props[p]) === JSON.stringify(propDefault)) {
+                    delete props[p];
+                }
+            }
+            JSObject.properties = props;
             JSObject.children = [];
 
             // Recurse to fill children array

@@ -598,16 +598,23 @@ $(function () {
      * @return {Bool} True if success, false when fails.
      */
     pmUtils.exportProject = function () {
-        var pid, pInfo, design, obj, resultProject;
+        var pid, p, defaultValue, pInfo, design, obj, resultProject;
         pid = pmUtils.getActive();
-        pInfo = pmUtils._projectsInfo[pid];
-        if (!pInfo) {
-            console.error("Error: Invalid pid for project");
-        }
         design = ADM.getDesignRoot();
         obj = $.rib.ADMToJSONObj(design);
         // Following is for the serializing part
         if (typeof obj === "object") {
+            pInfo = pmUtils.getProperties(pid);
+            if (!pInfo) {
+                console.error("Error: Invalid pid for project");
+            }
+            // If the value is default then we do not include it
+            for (p in pInfo) {
+                defaultValue = pmUtils.getPropertyDefault(p);
+                if (JSON.stringify(pInfo[p]) === JSON.stringify(defaultValue)) {
+                    delete pInfo[p];
+                }
+            }
             obj.pInfo = pInfo;
             resultProject = JSON.stringify(obj);
             try {
