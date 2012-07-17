@@ -746,18 +746,16 @@ $(function() {
     }
 
     function scanSandboxFiles (admNode, handler) {
-        var props, p, value, urlPath, pType, projectDir, attrObject,
-            relativeRule;
+        var props, p, value, urlPath, pType, projectDir, attrObject;
         if (!($.rib.fsUtils.fs && $.rib.pmUtils && $.rib.pmUtils.getActive())) {
             return;
         }
-        relativeRule = /^[\w\-_]+(\/[\w\-_]+)*\.?[\w]+$/i;
         props = admNode.getProperties();
         projectDir = $.rib.pmUtils.ProjectDir + "/" + $.rib.pmUtils.getActive() + "/";
         for (p in props) {
             value = props[p];
             pType = BWidget.getPropertyType(admNode.getType(), p);
-            if (pType === "url-uploadable" && relativeRule.test(value)) {
+            if (pType === "url-uploadable" && value && $.rib.relativeRule.test(encodeURI(value))) {
                 urlPath = $.rib.fsUtils.pathToUrl(projectDir + value.replace(/^\//, ""));
                 handler && handler(p, value, urlPath);
             }
@@ -776,6 +774,7 @@ $(function() {
         })
     };
     // Export serialization functions into $.rib namespace
+    $.rib.relativeRule = /^[\w\-_%]+(\/[\w\-_%]+)*(\.[\w%]*)?$/i;
     $.rib.ADMToJSONObj = ADMToJSONObj;
     $.rib.JSONToProj = JSONToProj;
 
