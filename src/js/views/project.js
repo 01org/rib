@@ -176,10 +176,56 @@
         },
 
         _modelUpdatedHandler: function(event, widget) {
+            var node, checkType, matched, checkUnused, p, i;
             widget = widget || this;
             // if the designDirty is false, then set it
             if (!($.rib.pmUtils.designDirty)) {
                 $.rib.pmUtils.designDirty = true;
+            }
+            checkUnused = function (filter) {
+                var matched, design, projectDir;
+                if (!filter.hasOwnProperty("value") || !$.rib.pmUtils.getActive()) {
+                    return;
+                }
+                design = ADM.getDesignRoot();
+                projectDir = $.rib.pmUtils.ProjectDir + "/" + $.rib.pmUtils.getActive() + "/";
+                matched = design.findNodeByProperty(filter);
+                if (matched.length === 0) {
+                    if ($.rib.confirm('Unused resource: "' + filter.value +
+                                '". \nWould you like to delete it from the project?')) {
+                        $.rib.fsUtils.rm(projectDir + filter.value);
+                    }
+                }
+            };
+            node = event.node;
+            checkType = "url-uploadable";
+            switch (event.type) {
+                case 'nodeRemoved':
+                    matched = node.findNodeByProperty({
+                        type: checkType,
+                        value: $.rib.relativeRule
+                    });
+                    for (i = 0; i < matched.length; i++) {
+                        if (!matched[i].props) {
+                            continue;
+                        }
+                        for (p in matched[i].props) {
+                            checkUnused({
+                                type: checkType,
+                                value: matched[i].props[p]
+                            });
+                        }
+                    }
+                    break;
+                case 'propertyChanged':
+                    if (checkType === BWidget.getPropertyType(node.getType(), event.property)) {
+                        if (event.oldValue && $.rib.relativeRule.test(event.oldValue)) {
+                            checkUnused({ type:checkType, value:event.oldValue });
+                        }
+                    }
+                    break;
+                default:
+                    break;
             }
         },
 
