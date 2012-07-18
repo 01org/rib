@@ -1348,6 +1348,75 @@ ADMNode.prototype.isHeaderVisible = function () {
 };
 
 /**
+ * Finds nodes in the subtree rooted at this object (inclusive), by property
+ * name, or type, or value. Thg result will meet all key-value pairs in filter
+ * object, which meens it will be "AND" effection of all selectors in filter
+ * object. In filter object, name and type should all be string, value can be
+ * any type, if it is a function or regular expression, it will be treated as
+ * check rule to determine if the value matchs or not, for case of function,
+ * property value will be passed as parameter.
+ *
+ * @param {Object} filterObj The object contains filter selectors, such as:
+ *                           {
+ *                               name: "propertyName",
+ *                               type: "propertyType",
+ *                               value: propertyValue/RegExp/Function
+ *                           }
+ * @return {Array} An array of objects, which contians matched ADM node and
+ *                      the related properties:
+ *                      [
+ *                          { node: node1, props: matchedProps},
+ *                          { node: node2, props: matchedProps}
+ *                          ...
+ *                      ]
+ */
+ADMNode.prototype.findNodeByProperty = function (filterObj) {
+    var children, i, result, checkNode,
+        matchedProps, p, props, value, pType;
+    result = result || [];
+    // Handle current node
+    props = this.getProperties();
+    for (p in props) {
+        value = props[p];
+        pType = BWidget.getPropertyType(this.getType(), p);
+
+        // If need to check name, but name not match, check next one
+        if (filterObj.name && p !== filterObj.name) continue;
+
+        // If need to check type, but not match, check next one
+        if (filterObj.type && pType !== filterObj.type) continue;
+
+        // Check value, if required.
+        if (filterObj.hasOwnProperty('value')) {
+            if (typeof filterObj.value === "function") {
+                // If check function returns false, check next one
+                if (!filterObj.value(value)) continue;
+
+            } else if (filterObj.value instanceof RegExp) {
+                // If test rule failed, check next one
+                if (!filterObj.value.test(value)) continue;
+
+            } else if (JSON.stringify(value) !== JSON.stringify(filterObj.value)) {
+                continue;
+            }
+        }
+        if (filterObj.name || filterObj.type || filterObj.value) {
+            matchedProps = matchedProps || {};
+            matchedProps[p] = value;
+        }
+    }
+    if (matchedProps) {
+        result.push({ node: this, props: matchedProps});
+    };
+    // Scan children
+    children = this.getChildren();
+    for (i = children.length - 1; i >= 0; i--) {
+        result = result.concat(children[i].findNodeByProperty(filterObj));
+    }
+    return result;
+};
+
+/**
  * Finds the object in the subtree rooted at this object (inclusive), by UID.
  *
  * @param {Number} uid The unique ID of the object to be found.
