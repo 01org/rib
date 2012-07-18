@@ -1862,6 +1862,15 @@ ADMNode.prototype.generateUniqueProperty = function (property) {
 };
 
 /**
+ * Gets explicit properties
+ *
+ * @return {Object} Object containing explicitly defined properties and values.
+ */
+ADMNode.prototype.getExplicitProperties = function () {
+    return $.extend(true, {}, this._properties);
+};
+
+/**
  * Gets the properties defined for this object. If a property is not explicitly
  * set, it will be included with its default value.
  *
