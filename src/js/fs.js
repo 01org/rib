@@ -158,7 +158,7 @@ $(function() {
                        return false;
                    }
                    var url = fsUtils.fs.root.toURL() + path.replace(/^\//, "");
-                   return url;
+                   return encodeURI(url);
                },
 
     /**
