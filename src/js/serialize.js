@@ -843,6 +843,7 @@ $(function () {
      *
      * @param {String} type Type of the specified header.
      * @param {String} filePath Sandbox path of header file.
+     * @param {Boolean} removeFile Remove file from sandbox.
      *
      * @return {Boolean} Return true if deleted the header, else return false.
      *
@@ -850,7 +851,7 @@ $(function () {
      *        be used. A path beginning with '/' will be considered as absolut
      *        path in sandbox.
      */
-    function removeSandboxHeader(type, filePath) {
+    function removeSandboxHeader(type, filePath, removeFile) {
         var property, array, design, index;
 
         if (!(type && filePath && (filePath.length > 0))) {
@@ -875,6 +876,11 @@ $(function () {
         } else {
             dumplog('warning: not find:"' + filePath +'" in ' + type + ' list.');
         }
+
+        if (removeFile) {
+            $.rib.fsUtils.rm(filePath);
+        }
+
         return true;
     }
 
@@ -907,6 +913,47 @@ $(function () {
         }, error);
     }
 
+    /**
+     * Save event handler codes to main.js
+     *
+     * @param {ADMNode} design ADM design root to be serialized.
+     *
+     * @return {None} as same as addCustomFile.
+     */
+    function saveEventHandlers(design) {
+        var results, result, id, matchedProps, eventCode, eventName,
+            design = design || ADM.getDesignRoot(),
+            jsFileName = 'js/main.js', jsType = 'js',
+            jsHeader = '$(document).ready(function(e) {\n',
+            jsContent = '',
+            jsFooter = '});';
+
+        // Regenerate the whole event javascript codes
+        // and save to sandbox.
+        results = design.findNodesByProperty(
+            {'type': 'event', 'value': new RegExp('.+')}
+        );
+        for (var i=0; (result = results[i]); i++) {
+            id = result.node.getProperty('id');
+            if (!id)
+                continue
+            matchedProps = result.properties;
+            for (eventName in matchedProps) {
+                // Append the event code to the whole js code content.
+                jsContent += '$("#' + id + '").bind("' + eventName + '", function(e) {'
+                    + '\n' + matchedProps[eventName] + '\n'
+                    + '});\n\n';
+            }
+        }
+        if (!jsContent) {
+            removeSandboxHeader(jsType, jsFileName, true);
+            return null;
+        }
+        return addCustomFile(
+            jsFileName, jsType, js_beautify(jsHeader + jsContent + jsFooter)
+        );
+    }
+
     /***************** export functions out *********************/
     // Export serialization functions into $.rib namespace
     $.rib.generateHTML = generateHTML;
@@ -919,4 +966,5 @@ $(function () {
     $.rib.addSandboxHeader = addSandboxHeader;
     $.rib.removeSandboxHeader = removeSandboxHeader;
     $.rib.addCustomFile = addCustomFile;
+    $.rib.saveEventHandlers = saveEventHandlers;
 });
