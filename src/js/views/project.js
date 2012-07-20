@@ -176,10 +176,53 @@
         },
 
         _modelUpdatedHandler: function(event, widget) {
+            var node, matched, checkUnused, p, i;
             widget = widget || this;
             // if the designDirty is false, then set it
             if (!($.rib.pmUtils.designDirty)) {
                 $.rib.pmUtils.designDirty = true;
+            }
+            checkUnused = function (filter) {
+                var matched, design, projectDir;
+                if (!filter.hasOwnProperty("value") || !$.rib.pmUtils.getActive()) {
+                    return;
+                }
+                design = ADM.getDesignRoot();
+                projectDir = $.rib.pmUtils.ProjectDir + "/" + $.rib.pmUtils.getActive() + "/";
+                matched = design.findNodeByProperty(filter);
+                if (matched.length === 0) {
+                    $.rib.confirm('Unused resource: "' + filter.value +
+                            '". \nWould you like to delete it from the project?', function () {
+                            $.rib.fsUtils.rm(projectDir + filter.value);
+                    });
+                }
+            };
+            node = event.node;
+            switch (event.type) {
+                case 'nodeRemoved':
+                    matched = node.findNodeByProperty($.rib.pmUtils.relativeFilter);
+                    for (i = 0; i < matched.length; i++) {
+                        if (!matched[i].props) {
+                            continue;
+                        }
+                        for (p in matched[i].props) {
+                            checkUnused({
+                                type: $.rib.pmUtils.relativeFilter.type,
+                                value: matched[i].props[p]
+                            });
+                        }
+                    }
+                    break;
+                case 'propertyChanged':
+                    if (event.oldValue && node.checkProperty($.rib.pmUtils.relativeFilter, event.property, event.oldValue)) {
+                        checkUnused({
+                            type: $.rib.pmUtils.relativeFilter.type,
+                            value:event.oldValue
+                        });
+                    }
+                    break;
+                default:
+                    break;
             }
         },
 
