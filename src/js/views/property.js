@@ -381,6 +381,43 @@
                         });
                         value.find('#'+ valueId).val(valueVal);
                         break;
+                    case "targetlist":
+                        $('<div class="title"/>')
+                            .append(
+                                $('<input type="text" value=""/>')
+                                    .attr('id', valueId)
+                                    .addClass('labelInput')
+                                    .click({'p': p, 'value': value}, function(e){
+                                        var o, items = "",
+                                            value = e.data.value, p = e.data.p;
+
+                                        for (o in ADM._design._zones.default) {
+                                            items += '<li>#' + ADM._design._zones.default[o]._properties.id + '</li>';
+                                        }
+                                        value.find('ul')
+                                            .html("")
+                                            .append($(items));
+
+                                        $(this).toggleClass('datalist-input');
+                                        value.find('.datalist').toggle();
+                                    })
+                            )
+                            .append(
+                                $('<div style="display:none"/>')
+                                .addClass('datalist')
+                                .append('<ul/>')
+                            )
+                        .appendTo(value);
+                        value.delegate(".datalist li", "click", function(e) {
+                            $(this).parent().parent().parent().find('input')
+                                   .val($(this).text()).change().end()
+                                   .find('.datalist').hide().end();
+                        });
+                        if(valueVal === "back") {
+                        } else {
+                            value.find('#'+ valueId).val(valueVal);
+                        }
+                        break;
                     default:
                         // handle property has options
                         if (options[p]) {
