@@ -97,6 +97,10 @@
             // Mark the active project box
             $('#'+$.rib.pmUtils.getActive(), container)
                 .addClass('ui-state-active');
+            if (event && event.name === "designReset") {
+                // Scan the resource refernce count
+                $.rib.pmUtils.scanADMNodeResource(event.design, true);
+            }
         },
 
         // Private functions
@@ -177,10 +181,31 @@
 
         _modelUpdatedHandler: function(event, widget) {
             widget = widget || this;
+            var propertyType, node, relativeRule;
             // if the designDirty is false, then set it
             if (!($.rib.pmUtils.designDirty)) {
                 $.rib.pmUtils.designDirty = true;
             }
+            node = event.node;
+            relativeRule = /^[\w\-_]+(\/[\w\-_]+)*\.?[\w]+$/i;
+            switch (event.type) {
+                case 'nodeAdded':
+                    $.rib.pmUtils.scanADMNodeResource(node, true);
+                    break;
+                case 'nodeRemoved':
+                    $.rib.pmUtils.scanADMNodeResource(node, false);
+                    break;
+                case 'propertyChanged':
+                    propertyType = BWidget.getPropertyType(node.getType(), event.property);
+                    if (propertyType === "url-uploadable") {
+                        relativeRule.test(event.newValue) && $.rib.pmUtils.addRefCount(event.newValue);
+                        relativeRule.test(event.oldValue) && $.rib.pmUtils.reduceRefCount(event.oldValue);
+                    }
+                    break;
+                default:
+                    break;
+            }
+
         },
 
         _createSettingDialog: function() {
