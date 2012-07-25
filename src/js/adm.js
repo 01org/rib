@@ -2031,8 +2031,8 @@ ADMNode.prototype.setProperty = function (property, value, data, raw) {
     }
 
     orig = this._properties[property];
-    if (!(orig === value && (typeof orig !== "object" ||
-                             JSON.stringify(orig) !== JSON.stringify(value)))) {
+    if (orig !== value && !(typeof orig === "object" &&
+                             JSON.stringify(orig) === JSON.stringify(value))) {
         if (!raw) {
             func = BWidget.getPropertyHookFunction(this.getType(), property);
             if (func)
@@ -2042,12 +2042,12 @@ ADMNode.prototype.setProperty = function (property, value, data, raw) {
         // if the new value is equal to the default value, delete the item in
         // the explicit property list
         defaultValue = this.getPropertyDefault(property);
-        if (defaultValue !== value ||
+        if (defaultValue === value ||
             (typeof defaultValue === "object" &&
              JSON.stringify(defaultValue) === JSON.stringify(value)))) {
-            this._properties[property] = value;
-        } else {
             delete this._properties[property];
+        } else {
+            this._properties[property] = value;
         }
         this.fireModelEvent("modelUpdated",
                             { type: "propertyChanged", node: this,
