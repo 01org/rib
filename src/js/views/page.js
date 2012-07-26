@@ -153,16 +153,12 @@
                         .toggleClass('ui-selected',
                             pageWidgets[i] === model.getActivePage())
                         .data('page', pageWidgets[i])
-                        .click(function (e) {
-                            model.setActivePage($(this).data('page'));
-                        })
-                        .hover(function (e) {
-                            $(this).children(':first').show();
-                        }, function (e) {
-                            $(this).children(':first').hide();
-                        })
                         .appendTo(pages);
                 }
+
+                pages.delegate('div', 'click', function(){
+                        model.setActivePage($(this).data('page'));
+                    });
             }
             if (!event || !event.name ||
                 event.name !== 'activePageChanged'|| !event.page) {
