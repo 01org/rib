@@ -1364,13 +1364,8 @@ var BWidgetRegistry = {
         dragHeader: true,
         properties: {
             inset: BCommonProperties.inset,
-            filter: {
-                type: "boolean",
-                defaultValue: false,
-                htmlAttribute: "data-filter"
-            },
             theme: BCommonProperties.theme,
-            divider: {
+            divider_theme: {
                 displayName: "divider theme",
                 type: "string",
                 options: [ "default", "a", "b", "c", "d", "e" ],
@@ -1612,6 +1607,12 @@ var BWidgetRegistry = {
             },
             theme: BCommonProperties.theme,
         },
+        zones: [
+            {
+                name: "default",
+                cardinality: "1"
+            }
+        ],
         template: '<li>%TEXT%</li>'
     },
 
@@ -1623,15 +1624,8 @@ var BWidgetRegistry = {
         displayLabel: "List Button Item",
         paletteImageName: "jqm_list_button_item.svg",
         allowIn: [ "ButtonList" ],
-        editable: {
-            selector: "",
-            propertyName: "text"
-        },
-        template: '<li>%TEXT%</li>',
         zones: [
             {
-                name: "default",
-                cardinality: "1",
                 allow: [ "ListButton" ]
             }
         ],
@@ -1651,14 +1645,11 @@ var BWidgetRegistry = {
         template: '<li></li>',
         zones: [
             {
-                name: "left",
-                cardinality: "1",
                 allow: [ "TextButton" ]
             },
         ],
         init: function (node) {
             // initial state is three TextButton
-
             node.addChild(ADM.createNode("TextButton"));
         }
     },
@@ -1667,22 +1658,13 @@ var BWidgetRegistry = {
      * Represents a IconListItem element.
      */
     IconListItem: {
-        parent: "Base",
+        parent: "SimpleListItem",
         displayLabel: "Icon List Item",
         paletteImageName: "jqm_iconlist_item.svg",
         allowIn: [ "IconList" ],
-        properties: {
-            text: {
-                type: "string",
-                defaultValue: "List Item",
-            },
-            theme: BCommonProperties.theme,
-        },
         template: '<li></li>',
         zones: [
             {
-                name: "left",
-                cardinality: "1",
                 allow: [ "IconButton" ]
             }
         ],
@@ -1696,22 +1678,13 @@ var BWidgetRegistry = {
      * Represents a ThumbnailsListItem element.
      */
     ThumbnailsListItem: {
-        parent: "Base",
+        parent: "SimpleListItem",
         displayLabel: "Thumbnails List Item",
         paletteImageName: "jqm_thumbnailslist_item.svg",
         allowIn: [ "ThumbnailsList"],
-        properties: {
-            text: {
-                type: "string",
-                defaultValue: "List Item",
-            },
-            theme: BCommonProperties.theme
-        },
         template: '<li></li>',
         zones: [
             {
-                name: "left",
-                cardinality: "1",
                 allow: [ "ThumbnailButton" ]
             }
         ],
@@ -1725,18 +1698,10 @@ var BWidgetRegistry = {
      * Represents a SplitListItem element.
      */
     ThumbnailSplitListItem: {
-        parent: "Base",
+        parent: "SimpleSplitListItem",
         displayLabel: "Thumbnail Split List Item",
         paletteImageName: "jqm_splitlist_item.svg",
         allowIn: [ "ThumbnailSplitList" ],
-        properties: {
-            text: {
-                type: "string",
-                defaultValue: "List Item",
-            },
-            theme: BCommonProperties.theme,
-        },
-        template: '<li></li>',
         zones: [
             {
                 name: "left",
@@ -1760,10 +1725,18 @@ var BWidgetRegistry = {
      * Represents a SplitListItem element.
      */
     SimpleSplitListItem: {
-        parent: "ThumbnailSplitListItem",
+        parent: "Base",
         displayLabel: "Simple Split List Item",
         paletteImageName: "jqm_simplesplitlist_item.svg",
         allowIn: [ "SimpleSplitList" ],
+        properties: {
+            text: {
+                type: "string",
+                defaultValue: "List Item",
+            },
+            theme: BCommonProperties.theme,
+        },
+        template: '<li></li>',
         zones: [
             {
                 name: "left",
@@ -1782,7 +1755,7 @@ var BWidgetRegistry = {
      * Represents a SplitListItem element.
      */
     IconSplitListItem: {
-        parent: "ThumbnailSplitListItem",
+        parent: "SimpleSplitListItem",
         displayLabel: "Icon Split List Item",
         paletteImageName: "jqm_Iconsplitlist_item.svg",
         allowIn: [ "IconSplitList" ],
@@ -1809,7 +1782,7 @@ var BWidgetRegistry = {
      * Represents a SplitListItem element.
      */
     TextSplitListItem: {
-        parent: "ThumbnailSplitListItem",
+        parent: "SimpleSplitListItem",
         displayLabel: "Text Split List Item",
         paletteImageName: "jqm_textsplitlist_item.svg",
         allowIn: [ "TextSplitList" ],
@@ -1858,24 +1831,14 @@ var BWidgetRegistry = {
      * Represents a button. A "text" string property holds the button text.
      */
     ListButton: {
-        parent: "Base",
+        parent: "Button",
         displayLabel: "List Button",
         paletteImageName: "jqm_list_button.svg",
         allowIn: [ "ButtonListItem", "ThumbnailSplitListItem", "SimpleSplitListItem", "TextSplitListItem", "IconSplitListItem" ],
-        editable: {
-            selector: "a",
-            propertyName: "text"
-        },
         properties: {
             text: {
                 type: "string",
                 defaultValue: "List Button"
-            },
-            target: {
-                type: "string",
-                defaultValue: "",
-                htmlAttribute: "href",
-                htmlSelector: "a"
             },
             icon: $.extend({}, BCommonProperties.icon, {
                 options: BCommonProperties.icon.options.slice(1),
@@ -1908,7 +1871,7 @@ var BWidgetRegistry = {
      * Represents a button. A Icon_Image property holds the button text.
      */
     IconButton: {
-        parent: "Base",
+        parent: "Button",
         displayLabel: "list Icon Button",
         paletteImageName: "jqm_list_icon_button.svg",
         allowIn: [ "IconListItem", "IconSplitListItem" ],
@@ -1916,12 +1879,6 @@ var BWidgetRegistry = {
             text: {
                 type: "string",
                 defaultValue: "Icon List Item"
-            },
-            target: {
-                type: "string",
-                defaultValue: "",
-                htmlAttribute: "href",
-                htmlSelector: "a"
             },
             iconsrc: {
                 type: "url-uploadable",
@@ -1961,17 +1918,15 @@ var BWidgetRegistry = {
      * Represents a button. A Image property holds the button text.
      */
     ThumbnailButton: {
-        parent: "Base",
+        parent: "Button",
         displayLabel: "Thumbnail list Button",
         paletteImageName: "jqm_list_img_button.svg",
         allowIn: [ "ThumbnailSplitListItem", "ThumbnailsListItem" ],
         properties: {
-            target: {
+            text: {
                 type: "string",
-                defaultValue: "",
-                htmlAttribute: "href",
-                htmlSelector: "a"
-            }
+                defaultValue: "ThumbnailSplit List Item"
+            },
         },
         template:'<a></a>',
         zones: [
@@ -2005,17 +1960,15 @@ var BWidgetRegistry = {
      * Represents a button. A Image property holds the button text.
      */
     TextButton: {
-        parent: "Base",
+        parent: "Button",
         displayLabel: "list Text Button",
         paletteImageName: "jqm_list_text_button.svg",
         allowIn: [ "TextListItem", "TextSplitListItem" ],
         properties: {
-            target: {
+            text: {
                 type: "string",
-                defaultValue: "",
-                htmlAttribute: "href",
-                htmlSelector: "a"
-            }
+                defaultValue: "Text List Item"
+            },
         },
         template:'<a></a>',
         zones: [
