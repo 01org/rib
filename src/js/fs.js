@@ -234,9 +234,14 @@ $(function () {
         },
 
     /**
-     * Create a file. If the file is already exist, an error will be generated.
+     * Create a file recursively according to a pull path. If the
+     * parent directory of the file didn't existing, the directory
+     * will be created before creating the file.
+     * If the file is already exist, an error will be generated.
      *
-     * @param {string} filePath The given file path needs to be created.
+     * @param {string} filePath Full path of the file to be created.
+     *                 If the last char of the path is "/", it will
+     *                 be an invalid file path, which triggers error.
      * @param {function(FileEntry)=} opt_successCallback An optional
      * @param {function(FileError)=} opt_errorCallback An optional
      *
@@ -244,14 +249,33 @@ $(function () {
      * error callback passed the generated error.
      */
     touch: function (filePath, success, error) {
-               var onError = error || fsUtils.onError;
-               fsUtils.fs.root.getFile(filePath, {create: true, exclusive: true}, function (fileEntry) {
-                   console.log(fileEntry.fullPath + " is created.");
-                   // pass the fileEntry to the success handler
-                   if (success) {
-                       success(fileEntry);
-                   }
-               }, onError);
+               var tmp, fileName, destFolder, onError, createFile;
+               onError = error || fsUtils.onError;
+               if (typeof filePath !== "string" || filePath[filePath.length-1] === '/') {
+                   console.error('Invalid file path: "' + filePath + '" when touch file.');
+                   error && error();
+                   return;
+               }
+               createFile = function (destDir, fileName) {
+                   destDir.getFile(fileName, {create: true, exclusive: true}, function (fileEntry) {
+                       dumplog(fileEntry.fullPath + " is created.");
+                       // pass the fileEntry to the success handler
+                       if (success) {
+                           success(fileEntry);
+                       }
+                   }, onError);
+               };
+               tmp = filePath.lastIndexOf('/');
+               // If there is special parent directory
+               if (tmp > 0) {
+                   fileName = filePath.substr(tmp+1, filePath.length);
+                   destFolder = filePath.substr(0, tmp+1);
+                   fsUtils.mkdir(destFolder, function (destDir) {
+                       createFile(destDir, fileName);
+                   },onError);
+               } else {
+                   createFile(fsUtils.fs.root, filePath);
+               }
            },
 
     /**
