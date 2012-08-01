@@ -736,6 +736,83 @@ $(function() {
         }
         return;
     };
+
+    /**
+     * Change header item in current design, such as add or remove a css, js file.
+     *
+     * @param {String} type Type of the custom file.
+     * @param {Object/Other} value Object contains information about the header.
+     * @param {Boolean} removeFlag The header will be removed if true, else the header will be added.
+     *
+     * @return {None}
+     */
+    $.rib.changeHeaderFile = function (type, value, removeFlag) {
+        var design, array, property, propertyMap, i, temp;
+        var design, array, property, propertyMap, i;
+        propertyMap = {
+            css: 'css',
+            js: 'libs'
+        };
+        design = ADM.getDesignRoot();
+        property = propertyMap[type];
+        temp = $.extend(true, {}, {
+            property: property,
+            value: design.getProperty(property)
+        });
+        array = temp.value;
+        for (i = 0; i < array.length; i++) {
+            // If the value is in headers, then just return if "add" is required,
+            // or remove it, if "remove" action is required.
+            if (JSON.stringify(array[i]) === JSON.stringify(value)) {
+                if (removeFlag) {
+                    array.splice(i);
+                } else {
+                    return;
+                }
+            }
+        }
+        // If the value is not in array, then push the value in the list
+        if (!removeFlag) {
+            array.push(value);
+        }
+        // set the new array back
+        design.setProperty(property, array);
+        return;
+    };
+
+    /**
+     * Add custom file to current active project.
+     * It will save the content in project folder. If the parent directy is of
+     * filePath not exist, it will be create.
+     *
+     * @param {String} filePath Path to save the file. If the first of the path
+     *                 is "/", it will be taken as absolute path, else it will
+     *                 be considered as relative to project folder,
+     * @param {String} type Type of the custom file.
+     * @param {string/File/Blob} contents Content Data of custom file.
+     *
+     * @return {None}
+     */
+    $.rib.addCustomFile = function (filePath, type, contents, success, error) {
+        var pid, destPath;
+        pid = $.rib.pmUtils.getActive();
+        // If it is relative path, then add the project folder path
+        if (filePath[0] !== '/') {
+            destPath = $.rib.pmUtils.ProjectsDir + '/' + pid + '/' + filePath;
+        } else {
+            destPath = filePath;
+        }
+        // Write contents to sandbox
+        fsUtils.write(destPath, contents, function (newFile) {
+            var headerValue = {
+                'liveValue': newFile.toURL(),
+                'value': filePath
+            };
+            $.rib.changeHeaderFile(type, headerValue);
+            success && success(newFile);
+        });
+    };
+
     // Export serialization functions into $.rib namespace
     $.rib.ADMToJSONObj = ADMToJSONObj;
     $.rib.JSONToProj = JSONToProj;
