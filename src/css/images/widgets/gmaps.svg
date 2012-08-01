@@ -1,0 +1,24 @@
+<?xml version="1.0" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+    "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg contentScriptType="text/ecmascript" zoomAndPan="magnify" xmlns:xlink="http://www.w3.org/1999/xlink" baseProfile="full"
+    contentStyleType="text/css" id="Layer_1" enable-background="new 0 0 128 90" version="1.1" xml:space="preserve"
+    width="128px" preserveAspectRatio="xMidYMid meet" viewBox="0 0 128 90" height="90px" xmlns="http://www.w3.org/2000/svg"
+    x="0px" y="0px">
+    <rect fill="#ffffff" x="-3.4999926" width="132.0" height="94.0" y="-3.4999967" stroke="#000000"/>
+    <line fill="none" x1="-6.25" x2="78.75" y1="74.5" y2="-48.25" stroke="#cccccc" stroke-width="10"/>
+    <line fill="none" x1="-31.25" x2="110.0" y1="22.999996" y2="123.25" stroke="#cccccc" stroke-width="10"/>
+    <line fill="none" x1="-6.5000005" x2="134.75" y1="-6.0000033" y2="94.25" stroke="#cccccc" stroke-width="10"/>
+    <defs>
+        <style>     <![CDATA[
+        @font-face {
+            font-family: OpenSans-SemiBold;
+            src: url('../../fonts/OpenSans-Semibold.ttf');
+        }
+    ]]>   </style> </defs>
+    <rect fill="#627278" height="90" width="5"/>
+    <text xml:space="preserve" id="tizen_image_title" font-size="11" font-family="'OpenSans-Semibold'" transform="matrix(1 0 0 1 12 15.4258)">GMaps</text>
+    <text x="101.0" y="69.25"><tspan xml:space="preserve"> </tspan></text>
+    <line fill="none" x1="11.5" x2="152.75" y1="-37.250004" y2="63.0" stroke="#ffff00" stroke-width="10"/>
+    <line fill="none" x1="46.0" x2="131.0" y1="115.5" y2="-7.25" stroke="#ffff00" stroke-width="10"/>
+    <ellipse fill="#0099ff" rx="11.0" cx="47.0" ry="11.0" cy="32.25" stroke="#00ffff" stroke-width="4"/></svg>
