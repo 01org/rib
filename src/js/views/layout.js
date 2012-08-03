@@ -313,7 +313,7 @@
         // headers are already "sorted" and in the order in which they should
         // be inserted into the <head/> node of the document being created...
         _getCustomHeaders: function() {
-            var dh = $.rib.getDefaultHeaders(),   // default headers
+            var dh = $.rib.getDesignHeaders(ADM.getDesignRoot(), true),   // default headers
                 ch = this.options.customHeaders, // our custom headers
                 m, s;
 
@@ -338,7 +338,7 @@
         _serializeADMDesignToDOM: function() {
             this.options.contentDocument.find('body >  div[data-role="page"]')
                 .remove();
-            serializeADMSubtreeToDOM(this.designRoot, null, this._renderer);
+            $.rib.serializeADMSubtreeToDOM(this.designRoot, null, true, this._renderer);
         },
 
         _renderer: function (admNode, domNode) {

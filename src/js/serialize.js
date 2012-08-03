@@ -16,7 +16,7 @@
  *
  */
 /*******************************************************
- * General functions for two directions
+ * Globals
  ******************************************************/
 var DEBUG = true,
     blockActivePageChanged = false,
@@ -27,18 +27,29 @@ var DEBUG = true,
             'unformatted': ['a', 'script', 'title']
         });
     },
+    dumplog = function (loginfo){
+        if (DEBUG && (typeof loginfo === "string")){
+            console.log(loginfo);
+        }
+        return;
+    };
+
+
+$(function() {
 
     /**
      * Generate HTML from ADM tree.
      *
      * @param {ADMNode} design ADM design root to be serialized.
+     * @param {Boolean} useSandboxUrl Use sandbox url when generating HTML if true, else use
+     *                  relative path.
      * @param {function(ADMNode, DOMElement)=} extaHandler Extra handler for each node.
      *
      * @return {Object} return an object contains generated DOM object and related html string
      */
-    generateHTML = function (design, extraHandler) {
+    function generateHTML (design, useSandboxUrl, extraHandler) {
         design = design || ADM.getDesignRoot();
-        var doc = constructNewDocument($.rib.getDefaultHeaders(design));
+        var doc = constructNewDocument($.rib.getDesignHeaders(design, useSandboxUrl));
 
         function renderer(admNode, domNode) {
             // clean code
@@ -50,13 +61,13 @@ var DEBUG = true,
             extraHandler && extraHandler(admNode, domNode);
         };
 
-        serializeADMSubtreeToDOM(design, $(doc).find('body'), renderer);
+        serializeADMSubtreeToDOM(design, $(doc).find('body'), useSandboxUrl, renderer);
         return { doc: doc,
                  html: formatHTML(xmlserializer.serializeToString(doc))
         };
-    },
+    }
 
-    getPropertyDomAttribute = function (node, propName, newValue) {
+    function getPropertyDomAttribute (node, propName, newValue) {
         var attrName, attrMap, attrValue, propValue;
         attrName = BWidget.getPropertyHTMLAttribute(node.getType(), propName);
         propValue = newValue || node.getProperty(propName);
@@ -71,9 +82,9 @@ var DEBUG = true,
         }
         return {"name": attrName,
                 "value": attrValue};
-    },
+    }
 
-    serializeADMNodeToDOM = function (node, domParent) {
+    function serializeADMNodeToDOM (node, domParent, useSandboxUrl) {
         var uid, type, pid, selector,
             parentSelector = 'body',
             parentNode = null,
@@ -226,9 +237,9 @@ var DEBUG = true,
         }
 
         return widget;
-    },
+    }
 
-    serializeADMSubtreeToDOM = function (node, domParent, renderer) {
+    function serializeADMSubtreeToDOM (node, domParent, useSandboxUrl, renderer) {
         var isContainer = false,
             domElement;
 
@@ -240,7 +251,7 @@ var DEBUG = true,
         isContainer = (node.getChildrenCount() !== 0);
 
         // 2. Do something with this node
-        domElement = serializeADMNodeToDOM(node, domParent);
+        domElement = serializeADMNodeToDOM(node, domParent, useSandboxUrl);
         if (renderer && domElement) {
             renderer(node, domElement);
         }
@@ -251,44 +262,36 @@ var DEBUG = true,
         if (isContainer) {
             var children = node.getChildren();
             for (var i=0; i<children.length; i++) {
-                serializeADMSubtreeToDOM(children[i], domElement, renderer);
+                serializeADMSubtreeToDOM(children[i], domElement, useSandboxUrl, renderer);
             }
         }
 
         // 4. Return (anything?)
         return;
-    };
-function constructNewDocument(headers) {
-    var doc = document.implementation.createHTMLDocument('title'),
-        head = $(doc.head),
-        tmpHead = '', i;
+    }
 
-    if (headers && headers.length > 0) {
-        for (i=0; i < headers.length; i++) {
-            if (headers[i].match('<script ')) {
-                // Need this workaround since appendTo() causes the script
-                // to get parsed and then removed from the DOM tree, meaning
-                // it will not be in any subsequent Serialization output later
-                tmpHead = head[0].innerHTML;
-                head[0].innerHTML = tmpHead+headers[i];
-            } else {
-                $(headers[i]).appendTo(head);
+    function constructNewDocument(headers) {
+        var doc = document.implementation.createHTMLDocument('title'),
+            head = $(doc.head),
+            tmpHead = '', i;
+
+        if (headers && headers.length > 0) {
+            for (i=0; i < headers.length; i++) {
+                if (headers[i].match('<script ')) {
+                    // Need this workaround since appendTo() causes the script
+                    // to get parsed and then removed from the DOM tree, meaning
+                    // it will not be in any subsequent Serialization output later
+                    tmpHead = head[0].innerHTML;
+                    head[0].innerHTML = tmpHead+headers[i];
+                } else {
+                    $(headers[i]).appendTo(head);
+                }
             }
         }
+
+        return doc;
     }
 
-    return doc;
-}
-
-function dumplog(loginfo){
-    if (DEBUG && (typeof loginfo === "string")){
-        console.log(loginfo);
-    }
-    return;
-}
-
-
-$(function() {
     /*******************************************************
      * JSON to ADM Direction
      ******************************************************/
@@ -441,7 +444,7 @@ $(function() {
         }
     }
 
-    function getDefaultHeaders(design) {
+    function getDesignHeaders(design, useSandboxUrl) {
         var i, props, el, designRoot;
         designRoot = design || ADM.getDesignRoot();
 
@@ -601,7 +604,7 @@ $(function() {
             'src/css/images/icon-search-black.png',
         ];
 
-        function getDefaultHeaderFiles (type) {
+        function getHeaderFiles (type) {
             var headers, files = [];
             headers = ADM.getDesignRoot().getProperty(type);
             for ( var header in headers) {
@@ -614,9 +617,9 @@ $(function() {
             return files;
         }
         // Add js Files
-        $.merge(files, getDefaultHeaderFiles("libs"));
+        $.merge(files, getHeaderFiles("libs"));
         // Add css Files
-        $.merge(files, getDefaultHeaderFiles("css"));
+        $.merge(files, getHeaderFiles("css"));
         return files;
     }
 
@@ -635,7 +638,8 @@ $(function() {
             files.push(iconPath);
         }
         ribFile && zip.add(projName + ".json", ribFile);
-        resultHTML = generateHTML(null, function (admNode, domNode) {
+        // Generate html and don't use sandbox url
+        resultHTML = generateHTML(null, false, function (admNode, domNode) {
             var matched, p;
             matched = admNode.getMatchingProperties($.rib.pmUtils.relativeFilter);
             // Add uploaded images to the needed list
@@ -810,8 +814,10 @@ $(function() {
     };
 
     // Export serialization functions into $.rib namespace
+    $.rib.generateHTML = generateHTML;
+    $.rib.serializeADMSubtreeToDOM = serializeADMSubtreeToDOM;
     $.rib.ADMToJSONObj = ADMToJSONObj;
     $.rib.JSONToProj = JSONToProj;
-    $.rib.getDefaultHeaders = getDefaultHeaders;
+    $.rib.getDesignHeaders = getDesignHeaders;
     $.rib.exportPackage = exportPackage;
 });
