@@ -161,7 +161,12 @@ $(function() {
             case "type":
                 break;
             default:
-                attrObject = getPropertyDomAttribute(node, p);
+                // If need to use sandbox url and the property matches, then change the value.
+                if (useSandboxUrl && node.propertyMatches($.rib.pmUtils.relativeFilter, p, props[p])) {
+                    attrObject = getPropertyDomAttribute(node, p, toSandboxUrl(props[p]));
+                } else {
+                    attrObject = getPropertyDomAttribute(node, p);
+                }
                 if (attrObject.name) {
                     if (node.isPropertyExplicit(p) ||
                         BWidget.getPropertyForceAttribute(type, p)) {
@@ -445,13 +450,9 @@ $(function() {
     }
 
     function getDesignHeaders(design, useSandboxUrl) {
-        var i, props, el, designRoot;
+        var i, props, el, designRoot, headers;
         designRoot = design || ADM.getDesignRoot();
-
-        $.rib.defaultHeaders = $.rib.defaultHeaders || [];
-
-        if ($.rib.defaultHeaders.length > 0)
-            return $.rib.defaultHeaders;
+        headers = [];
 
         props = designRoot.getProperty('metas');
         for (i in props) {
@@ -463,14 +464,17 @@ $(function() {
             if (props[i].hasOwnProperty('key')) {
                 el = el + props[i].key;
             }
-            if (props[i].hasOwnProperty('value')) {
+            // If need to use sandbox url
+            if (useSandboxUrl && props[i].inSandbox) {
+                el = el + '="' + toSandboxUrl(props[i].value) + '"';
+            } else if (props[i].hasOwnProperty('value')) {
                 el = el + '="' + props[i].value + '"';
             }
             if (props[i].hasOwnProperty('content')) {
                 el = el + ' content="' + props[i].content + '"';
             }
             el = el + '>';
-            $.rib.defaultHeaders.push(el);
+            headers.push(el);
         }
         props = designRoot.getProperty('libs');
         for (i in props) {
@@ -479,11 +483,14 @@ $(function() {
                 continue;
             }
             el = '<script ';
-            if (props[i].hasOwnProperty('value')) {
+            // If need to use sandbox url
+            if (useSandboxUrl && props[i].inSandbox) {
+                el = el + 'src="' + toSandboxUrl(props[i].value) + '"';
+            } else if (props[i].hasOwnProperty('value')) {
                 el = el + 'src="' + props[i].value + '"';
             }
             el = el + '></script>';
-            $.rib.defaultHeaders.push(el);
+            headers.push(el);
         }
         props = designRoot.getProperty('css');
         for (i in props) {
@@ -492,13 +499,16 @@ $(function() {
                 continue;
             }
             el = '<link ';
-            if (props[i].hasOwnProperty('value')) {
+            // If need to use sandbox url
+            if (useSandboxUrl && props[i].inSandbox) {
+                el = el + 'href="' + toSandboxUrl(props[i].value) + '"';
+            } else if (props[i].hasOwnProperty('value')) {
                 el = el + 'href="' + props[i].value + '"';
             }
             el = el + ' rel="stylesheet">';
-            $.rib.defaultHeaders.push(el);
+            headers.push(el);
         }
-        return $.rib.defaultHeaders;
+        return headers;
     }
 
     // create a notice Dialog for user to configure the browser, so that
@@ -612,7 +622,14 @@ $(function() {
                 if (headers[header].hasOwnProperty('designOnly') && headers[header].designOnly) {
                     continue;
                 }
-                files.push(headers[header].value);
+                if (headers[header].inSandbox) {
+                    files.push({
+                        'src': toSandboxUrl(headers[header].Value),
+                        'dst': headers[header].value
+                    });
+                } else {
+                    files.push(headers[header].value);
+                }
             }
             return files;
         }
@@ -733,28 +750,6 @@ $(function() {
     }
 
     /***************** export functions out *********************/
-    $.rib.useSandboxUrl = function (admNode, domNode) {
-        var projectDir, urlPath, matched, p, attrObject, pid;
-        // Get the specified properties by uploaded relative filter
-        matched = admNode.getMatchingProperties($.rib.pmUtils.relativeFilter);
-        pid = $.rib.pmUtils.getActive();
-        if (!pid) {
-            return;
-        }
-        projectDir = $.rib.pmUtils.ProjectDir + "/" + pid + "/";
-
-        // Change the attributes of the DOM
-        for (p in matched) {
-            urlPath = $.rib.fsUtils.pathToUrl(projectDir + matched[p].replace(/^\//, ""));
-            attrObject = getPropertyDomAttribute(admNode, p, urlPath);
-            // Set the new value for the domNode
-            if (attrObject && attrObject.name && attrObject.value) {
-                $(domNode).attr(attrObject.name, attrObject.value);
-            }
-        }
-        return;
-    };
-
     /**
      * Add custom file to current active project.
      * It will save the content in project folder. If the parent directy of

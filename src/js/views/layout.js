@@ -110,6 +110,11 @@
             if ((!event) || (name === 'load' ||
                              name === 'designReset' ||
                              name === 'modelUpdated')) {
+                // Update headers if Design's properties changed
+                if (name === "designReset" || (name  === 'modelUpdated'
+                            && event.node && event.node.getType() === 'Design')) {
+                    widget._createDocument();
+                }
                 widget._serializeADMDesignToDOM();
 /* FIXME: Calling serializeADMSubtreeToDom is not actually forcing the
           the DOM to update, but it should work...
@@ -426,7 +431,6 @@
                     $(domNode).attr('src', "src/css/images/widgets/tizen_image.svg");
                 }
             }
-            $.rib.useSandboxUrl(admNode, domNode);
         }
     });
 })(jQuery);
