@@ -36,9 +36,9 @@ var DEBUG = true,
      *
      * @return {Object} return an object contains generated DOM object and related html string
      */
-    generateHTML = function (design, extraHandler) {
+    generateHTML = function (design, liveFlag, extraHandler) {
         design = design || ADM.getDesignRoot();
-        var doc = constructNewDocument($.rib.getDefaultHeaders(design));
+        var doc = constructNewDocument($.rib.getDefaultHeaders(design, liveFlag));
 
         function renderer(admNode, domNode) {
             // clean code
@@ -441,14 +441,10 @@ $(function() {
         }
     }
 
-    function getDefaultHeaders(design) {
-        var i, props, el, designRoot;
+    function getDefaultHeaders(design, liveFlag) {
+        var i, props, el, designRoot, headers;
         designRoot = design || ADM.getDesignRoot();
-
-        $.rib.defaultHeaders = $.rib.defaultHeaders || [];
-
-        if ($.rib.defaultHeaders.length > 0)
-            return $.rib.defaultHeaders;
+        headers = [];
 
         props = designRoot.getProperty('metas');
         for (i in props) {
@@ -460,14 +456,17 @@ $(function() {
             if (props[i].hasOwnProperty('key')) {
                 el = el + props[i].key;
             }
-            if (props[i].hasOwnProperty('value')) {
+            // If need to use liveValue
+            if (liveFlag && props[i].hasOwnProperty('liveValue') && props[i].liveValue) {
+                el = el + '="' + props[i].liveValue + '"';
+            } else if (props[i].hasOwnProperty('value')) {
                 el = el + '="' + props[i].value + '"';
             }
             if (props[i].hasOwnProperty('content')) {
                 el = el + ' content="' + props[i].content + '"';
             }
             el = el + '>';
-            $.rib.defaultHeaders.push(el);
+            headers.push(el);
         }
         props = designRoot.getProperty('libs');
         for (i in props) {
@@ -476,11 +475,14 @@ $(function() {
                 continue;
             }
             el = '<script ';
-            if (props[i].hasOwnProperty('value')) {
+            // If need to use liveValue
+            if (liveFlag && props[i].hasOwnProperty('liveValue') && props[i].liveValue) {
+                el = el + 'src="' + props[i].liveValue + '"';
+            } else if (props[i].hasOwnProperty('value')) {
                 el = el + 'src="' + props[i].value + '"';
             }
             el = el + '></script>';
-            $.rib.defaultHeaders.push(el);
+            headers.push(el);
         }
         props = designRoot.getProperty('css');
         for (i in props) {
@@ -489,13 +491,16 @@ $(function() {
                 continue;
             }
             el = '<link ';
-            if (props[i].hasOwnProperty('value')) {
+            // If need to use liveValue
+            if (liveFlag && props[i].hasOwnProperty('liveValue') && props[i].liveValue) {
+                el = el + 'href="' + props[i].liveValue + '"';
+            } else if (props[i].hasOwnProperty('value')) {
                 el = el + 'href="' + props[i].value + '"';
             }
             el = el + ' rel="stylesheet">';
-            $.rib.defaultHeaders.push(el);
+            headers.push(el);
         }
-        return $.rib.defaultHeaders;
+        return headers;
     }
 
     // create a notice Dialog for user to configure the browser, so that
@@ -609,7 +614,14 @@ $(function() {
                 if (headers[header].hasOwnProperty('designOnly') && headers[header].designOnly) {
                     continue;
                 }
-                files.push(headers[header].value);
+                if (headers[header].hasOwnProperty('liveValue') && headers[header].liveValue) {
+                    files.push({
+                        'src': headers[header].liveValue,
+                        'dst': headers[header].value
+                    });
+                } else {
+                    files.push(headers[header].value);
+                }
             }
             return files;
         }
@@ -736,6 +748,83 @@ $(function() {
         }
         return;
     };
+
+    /**
+     * Change header item in current design, such as add or remove a css, js file.
+     *
+     * @param {String} type Type of the custom file.
+     * @param {Object/Other} value Object contains information about the header.
+     * @param {Boolean} removeFlag The header will be removed if true, else the header will be added.
+     *
+     * @return {None}
+     */
+    $.rib.changeHeaderFile = function (type, value, removeFlag) {
+        var design, array, property, propertyMap, i, temp;
+        var design, array, property, propertyMap, i;
+        propertyMap = {
+            css: 'css',
+            js: 'libs'
+        };
+        design = ADM.getDesignRoot();
+        property = propertyMap[type];
+        temp = $.extend(true, {}, {
+            property: property,
+            value: design.getProperty(property)
+        });
+        array = temp.value;
+        for (i = 0; i < array.length; i++) {
+            // If the value is in headers, then just return if "add" is required,
+            // or remove it, if "remove" action is required.
+            if (JSON.stringify(array[i]) === JSON.stringify(value)) {
+                if (removeFlag) {
+                    array.splice(i);
+                } else {
+                    return;
+                }
+            }
+        }
+        // If the value is not in array, then push the value in the list
+        if (!removeFlag) {
+            array.push(value);
+        }
+        // set the new array back
+        design.setProperty(property, array);
+        return;
+    };
+
+    /**
+     * Add custom file to current active project.
+     * It will save the content in project folder. If the parent directy is of
+     * filePath not exist, it will be create.
+     *
+     * @param {String} filePath Path to save the file. If the first of the path
+     *                 is "/", it will be taken as absolute path, else it will
+     *                 be considered as relative to project folder,
+     * @param {String} type Type of the custom file.
+     * @param {string/File/Blob} contents Content Data of custom file.
+     *
+     * @return {None}
+     */
+    $.rib.addCustomFile = function (filePath, type, contents, success, error) {
+        var pid, destPath;
+        pid = $.rib.pmUtils.getActive();
+        // If it is relative path, then add the project folder path
+        if (filePath[0] !== '/') {
+            destPath = $.rib.pmUtils.ProjectsDir + '/' + pid + '/' + filePath;
+        } else {
+            destPath = filePath;
+        }
+        // Write contents to sandbox
+        fsUtils.write(destPath, contents, function (newFile) {
+            var headerValue = {
+                'liveValue': newFile.toURL(),
+                'value': filePath
+            };
+            $.rib.changeHeaderFile(type, headerValue);
+            success && success(newFile);
+        });
+    };
+
     // Export serialization functions into $.rib namespace
     $.rib.ADMToJSONObj = ADMToJSONObj;
     $.rib.JSONToProj = JSONToProj;
