@@ -234,9 +234,13 @@ $(function () {
         },
 
     /**
-     * Create a file. If the file is already exist, an error will be generated.
+     * Create a file from a full path, also creating any non-existent
+     * directories in the path. If the file already exists, an error
+     * will be generated.
      *
-     * @param {string} filePath The given file path needs to be created.
+     * @param {string} filePath Full path of the file to be created.
+     *                 If the last char of the path is "/", it will
+     *                 be an invalid file path, which triggers error.
      * @param {function(FileEntry)=} opt_successCallback An optional
      * @param {function(FileError)=} opt_errorCallback An optional
      *
@@ -244,14 +248,33 @@ $(function () {
      * error callback passed the generated error.
      */
     touch: function (filePath, success, error) {
-               var onError = error || fsUtils.onError;
-               fsUtils.fs.root.getFile(filePath, {create: true, exclusive: true}, function (fileEntry) {
-                   console.log(fileEntry.fullPath + " is created.");
-                   // pass the fileEntry to the success handler
-                   if (success) {
-                       success(fileEntry);
-                   }
-               }, onError);
+               var index, fileName, destFolder, onError, createFile;
+               onError = error || fsUtils.onError;
+               if (typeof filePath !== "string" || filePath[filePath.length-1] === '/') {
+                   console.error('Invalid file path: "' + filePath + '" when touch file.');
+                   error && error();
+                   return;
+               }
+               createFile = function (destDir, fileName) {
+                   destDir.getFile(fileName, {create: true, exclusive: true}, function (fileEntry) {
+                       dumplog(fileEntry.fullPath + " is created.");
+                       // pass the fileEntry to the success handler
+                       if (success) {
+                           success(fileEntry);
+                       }
+                   }, onError);
+               };
+               index = filePath.lastIndexOf('/');
+               // If there is special parent directory
+               if (index > 0) {
+                   fileName = filePath.substr(index+1, filePath.length);
+                   destFolder = filePath.substr(0, index+1);
+                   fsUtils.mkdir(destFolder, function (destDir) {
+                       createFile(destDir, fileName);
+                   },onError);
+               } else {
+                   createFile(fsUtils.fs.root, filePath);
+               }
            },
 
     /**
@@ -438,9 +461,11 @@ $(function () {
         },
 
     /**
-     * Create a directory.
+     * Create directory, making parent directories as needed recursively.
+     * If any folder in the path doesn't exist, this function will create
+     * parent directory first.
      *
-     * @param {string} path String path referring to the directory needs to be created.
+     * @param {string} path Full path of the directory to be created.
      * @param {function(DirectoryEntry)=} opt_successCallback An optional
      * @param {function(FileError)=} opt_errorCallback An optional
      *
@@ -448,13 +473,23 @@ $(function () {
      * error callback passed the generated error.
      */
     mkdir: function (path, success, error) {
-               var onError = error || fsUtils.onError;
-               fsUtils.fs.root.getDirectory(path, {create: true}, function (dirEntry) {
-                   console.log(path + ' is created.');
-                   if (success) {
-                       success(dirEntry);
+               var onError, createDir;
+               onError = error || fsUtils.onError;
+               createDir = function (parentDir, folders) {
+                   // ignore '.'
+                   if (folders[0] === '.' || folders[0].length <= 0) {
+                       folders = folders.slice(1);
                    }
-               }, onError);
+                   parentDir.getDirectory(folders[0], {create: true}, function (dirEntry) {
+                       if (folders.length > 1) {
+                           createDir(dirEntry, folders.slice(1));
+                       } else {
+                           success && success(dirEntry);
+                       }
+                   }, onError);
+               };
+               // Create the folders in the root directory
+               createDir(fsUtils.fs.root, path.split('/'));
            },
 
     /**
@@ -563,49 +598,7 @@ $(function () {
                     input.removeClass('hidden-accessible').click();
                     input.addClass('hidden-accessible');
                 }, 0);
-            },
-
-    /**
-     * Trigger an native dialog to upload file in a container,
-     * and save the file in a parent directory. If the parent directy is not exist,
-     * it will be create, but it only work once, if the grandparent directory is not
-     * exist, it will report error.
-     *
-     * @param {String} type File type to upload
-     * @param {String} destDir Directory where the uploaded file to be saved in
-     * @param {Jquery Object} container DOM element where native dialog will be triggered
-     * @param {function(File)=} success Success callback with uploaded file as its parameter
-     * @param {function()=} error Error callback
-     *
-     * @return {None}
-     */
-    uploadAndSave: function (fileType, destDir, container, success, error) {
-                       var handler = function (file) {
-                           var successHandler, errorCreateDir;
-                           successHandler = function (dirEntry) {
-                               if (!dirEntry.isDirectory) {
-                                   console.error(dirEntry.fullPath + " is not a directory in sandbox.");
-                                   return;
-                               }
-                               // Write uploaded file to sandbox
-                               fsUtils.write(destDir + file.name, file, function (newFile) {
-                                   success && success(newFile);
-                               });
-                           };
-                           errorCreateDir = function (e) {
-                               if (e.code === FileError.NOT_FOUND_ERR) {
-                                   // Create a Untitled project and open it in onEnd function
-                                   fsUtils.mkdir(destDir, successHandler);
-                               } else {
-                                   fsUtils.onError(e);
-                                   error && error();
-                               }
-                           };
-                           fsUtils.pathToEntry(destDir, successHandler, errorCreateDir);
-                       };
-
-                       fsUtils.upload(fileType, container, handler, error)
-                   }
+            }
     },
 
         /**
