@@ -354,7 +354,7 @@
 
             widget = widget || this;
 
-            if (!widget.element.data('visible')) return;
+            //if (!widget.element.data('visible')) return;
 
             iframe = widget.options.iframe;
             if (iframe.length) {
