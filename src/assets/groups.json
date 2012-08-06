@@ -24,7 +24,8 @@
             "List Views": [
                  "List", "OrderedList", "ListItem", "ListDivider", "ListButton"
             ],
-            "Image": ["Image"]
+            "Image": ["Image"],
+            "Web Services": ["GMaps"]
         }
     ],
 

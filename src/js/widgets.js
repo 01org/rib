@@ -1917,6 +1917,63 @@ var BWidgetRegistry = {
                 allow: "Grid"
             }
         ]
+    },
+    GMaps: {
+        parent: "Base",
+        allowIn: "Content",
+        paletteImageName: "gmaps.svg",
+        properties: {
+            maptype: {
+                type: "string",
+                options: [ "roadmap", "satellite", "hybrid"],
+                defaultValue: "roadmap"
+            },
+            center: {
+                type: "string",
+                defaultValue: "Mission College Blvd,Santa Clara,CA"
+            },
+            markers: {
+                type: "string",
+                defaultValue: "Mission College Blvd,Santa Clara,CA"
+            },
+            zoom: {
+                type: "integer",
+                defaultValue: 12
+            },
+            width: {
+                type: "interger",
+                defaultValue: 430,
+                htmlAttribute: "width"
+            },
+            height: {
+                type: "interger",
+                defaultValue: 300,
+                htmlAttribute: "height"
+            },
+            sensor: {
+                type: "boolean",
+                defaultValue: false
+            }
+        },
+        template: function (node) {
+            var p,
+                props = node.getProperties(),
+                ignoredProps = ['id', 'width', 'height'],
+                requestString = '',
+                code = $('<img />'),
+                url = 'http://maps.googleapis.com/maps/api/staticmap?';
+
+            // Generate the requestString
+            for (p in props) {
+                // Skip the ignored properties
+                if (ignoredProps.indexOf(p) >= 0)
+                    continue;
+                requestString += p + '=' + props[p] + '&';
+            }
+            requestString += 'size=' + props['width'] + 'x' + props['height'];
+            code.attr('src', url+requestString);
+            return code;
+        }
     }
 };
 
