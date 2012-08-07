@@ -139,6 +139,21 @@ $(function () {
         return pmUtils._activeProject;
     };
 
+    /* Get project folder path in sandbox, if pid is not specified, then
+     * return the project directory of active project.
+     *
+     * @param {String} pid Project id.
+     * @return {String/Null} The project folder path.
+     */
+    pmUtils.getProjectDir = function (pid) {
+        pid = pid || pmUtils._activeProject;
+        if (!pid) {
+            return null;
+        } else {
+            return pmUtils.ProjectDir + "/" + pid + "/";
+        }
+    };
+
     /**
      * Get properties of a specified project.
      *
@@ -615,7 +630,12 @@ $(function () {
         obj = $.rib.ADMToJSONObj(design);
         // Following is for the serializing part
         if (typeof obj === "object") {
-            obj.pInfo = pInfo;
+            // Delete the thumbnail when exporting, so that the package
+            // can be eliminated, and thumbnail will be generated next
+            // time the project imported
+            obj.pInfo = $.extend(true, {}, pInfo);
+            delete obj.pInfo.thumbnail;
+
             resultProject = JSON.stringify(obj);
             try {
                 $.rib.exportPackage(resultProject);
@@ -630,7 +650,28 @@ $(function () {
         return true;
     };
 
-    // TODO: manipulatation about the thumbnail of the project
+    // Update thumbnail of the project
+    pmUtils.updateThumbnail = function (liveDoc) {
+        var d, s, pid;
+        pid = $.rib.pmUtils.getActive();
+        if (!pid) {
+            console.warn("No active project to update thumbnail.");
+            return false;
+        }
+        d = $(liveDoc.documentElement).clone();
+
+        $('body',d).children(':not(.ui-page-active)').remove();
+        $('head',d).remove();
+        s = d[0].outerHTML;
+        s = s.replace(/<(html|body)/ig,'<div');
+        s = s.replace(/(html|body)>/ig,'div>');
+
+        // update the thumbnail in project box
+        if (d.length && s && s.length) {
+            // save it to the project
+            $.rib.pmUtils.setProperty(pid, "thumbnail", s);
+        }
+    };
 
      /**
      * Asynchronous. import a project and open it.
