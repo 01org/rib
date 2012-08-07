@@ -1177,7 +1177,12 @@ var BWidgetRegistry = {
                type: "string",
                defaultValue: ""
             },
-            mini: BCommonProperties.mini
+            mini: BCommonProperties.mini,
+            nativecontrol: {
+                displayName: "native control",
+                type: "boolean",
+                defaultValue: false
+            }
         },
         zones: [
             {
@@ -1237,25 +1242,33 @@ var BWidgetRegistry = {
             checked: BCommonProperties.checked,
             theme: BCommonProperties.theme,
             disabled: BCommonProperties.disabled,
-            nativecontrol: BCommonProperties.nativecontrol
+            nativecontrol: $.extend({}, BCommonProperties.nativecontrol, {
+                visible: false, // The property is moved to RadioGroup.
+            }),
         },
         delegate: 'parent',
         template: function (node) {
             //var prop, code = $('<div data-role="header"><h1></h1></div>');
-            var prop, label, code;
-
-            code = $('<input type="radio"><label/>');
-
+            var input, label,
+                parent = node.getParent(),
+                code = $('<input type="radio"><label/>');
+            
+            input = code.filter('input');
             // always include id property on input
-            code.filter('input').attr("id", node.getProperty("id"));
+            input.attr("id", node.getProperty("id"));
 
             // generate a "name" property for first child of ControlGroup
-            if (!node.getParent().getChildrenCount()) {
-                code.filter('input').attr("name", node.getProperty("id"));
+            if (!parent.getChildrenCount()) {
+                input.attr("name", node.getProperty("id"));
             } else {
-                code.filter('input').attr("name",
-                          node.getParent().getChildren()[0].getProperty("id"));
+                input.attr("name", parent.getChildren()[0].getProperty("id"));
             }
+
+            // set to be native control with parent property settings.
+            if (parent.getProperty('nativecontrol'))
+                input.attr('data-role', 'none');
+            else
+                input.removeAttr('data-role');
 
             // apply props to associated label
             label = code.next();
