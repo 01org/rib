@@ -159,10 +159,8 @@ strong.adm-node.adm-editable.adm-text-content.ui-selected {
 .ui-sortable-placeholder {
     display: block;
     box-sizing: border-box;
-    height: 1px;
-    min-height: 1px;
-    max-height: 1px;
-    margin: 0px;
+    height: 2px;
+    margin: 4px;
     padding: 0px;
     background-color: #da1c2e;
     border: 0px none transparent;
@@ -281,4 +279,10 @@ label.adm-editable span.adm-text-content::before,
 /* Prevent li "bullet" from showing on navbar buttons during sort */
 body > li.ui-sortable-helper[class*="ui-block-"] {
     list-style: none;
+}
+.placeHolder {
+    display: block;
+    margin: 4px;
+    clear: both;
+    height: 1px;
 }
