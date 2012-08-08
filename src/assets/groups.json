@@ -14,15 +14,32 @@
         {
             "Toolbars": ["#0._hidden_node.jqm_toolbars"],
             "Buttons": ["Button", "ButtonGroup"],
-            "Content Formatting": ["Grid", "Collapsible", "Accordion"],
+            "Content Formatting": ["Grid", "Collapsible", "Accordion", "Div"],
             "Form Elements": [
                 "#0._hidden_node.jqm_other_inputs.0", "Text",
                 {
                     "Boolean": ["#0._hidden_node.jqm_input_boolean"]
                 }
             ],
-            "List Views": [
-                 "List", "OrderedList", "ListItem", "ListDivider", "ListButton"
+            "List Views": [ {
+                            "Single Lists": [
+                                    "SimpleList",
+                                    "ButtonList",
+                                    "TextList",
+                                    "IconList",
+                                    "ThumbnailList",
+                                    "SimpleListItem",
+                                    "ListDivider"
+                            ],
+                            "Split Lists": [
+                                    "ButtonSplitList",
+                                    "TextSplitList",
+                                    "IconSplitList",
+                                    "ThumbnailSplitList",
+                                    "SimpleListItem",
+                                    "ListDivider"
+                            ]
+                }
             ],
             "Image": ["Image"]
         }
