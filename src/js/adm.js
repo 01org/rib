@@ -1621,11 +1621,20 @@ ADMNode.prototype.addChild = function (child, dryrun) {
 ADMNode.prototype.addChildToZone = function (child, zoneName, zoneIndex,
                                              dryrun) {
     // requires: assumes cardinality is "N", or a numeric string
-    var add = false, myType, childType, zone, cardinality, limit;
+    var add = false, myType, childType, zone, cardinality, limit, morph, morphedChildType;
     myType = this.getType();
     childType = child.getType();
     zone = this._zones[zoneName];
 
+    morph = BWidget.getZone(myType, zoneName).morph;
+    if (morph)
+    {
+        morphedChildType = morph(childType, myType);
+        if (morphedChildType !== childType) {
+            childType = morphedChildType;
+            child = ADM.createNode(morphedChildType);
+        }
+    }
     if (!BWidget.zoneAllowsChild(myType, zoneName, childType)) {
         if (!dryrun) {
             console.warn("Warning: zone " + zoneName +
@@ -1648,6 +1657,7 @@ ADMNode.prototype.addChildToZone = function (child, zoneName, zoneIndex,
         return false;
     }
 
+    cardinality = cardinality.max || cardinality;
     if (cardinality !== "N") {
         limit = parseInt(cardinality, 10);
         if (zone.length >= limit) {
@@ -1859,11 +1869,26 @@ ADMNode.prototype.removeChild = function (child, dryrun) {
  * @return {ADMNode} The removed child, or null if not found.
  */
 ADMNode.prototype.removeChildFromZone = function (zoneName, index, dryrun) {
-    var zone, removed, child, parentNode;
+    var zone, removed, child, parentNode, cardinality;
     zone = this._zones[zoneName];
     if (!zone) {
         console.error("Error: no such zone found while removing child: " +
                       zoneName);
+    }
+    cardinality = BWidget.getZoneCardinality(this.getType(), zoneName);
+    if (!cardinality) {
+        console.warn("Warning: no cardinality found for zone " + zoneName);
+        return false;
+    }
+
+    if (cardinality.min) {
+        if (zone.length <=  parseInt(cardinality.min, 10)) {
+            alert("Can't remove child: we need at least "
+                    + cardinality.min  + " "
+                    + BWidget.getDisplayLabel(zone[index].getType())
+                    + " here!");
+            return false;
+        }
     }
 
     if (dryrun) {
