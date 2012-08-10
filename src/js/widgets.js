@@ -1777,12 +1777,14 @@ var BWidgetRegistry = {
                 var selected = (e.node === admNode || e.node && admNode.findNodeByUid(e.node.getUid()))? true: false;
                 domNode.trigger(selected ? 'expand' : 'collapse');
             },
+            placeHolder = $('<div class="placeHolder"></div>'),
             e = {};
 
             e.node = ADM.getDesignRoot().findNodeByUid(ADM.getSelected());
             toggleCollapse(e);
             ADM.bind("selectionChanged", toggleCollapse);
-            return domNode;
+            // Insert space holders before/after domNode for resort.
+            return domNode.before(placeHolder).after(placeHolder);
         }
     },
 

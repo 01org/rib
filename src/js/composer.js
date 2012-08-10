@@ -297,8 +297,8 @@ $(function() {
             }
         } else if (domIndex > 0) {
             // Insert nth child into this container
-            domSibling = $(domNode, domParent).prev('.adm-node');
-            sid = domSibling.attr('data-uid');
+            domSibling = domChildren[domIndex-1];
+            sid = $(domSibling).attr('data-uid');
             if (adm.insertChildAfter(sid, nodeRef, true)) {
                 newNode = adm.insertChildAfter(sid, nodeRef);
                 debug && console.log('Inserted nth node',role);
