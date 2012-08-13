@@ -25,6 +25,11 @@ var BCommonProperties = {
         defaultValue: false,
         htmlAttribute: "disabled"
     },
+    filter: {
+        type: "boolean",
+        defaultValue: false,
+        htmlAttribute: "data-filter"
+    },
     icon: {
         type: "datalist",
         options: [ "none", "alert", "arrow-d", "arrow-l", "arrow-r",
@@ -74,6 +79,10 @@ var BCommonProperties = {
         defaultValue: "default",
         htmlAttribute: "data-position"
     },
+    text: {
+        type: "string",
+        defaultValue: "Button"
+    },
     theme: {
         type: "string",
         options: [ "default", "a", "b", "c", "d", "e" ],
@@ -86,6 +95,16 @@ var BCommonProperties = {
         options: [ "default", "a", "b", "c", "d", "e" ],
         defaultValue: "default",
         htmlAttribute: "data-track-theme"
+    },
+    inset: {
+        type: "boolean",
+        defaultValue: true,
+        htmlAttribute: "data-inset",
+        // because data-inset="false" is the real default, do this:
+        forceAttribute: true
+        // FIXME: would be better to distinguish from the default that
+        //        occurs if you leave it off, vs. the default we think
+        //        the user is most likely to want
     }
 };
 
@@ -133,7 +152,8 @@ var BCommonProperties = {
  * Each zone description in the array should be an object with:
  *   1) name identifying the zone point
  *   2) cardinality, either "1" or "N" representing number of contained items
- *   3) allow: string or array of string names of allowable widgets
+ *   3) allow: string or array of string names or a function that returns
+ *             a string or an array of allowable widgets
  *               (all others will be denied)
  *   4) deny: string or array of string names of disallowed widgets
  *             (all others will be allowed)
@@ -142,6 +162,8 @@ var BCommonProperties = {
  *                 of this zone.
  *   6) itemWrapper: an HTML tag used to wrapp a child node before appending
  *                   to the zone
+ *   7) morph: function used to change the child type to another type before
+ *             adding it to the zone
  *
  * The "properties" of each widget definition is an object, each property of
  * which names a property of the widget. These are objects with the following
@@ -567,6 +589,20 @@ var BWidgetRegistry = {
         }
     },
 
+    Div: {
+        parent: "Base",
+        dragHeader: true,
+        paletteImageName: "jqm_div.svg",
+        allowIn: "Content",
+        template: '<div></div>',
+        zones: [
+            {
+                name: "default",
+                cardinality: "N"
+            }
+        ]
+    },
+
     /**
      * Represents simple text in the layout, possibly wrapped with a tag like
      * <h1> ... <h6>, <p>, <em>, etc.
@@ -643,20 +679,11 @@ var BWidgetRegistry = {
     },
 
     /**
-     * Represents a button. A "text" string property holds the button text.
+     * Represents a base button widget
      */
-    Button: {
+    ButtonBase: {
         parent: "Base",
-        paletteImageName: "jqm_button.svg",
-        editable: {
-            selector: "span > .ui-btn-text",
-            propertyName: "text"
-        },
         properties: {
-            text: {
-                type: "string",
-                defaultValue: "Button"
-            },
             target: {
                 type: "targetlist",
                 defaultValue: "",
@@ -669,6 +696,41 @@ var BWidgetRegistry = {
                 defaultValue: "default",
                 htmlAttribute: "data-rel"
             },
+            transition: {
+                type: "string",
+                options: [ "slide", "slideup", "slidedown", "pop", "fade",
+                           "flip", "turn", "flow", "slidefade", "none" ],
+                defaultValue: "slide",
+                htmlAttribute: "data-transition"
+            },
+            back: {
+                type: "boolean",
+                defaultValue: false,
+                htmlAttribute: {
+                    name: "data-rel",
+                    value: {
+                        "true": "back",
+                        "false": ""
+                    }
+                }
+            },
+        },
+        template: '<a data-role="button">%TEXT%</a>'
+    },
+
+    /**
+     * Represents a button. A "text" string property holds the button text.
+     */
+
+    Button: {
+        parent: "ButtonBase",
+        paletteImageName: "jqm_button.svg",
+        editable: {
+            selector: "span > .ui-btn-text",
+            propertyName: "text"
+        },
+        properties: {
+            text: BCommonProperties.text,
             icon: BCommonProperties.icon,
             iconpos: $.extend({}, BCommonProperties.iconpos, {
                 invalidIn: "Navbar"
@@ -695,24 +757,6 @@ var BWidgetRegistry = {
             inline: $.extend({}, BCommonProperties.inline, {
                 invalidIn: "Navbar"
             }),
-            transition: {
-                type: "string",
-                options: [ "slide", "slideup", "slidedown", "pop", "fade",
-                           "flip", "turn", "flow", "slidefade", "none" ],
-                defaultValue: "slide",
-                htmlAttribute: "data-transition"
-            },
-            back: {
-                type: "boolean",
-                defaultValue: false,
-                htmlAttribute: {
-                    name: "data-rel",
-                    value: {
-                        "true": "back",
-                        "false": ""
-                    }
-                }
-            },
             corners: {
                 type: "boolean",
                 defaultValue: true,
@@ -1347,34 +1391,10 @@ var BWidgetRegistry = {
     /**
      * Represents a unordered list element.
      */
-    List: {
-        parent: "Base",
+    SimpleList: {
+        parent: "ListBase",
         paletteImageName: "jqm_list.svg",
-        dragHeader: true,
         properties: {
-            inset: {
-                type: "boolean",
-                defaultValue: true,
-                htmlAttribute: "data-inset",
-                // because data-inset="false" is the real default, do this:
-                forceAttribute: true
-                // FIXME: would be better to distinguish from the default that
-                //        occurs if you leave it off, vs. the default we think
-                //        the user is most likely to want
-            },
-            theme: BCommonProperties.theme,
-            divider: {
-                displayName: "divider theme",
-                type: "string",
-                options: [ "default", "a", "b", "c", "d", "e" ],
-                defaultValue: "default",
-                htmlAttribute: "data-divider-theme"
-            },
-            filter: {
-                type: "boolean",
-                defaultValue: false,
-                htmlAttribute: "data-filter"
-            },
             filter_theme: $.extend({}, BCommonProperties.theme, {
                 displayName: "filter theme",
                 htmlAttribute: "data-filter-theme"
@@ -1386,33 +1406,158 @@ var BWidgetRegistry = {
                 htmlAttribute: "data-filter-placeholder"
             }
         },
-        template: '<ul data-role="listview">',
+    },
+
+    /**
+     * Represents a unordered button list element.
+     */
+    ButtonList: {
+        parent: "SimpleList",
+        paletteImageName: "jqm_button_list.svg",
+    },
+
+    /**
+     * Represents a unordered button list element.
+     */
+    TextList: {
+        parent: "SimpleList",
+        paletteImageName: "jqm_text_list.svg",
+    },
+
+    /**
+     * Represents a icon list element.
+     */
+    IconList: {
+        parent: "SimpleList",
+        paletteImageName: "jqm_icon_list.svg",
+    },
+
+    /**
+     * Represents a Thumbnail list element.
+     */
+    ThumbnailList: {
+        parent: "SimpleList",
+        paletteImageName: "jqm_thumbnail_list.svg",
+    },
+    /**
+     * Represents a base List widget
+     */
+    ListBase: {
+        parent: "Base",
+        dragHeader: true,
+        properties: {
+            inset: BCommonProperties.inset,
+            filter: BCommonProperties.filter,
+            theme: BCommonProperties.theme,
+            ordered: {
+                type: "boolean",
+                defaultValue: false,
+            },
+            divider_theme: $.extend({}, BCommonProperties.theme, {
+                displayName: "divider theme",
+                htmlAttribute: "data-divider-theme"
+            })
+        },
+        getItemType: function (listType) {
+            if (listType !== "OrderedList")
+                 return listType + "Item";
+            else
+                 return "SimpleListItem";
+        },
         zones: [
             {
                 name: "default",
                 cardinality: "N",
-                allow: [ "ListItem", "ListDivider", "ListButton" ]
+                morph: function (childType, thisType) {
+                    if (childType === "SimpleListItem") {
+                        if (thisType === "OrderedList")
+                            return "SimpleListItem";
+                        else
+                            return thisType + "Item";
+                    }
+                    return childType;
+                },
+                allow: function (type) {
+                   return [ BWidgetRegistry.ListBase.getItemType(type), "ListDivider" ];
+                }
             }
-        ]
+        ],
+        template: function (node) {
+            if (node.getProperty("ordered"))
+             return $('<ol data-role="listview">');
+            else
+             return $('<ul data-role="listview">');
+        },
+        init: function (node) {
+            // initial state is three button ListItem
+            var i;
+            for (i = 0; i < 3; i++) {
+                var listType = node.getType(), itemName = "SimpleListItem";
+                if (listType !== "OrderedList")
+                     itemName = listType + "Item";
+                node.addChild(ADM.createNode(itemName));
+            }
+        }
     },
 
     /**
-     * Represents an ordered list element.
+     * Represents a Split list element.
      */
-    OrderedList: {
-        parent: "List",
-        paletteImageName: "jqm_ordered_list.svg",
-        template: '<ol data-role="listview">'
+    ThumbnailSplitList: {
+        parent: "ButtonSplitList",
+        paletteImageName: "jqm_thumbnail_split_list.svg",
     },
 
     /**
-     * Represents a list item element.
+     * Represents a Split list element.
      */
-    ListItem: {
+    ButtonSplitList: {
+        parent: "ListBase",
+        paletteImageName: "jqm_button_split_list.svg",
+        properties: {
+            theme: {
+                type: "string",
+                options: [ "default", "a", "b", "c", "d", "e" ],
+                defaultValue: "default",
+                htmlAttribute: "data-split-theme"
+            },
+            split_icon: {
+                displayName: "split icon",
+                type: "string",
+                options: [ "none", "alert", "arrow-d", "arrow-l", "arrow-r",
+                           "arrow-u", "back", "check", "delete", "forward",
+                           "gear", "grid", "home", "info", "minus", "plus",
+                           "refresh", "search", "star" ],
+                defaultValue: "none",
+                htmlAttribute: "data-split-icon"
+            }
+        },
+    },
+
+    /**
+     * Represents a Split list element.
+     */
+    TextSplitList: {
+        parent: "ButtonSplitList",
+        paletteImageName: "jqm_text_split_list.svg",
+    },
+
+    /**
+     * Represents a Split list element.
+     */
+    IconSplitList: {
+        parent: "ButtonSplitList",
+        paletteImageName: "jqm_icon_split_list.svg",
+    },
+
+    /**
+     * Represents a generic list item element.
+     */
+    SimpleListItem: {
         parent: "Base",
         displayLabel: "List Item",
         paletteImageName: "jqm_list_item.svg",
-        allowIn: [ "List", "OrderedList" ],
+        allowIn: [ "ListBase" ],
         editable: {
             selector: "",
             propertyName: "text"
@@ -1420,37 +1565,247 @@ var BWidgetRegistry = {
         properties: {
             text: {
                 type: "string",
-                defaultValue: "List Item"
+                defaultValue: "List Item",
             },
             theme: BCommonProperties.theme,
-            filtertext: {
-                displayName: "filter text",
-                type: "string",
-                defaultValue: "",
-                htmlAttribute: "data-filtertext",
-            }
         },
         template: '<li>%TEXT%</li>'
+    },
+
+    /**
+     * Represents a ListItem element.
+     */
+    ListItemBase: {
+        parent: "ButtonBase",
+        defaultHtmlSelector: "a",
+        properties: {
+            theme: $.extend(true, {}, BCommonProperties.theme, {
+                       htmlSelector: ""
+                   })
+        },
+        template: '<li><a></a></li>'
+    },
+
+    /**
+     * Represents a list button item element.
+     */
+    ButtonListItem: {
+        parent: "ListItemBase",
+        allowIn: [ "ButtonList" ],
+        editable: {
+            selector: ".ui-btn-text > a",
+            propertyName: "text"
+        },
+        properties: {
+            text: {
+                type: "string",
+                defaultValue: "Button List Item",
+            }
+        },
+        template: '<li><a>%TEXT%</a></li>',
+    },
+
+    /**
+     * Represents a list text item element.
+     */
+    TextListItem: {
+        parent: "ListItemBase",
+        allowIn: [ "TextList" ],
+        zones: [
+            {
+                name: "default",
+                cardinality: "N",
+                locator: "a",
+                allow: [ "Text" ]
+            },
+        ],
+        init: function (node) {
+            var widgit;
+            widgit = ADM.createNode("Text");
+            widgit.setProperty("type", "h3");
+            widgit.setProperty("text", "Text List Item");
+            node.addChild(widgit);
+            widgit = ADM.createNode("Text");
+            widgit.setProperty("type", "p");
+            widgit.setProperty("text", "Text List Item");
+            node.addChild(widgit);
+        }
+    },
+
+    /**
+     * Represents a IconListItem element.
+     */
+    IconListItem: {
+        parent: "ButtonListItem",
+        allowIn: [ "IconList" ],
+        properties: {
+            text: {
+                defaultValue: "Icon List Item"
+            },
+            iconsrc: {
+                type: "url-uploadable",
+                defaultValue: "src/css/images/widgets/tizen_image.svg",
+                htmlSelector: "img",
+                htmlAttribute: "src",
+                forceAttribute: true
+            },
+            countbubble: {
+                type: "string",
+                displayName: "count bubble",
+                defaultValue: "0"
+            }
+        },
+        template: function(node) {
+            var prop, iconsrc, countBubble, code = $('<li><a>%TEXT%</a></li>');
+            prop = node.getProperty("countbubble");
+            // Add the count bubble if countbubble property is not blank
+            if (prop.trim() != '') {
+                countBubble = $('<span>')
+                    .attr('class', 'ui-li-count')
+                    .html(prop);
+                code.find('a').append(countBubble);
+            };
+            prop = node.getProperty("iconsrc");
+            // Add the count bubble if iconsrc property is not blank
+            if (prop.trim() != '') {
+                iconsrc = $('<img/>')
+                        .attr('width','16')
+                        .attr('class', 'ui-li-icon');
+                code.find('a').append(iconsrc);
+            };
+            return code;
+        }
+    },
+
+    /**
+     * Represents a ThumbnailListItem element.
+     */
+    ThumbnailListItem: {
+        parent: "ListItemBase",
+        allowIn: [ "ThumbnailList"],
+        zones: [
+            {
+                name: "left",
+                cardinality: "1",
+                locator: "a",
+                allow: [ "Image" ]
+            },
+            {
+                name: "right",
+                cardinality: "N",
+                locator: "a",
+                allow: [ "Text" ]
+            }
+        ],
+        init: function (node) {
+            var image = ADM.createNode("Image");
+            var text = ADM.createNode("Text");
+            text.setProperty("type", "h3");
+            text.setProperty("text", "Thumbnail List Item");
+            node.addChild(text);
+            text = ADM.createNode("Text");
+            text.setProperty("type", "p");
+            text.setProperty("text", "Thumbnail List Item");
+            node.addChild(text);
+            node.addChild(image);
+        }
+    },
+
+    /**
+     * Represents a SplitListItem element.
+     */
+    ThumbnailSplitListItem: {
+        parent: "SplitListItemBase",
+        allowIn: [ "ThumbnailSplitList" ],
+        zones: [
+            {
+                name: "left",
+                cardinality: "1",
+                locator: "a",
+                allow: [ "Image" ]
+            },
+            {
+                name: "right",
+                cardinality: "N",
+                locator: "a",
+                allow: [ "Text" ]
+            }
+        ],
+        init: function (node) {
+            // initial state is three Image and Texts
+            var image = ADM.createNode("Image");
+            var text = ADM.createNode("Text");
+            text.setProperty("type", "h3");
+            text.setProperty("text", "Thumbnail List Item");
+            node.addChild(text);
+            text = ADM.createNode("Text");
+            text.setProperty("type", "p");
+            text.setProperty("text", "Thumbnail List Item");
+            node.addChild(text);
+            node.addChild(image);
+
+            node.addChild(ADM.createNode("ListButton"));
+        }
+    },
+
+    /**
+     * Represents a SplitListItem element.
+     */
+    SplitListItemBase: {
+        parent: "ListItemBase",
+        zones: [
+            {
+                name: "extra",
+                cardinality: {min: "1", max: "1"},
+                allow: [ "ListButton" ]
+            },
+        ],
+        init: function (node) {
+            // initial state is three buttons
+            node.addChild(ADM.createNode("ListButton"));
+        }
+    },
+
+    /**
+     * Represents a SplitListItem element.
+     */
+    ButtonSplitListItem: {
+        parent: [ "ButtonListItem", "SplitListItemBase" ],
+        allowIn: [ "ButtonSplitList" ],
+    },
+
+    /**
+     * Represents a SplitListItem element.
+     */
+    IconSplitListItem: {
+        parent: [ "IconListItem", "ButtonSplitListItem" ],
+        allowIn: [ "IconSplitList" ],
+    },
+
+    /**
+     * Represents a SplitListItem element.
+     */
+    TextSplitListItem: {
+        parent: [ "TextListItem", "SplitListItemBase" ],
+        allowIn: [ "TextSplitList" ],
+        init: function (node) {
+            BWidgetRegistry.TextListItem.init(node);
+            BWidgetRegistry.SplitListItemBase.init(node);
+        }
     },
 
     /**
      * Represents a list divider element.
      */
     ListDivider: {
-        parent: "Base",
+        parent: "SimpleListItem",
         displayLabel: "List Divider",
         paletteImageName: "jqm_list_divider.svg",
-        allowIn: [ "List", "OrderedList" ],
-        editable: {
-            selector: "",
-            propertyName: "text"
-        },
+        allowIn: [ "ListBase" ], 
         properties: {
             text: {
-                type: "string",
                 defaultValue: "List Divider"
             },
-            theme: BCommonProperties.theme
         },
         template: '<li data-role="list-divider">%TEXT%</li>'
     },
@@ -1459,24 +1814,11 @@ var BWidgetRegistry = {
      * Represents a button. A "text" string property holds the button text.
      */
     ListButton: {
-        parent: "Base",
-        displayLabel: "List Button",
-        paletteImageName: "jqm_list_button.svg",
-        allowIn: [ "List", "OrderedList" ],
-        editable: {
-            selector: "a",
-            propertyName: "text"
-        },
+        parent: "ButtonBase",
+        allowIn: [ "SplitListItemBase"],
         properties: {
             text: {
-                type: "string",
-                defaultValue: "Button"
-            },
-            target: {
-                type: "string",
-                defaultValue: "",
-                htmlAttribute: "href",
-                htmlSelector: "a"
+                defaultValue: "List Button"
             },
             icon: $.extend({}, BCommonProperties.icon, {
                 options: BCommonProperties.icon.options.slice(1),
@@ -1490,8 +1832,7 @@ var BWidgetRegistry = {
             }
         },
         template: function (node) {
-            var prop, countBubble, code = $('<li><a>%TEXT%</a></li>');
-            var anchor = code.find('a');
+            var prop, countBubble, code = $('<a>%TEXT%</a><');
 
             prop = node.getProperty("countbubble");
             // Add the count bubble if countbubble property is not blank
@@ -1499,12 +1840,11 @@ var BWidgetRegistry = {
                 countBubble = $('<span>')
                     .attr('class', 'ui-li-count')
                     .html(prop);
-                anchor.append(countBubble);
+                code.append(countBubble);
             };
 
             return code;
         }
-        
     },
 
     /**
@@ -1928,7 +2268,7 @@ var BWidget = {
     init: function () {
         // effects: add the type and displayLabel properties to widget
         //          registry objects
-        var type, parentName;
+        var type, newZones, descendantZone, descendantZoneIndex;
         for (type in BWidgetRegistry) {
             if (BWidgetRegistry.hasOwnProperty(type)) {
                 BWidgetRegistry[type].type = type;
@@ -1964,11 +2304,29 @@ var BWidget = {
                 if (type === "OptionHeader") {
                     BWidgetRegistry[type].displayLabel = "Option Header";
                 }
-                parentName = BWidgetRegistry[type].parent;
-                while (parentName) {
+                $.each(BWidget.getAncestors(type), function (i, parentName) {
+                    if (BWidgetRegistry[parentName].zones) {
+                        newZones = [];
+                        $.each(BWidgetRegistry[parentName].zones, function (i, pZone) {
+                            descendantZone = null;
+                            if (BWidgetRegistry[type].zones)
+                            $.each(BWidgetRegistry[type].zones, function (i, zone) {
+                                if (pZone.name === zone.name) {
+                                    descendantZone = zone;
+                                    descendantZoneIndex = i;
+                                    return false;
+                                }
+                            });
+                            if (descendantZone)
+                                BWidgetRegistry[type].zones[descendantZoneIndex] = $.extend(true, true, {}, pZone, descendantZone);
+                            else
+                                newZones.push(pZone);
+                        });
+                        if(BWidgetRegistry[type].zones)
+                            $.merge(BWidgetRegistry[type].zones, newZones);
+                    }
                     BWidgetRegistry[type] = $.extend(true, true, {}, BWidgetRegistry[parentName], BWidgetRegistry[type]);
-                    parentName = BWidgetRegistry[parentName].parent;
-                }
+                });
             }
         }
     },
@@ -2305,7 +2663,8 @@ var BWidget = {
     getPropertyHTMLSelector: function (widgetType, property) {
         var schema = BWidget.getPropertySchema(widgetType, property);
         if (schema) {
-            return schema.htmlSelector;
+            return schema.htmlSelector !== undefined ? schema.htmlSelector :
+                BWidget.getWidgetAttribute(widgetType, "defaultHtmlSelector");
         }
         return schema;
     },
@@ -2605,20 +2964,38 @@ var BWidget = {
     },
 
     // helper function
+    getAncestors: function (type) {
+        var ancestors = [],
+            parents = BWidgetRegistry[type].parent;
+        if (!parents)
+            return [];
+        if ( typeof parents === "string")
+            parents = [parents];
+        ancestors = $.merge(ancestors, parents);
+        $.each(parents, function (i, parentName) {
+            $.merge(ancestors, BWidget.getAncestors(parentName));
+        })
+        return ancestors;
+    },
+    // helper function
     isTypeInList: function (type, list) {
         // requires: list can be an array, a string, or invalid
         //  returns: true, if type is the list string, or type is one of the
         //                 strings in list
         //           false, otherwise, or if list is invalid
-        var i;
+        var i, parentType = type,
+        isType = function (srcType, targetType) {
+            if (srcType === targetType)
+                return true;
+            return BWidget.getAncestors(srcType).indexOf(targetType) !== -1;
+        };
         if (list) {
-            if (type === list) {
+            if (isType(type, list)) {
                 return true;
             } else if (list.length > 0) {
                 for (i = list.length - 1; i >= 0; i--) {
-                    if (type === list[i]) {
+                    if (isType(type, list[i]))
                         return true;
-                    }
                 }
             }
         }
@@ -2667,7 +3044,7 @@ var BWidget = {
      *                 found.
      */
     zoneAllowsChild: function (parentType, zone, childType) {
-        var parent, child, zones, i, allow, deny;
+        var parent, child, zones, i, allow, deny, morph;
         parent = BWidgetRegistry[parentType];
         child = BWidgetRegistry[childType];
         if ((typeof parent !== "object") || (typeof child !== "object")) {
@@ -2678,8 +3055,13 @@ var BWidget = {
         if (zones && zones.length > 0) {
             for (i = zones.length - 1; i >= 0; i--) {
                 if (zones[i].name === zone) {
+                    morph = BWidget.getZone(parentType, zone).morph;
+                    if (morph)
+                        childType = morph(childType, parentType);
                     allow = zones[i].allow;
                     if (allow) {
+                        if (typeof allow === "function")
+                            allow = allow(parentType);
                         return BWidget.isTypeInList(childType, allow);
                     }
                     deny = zones[i].deny;
