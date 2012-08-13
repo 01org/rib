@@ -209,11 +209,16 @@ $(function() {
         // Find all sortables (and page) on the active page
         f = f.find('#'+id);
         s = f.find('.nrc-sortable-container').andSelf();
-
         // Filter out those that will not accept this widget
         return s.filter( function(index) {
-            var uid = $(this).attr('data-uid');
-            return uid && a.canAddChild(uid, t);
+            var uid, collapContent;
+            if ($(this).is('.nrc-sortable-container.ui-collapsible')){
+                collapContent = $(this).find('.ui-collapsible-content:visible');
+                return (collapContent.length > 0);
+            } else {
+                uid = $(this).attr('data-uid');
+                return uid && a.canAddChild(uid, t);
+            }
         });
     };
 
@@ -537,7 +542,7 @@ $(function() {
                 items: '> *.adm-node:not(.ui-header,.ui-content,.ui-footer),' +
                     '> .ui-controlgroup-controls > .adm-node,' +
                     // Collapsible's items are under .ui-collapsible-content
-                    '> .ui-collapsible-content > .adm-node,' +
+                    '> .ui-collapsible-content:visible > .adm-node,' +
                     '> ul > li.adm-node,' +
                     '> div > .adm-node,' +
                     '> *.orig-adm-node:not(.ui-header,.ui-content,.ui-footer)',
@@ -599,8 +604,6 @@ $(function() {
                 over: function(event, ui){
                     trackOffsets('over:    ',ui,$(this).data('sortable'));
 
-                    if ($(this).is('.nrc-sortable-container.ui-collapsible'))
-                        $(this).trigger('expand');
                     if (ui && ui.placeholder) {
                         var s = ui.placeholder.siblings('.adm-node:visible,' +
                                                       '.orig-adm-node:visible'),
@@ -626,9 +629,6 @@ $(function() {
                 },
                 out: function(event, ui){
                     trackOffsets('out:     ',ui,$(this).data('sortable'));
-                    if ($(this).is('.nrc-sortable-container.ui-collapsible') &&
-                        $(this).subtree('.ui-selected').length === 0)
-                        $(this).trigger('collapse');
                 },
                 stop: function(event, ui){
                     trackOffsets('stop:    ',ui,$(this).data('sortable'));
