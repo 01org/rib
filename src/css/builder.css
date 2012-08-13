@@ -1563,3 +1563,88 @@ input.screenCoordinate::-webkit-inner-spin-button {
 #exportDialog .buttonStyle {
     margin: 0 0.6em;
 }
+
+#eventHandlerDialog {
+    overflow: hidden;
+    max-height: 380px;
+}
+
+#eventHandlerDialog .wrap_left {
+    position: relative;
+    width: 221px;
+    border-right: 1px solid #dededc;
+}
+
+#eventHandlerDialog .wrap_right {
+    width: 548px;
+}
+
+#eventHandlerDialog .title {
+    position: relative;
+    height: 52px;
+    background-color: #E4E5DF;
+}
+
+#eventHandlerDialog .title > label {
+    position: absolute;
+    left: 10px;
+    top: 16px;
+    font-size : 13px;
+    color: #4d4d4d;
+    font-family: OpenSans-SB;
+    font-weight: 600; /* semi-bold */
+}
+
+#eventHandlerDialog .wrap_left .container {
+    position: absolute;
+    width: 100%;
+    margin: 10px;
+}
+
+
+#eventHandlerDialog .wrap_left .container * {
+    display: inline-block;
+}
+
+#eventHandlerDialog .wrap_left .container select {
+    position: absolute;
+    top: 10px;
+    left: 0px;
+    width: 200px;
+}
+
+#eventHandlerDialog .wrap_left .container a.emptyLink {
+    position: absolute;
+    top: 46px;
+    left: 110px;
+}
+
+#eventHandlerDialog .wrap_left .container button.emptyButton {
+    position: absolute;
+    top: 40px;
+    left: 160px;
+}
+
+#eventHandlerDialog .wrap_left .container button.doneButton {
+    position: absolute;
+    top: 250px;
+    left: 10px;
+    width: 180px;
+}
+
+#eventHandlerDialog .wrap_right .container {
+    overflow: auto;
+    resize:  none;
+    height: 600px;
+    width: 530px;
+    margin: 6px;
+}
+
+#eventHandlerDialog .wrap_right .container .CodeMirror {
+    margin: 4px;
+    -webkit-border-radius: 4px;
+    -moz-border-radius: 4px;
+    -moz-box-shadow:    inset 0 0 4px #000000;
+    -webkit-box-shadow: inset 0 0 4px #000000;
+    box-shadow:         inset 0 0 4px #000000;
+}
