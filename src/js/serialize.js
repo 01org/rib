@@ -768,7 +768,85 @@ $(function () {
         return $.rib.fsUtils.pathToUrl(fullPath);
     }
 
-    /***************** export functions out *********************/
+    /**
+     * Update header file in current design, such as css, js file.
+     * This function's logic: try to replace the oldFile with newFile
+     * in design headers, but if the oldFile in not in the list, then
+     * just insert the newFile, or if the newFile is not specified or
+     * it has already in the list, then just remove the oldFile.
+     *
+     * @param {String} type Type of the specified header.
+     * @param {String} oldFile Sandbox path of the old file to be updated.
+     * @param {String} newFile Sandbox path of the new file.
+     * Notes: filePath If the file is in project directory, relative path should
+     *        be used. A path beginning with '/' will be considered as absolut
+     *        path in sandbox.
+     *
+     * @return {None}
+     */
+
+    function updateHeaderFile(type, oldFile, newFile) {
+        var property, array, design, i,
+            oldIndex = -1, newIndex = -1,
+            propertyMap = {
+                css: 'css',
+                js: 'libs'
+            };
+        if ((newFile === oldFile) || (!oldFile && !newFile)) {
+            return;
+        }
+        property = propertyMap[type];
+        if (!property) {
+            dumplog('warning: No header:' + type + 'in design.');
+        }
+        design = ADM.getDesignRoot();
+        array = $.merge([], design.getProperty(property));
+        for (i = 0; i < array.length; i++) {
+            if (!array[i].inSandbox) {
+                continue;
+            } else {
+                if (oldFile && (array[i].value === oldFile)) {
+                    oldIndex = i;
+                    if ((!newFile) && (newIndex >= 0)) {
+                        break;
+                    }
+                }
+                if (newFile && (array[i].value === newFile)) {
+                    newIndex = i;
+                    if ((!oldIndex) && (oldIndex >= 0)) {
+                        break;
+                    }
+                }
+            }
+        }
+        // The oldFile in headers list.
+        if (oldIndex >= 0) {
+            // Update case: need to insert new file and it's not
+            // in the list, then delete old one, insert the new one.
+            if (newFile && newIndex === -1) {
+                array.splice(oldIndex, 1, {
+                    inSandbox: true,
+                    value: newFile
+                });
+            } else {
+            // Remove case: just delete the old one if don't need to insert.
+                array.splice(oldIndex, 1);
+            }
+            // set the new array back
+            design.setProperty(property, array);
+        } else if (newFile && (oldIndex === -1) && (newIndex === -1)) {
+            // Add case: need to insert new one, and old one and new one
+            // are both not list, then we just add the new one.
+            array.push({
+                inSandbox: true,
+                value: newFile
+            });
+            // set the new array back
+            design.setProperty(property, array);
+        }
+        return;
+    }
+
     /**
      * Add custom file to current active project.
      * It will save the content in project folder. If the parent directy of
@@ -782,7 +860,7 @@ $(function () {
      *
      * @return {None}
      */
-    $.rib.addCustomFile = function (filePath, type, contents, success, error) {
+    function addCustomFile(filePath, type, contents, success, error) {
         var destPath, addToDesign, projectDir;
         projectDir = $.rib.pmUtils.getProjectDir();
         // If it is relative path, then add the project folder path
@@ -791,42 +869,14 @@ $(function () {
         } else {
             destPath = filePath;
         }
-        addToDesign = function (type, value) {
-            var design, array, property, propertyMap, i, temp;
-            propertyMap = {
-                css: 'css',
-                js: 'libs'
-            };
-            design = ADM.getDesignRoot();
-            property = propertyMap[type];
-            temp = $.extend(true, {}, {
-                property: property,
-                value: design.getProperty(property)
-            });
-            array = temp.value;
-            for (i = 0; i < array.length; i++) {
-                // If the value is in headers, then just return.
-                if (JSON.stringify(array[i]) === JSON.stringify(value)) {
-                    return;
-                }
-            }
-            // If the value is not in array, then push the value in the list
-            array.push(value);
-            // set the new array back
-            design.setProperty(property, array);
-            return;
-        };
         // Write contents to sandbox
         $.rib.fsUtils.write(destPath, contents, function (newFile) {
-            var headerValue = {
-                'inSandbox': true,
-                'value': filePath
-            };
-            addToDesign(type, headerValue);
+            updateHeaderFile(type, null, filePath);
             success && success(newFile);
         }, error);
-    };
+    }
 
+    /***************** export functions out *********************/
     // Export serialization functions into $.rib namespace
     $.rib.generateHTML = generateHTML;
     $.rib.serializeADMSubtreeToDOM = serializeADMSubtreeToDOM;
@@ -834,4 +884,6 @@ $(function () {
     $.rib.JSONToProj = JSONToProj;
     $.rib.getDesignHeaders = getDesignHeaders;
     $.rib.exportPackage = exportPackage;
+    $.rib.updateHeaderFile = updateHeaderFile;
+    $.rib.addCustomFile = addCustomFile;
 });
