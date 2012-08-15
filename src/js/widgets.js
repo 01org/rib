@@ -660,7 +660,13 @@ var BWidgetRegistry = {
             target: {
                 type: "targetlist",
                 defaultValue: "",
-                htmlAttribute: "href"
+                htmlAttribute: function(value) {
+                    if (value === "previous page") {
+                        return {"name": "data-rel", "value": "back"};
+                    } else {
+                        return {"name": "href", "value": value};
+                    }
+                }
             },
             opentargetas : {
                 type: "string",
@@ -701,17 +707,6 @@ var BWidgetRegistry = {
                            "flip", "turn", "flow", "slidefade", "none" ],
                 defaultValue: "slide",
                 htmlAttribute: "data-transition"
-            },
-            back: {
-                type: "boolean",
-                defaultValue: false,
-                htmlAttribute: {
-                    name: "data-rel",
-                    value: {
-                        "true": "back",
-                        "false": ""
-                    }
-                }
             },
             corners: {
                 type: "boolean",
@@ -1393,7 +1388,23 @@ var BWidgetRegistry = {
                 cardinality: "N",
                 allow: [ "ListItem", "ListDivider", "ListButton" ]
             }
-        ]
+        ],
+        delegate: function (domNode, admNode) {
+            var filterForm, headerLabel, newNode = $('<div>');
+            if (!admNode.getProperty('filter'))
+                return domNode;
+            filterForm = domNode.prev('form');
+            domNode.removeClass('ui-drag-header nrc-sortable-container');
+            // Move header label attr to container
+            newNode.attr('header-label', domNode.attr('header-label'));
+            domNode.removeAttr('header-label');
+            // Move specific classes to container
+            newNode.addClass(
+                'ui-drag-header nrc-sortable-container ui-listview-container'
+            );
+            // Reconstruct the domNode.
+            return filterForm.wrap(newNode).parent().append(domNode);
+        }
     },
 
     /**
