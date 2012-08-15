@@ -118,22 +118,20 @@
 
             if (index >= 0 && index < scroller.children().length ) {
                 if (index*length+length >= scrollLeft + box.innerWidth()) {
-                    box.animate({
-                        scrollLeft: scrollLeft + index * length + length -
-                                    box.innerWidth()});
+                    box.scrollLeft(scrollLeft + index * length + length - box.innerWidth());
                 } else if (index*length < scrollLeft) {
-                    box.animate({scrollLeft: index*length});
+                    box.scrollLeft(index*length);
                 }
                 return;
             }
 
             if(left){
                 if (scrollLeft < (pageCount-visibleCount)*length){
-                    box.animate({scrollLeft: scrollLeft + length});
+                    box.scrollLeft(scrollLeft + length);
                 }
             } else {
                 if(scrollLeft !== 0){
-                    box.animate({scrollLeft: scrollLeft - length});
+                    box.scrollLeft(scrollLeft - length);
                 }
             }
         },
