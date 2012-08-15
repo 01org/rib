@@ -1489,7 +1489,7 @@ ADMNode.prototype.getDesign = function () {
  * @param {Object} data Object with properties to include in the event.
  */
 ADMNode.prototype.fireModelEvent = function (name, data) {
-    var design = this.getDesign();
+    var parent, zone, design = this.getDesign();
     if (!design) {
         if ($.rib.debug('warn') >= 2) {
             console.warn("Warning: no root design found to fire model event");
@@ -1497,6 +1497,26 @@ ADMNode.prototype.fireModelEvent = function (name, data) {
         return;
     }
     design.fireEvent(name, data);
+    if (name === 'modelUpdated' && data.type === "nodeRemoved") {
+        if (data.node.isSelected()) {
+            zone = this._zones[data.zone];
+            parent = data.parent;
+            // Select sibling of removed node, or parent node
+            // if removed node is the last node of parent.  The
+            // order is next sibling, prev sibling and parent
+            if (zone.length === 0) {
+                //find the first selectable ancestor
+                while (!parent.isSelectable()) {
+                    parent = parent.getParent();
+                }
+                ADM.setSelected(parent);
+            } else if (data.index < zone.length) {
+                ADM.setSelected(zone[data.index])
+            } else {
+                ADM.setSelected(zone[zone.length - 1]);
+            }
+        }
+    }
 };
 
 /**
@@ -1881,10 +1901,6 @@ ADMNode.prototype.removeChildFromZone = function (zoneName, index, dryrun) {
     if (!dryrun) {
         child._parent = null;
         child._root = null;
-
-        if (child.isSelected()) {
-            ADM.setSelected(null);
-        }
 
         this.fireModelEvent("modelUpdated",
                             { type: "nodeRemoved", node: child, parent: this,
