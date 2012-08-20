@@ -379,11 +379,6 @@
 
             $(domNode).addClass('adm-node');
 
-            // If this node is "selected", make sure it's class reflects this
-            if (admNode.isSelected() && !admNode.instanceOf('Page')) {
-                $(domNode).addClass('ui-selected');
-            }
-
             // If this node is a "container", make sure it's class reflects this
             if (admNode.isContainer()) {
                 $(domNode).addClass('nrc-sortable-container');
