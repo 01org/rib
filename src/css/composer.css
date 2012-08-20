@@ -48,10 +48,11 @@
 /*************************/
 /* Class specific tweaks */
 /*************************/
-.nrc-sortable-container.ui-content > * {
+.nrc-sortable-container.ui-content .adm-node {
     margin-top: 10px;
     margin-bottom: 10px;
 }
+
 .nrc-sortable-container {
     padding: 10px;
     box-sizing: border-box;
@@ -293,4 +294,12 @@ div.ui-listview-container > form {
 div.ui-listview-container > ul.ui-listview,
 div.ui-listview-container > ol.ui-listview {
     margin: 1px 2px 1px 2px;
+}
+
+/* Div widget */
+div.div-widget {
+    padding: 0px 0px 4px 0px; /* Override the settings in nrc-sortable-container for header label */
+}
+div.div-widget > * {
+    margin: 12px !important;
 }
