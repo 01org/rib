@@ -670,7 +670,8 @@ var BWidgetRegistry = {
                 displayName: "open target as",
                 options: ["default", "page", "dialog"],
                 defaultValue: "default",
-                htmlAttribute: "data-rel"
+                htmlAttribute: "data-rel",
+                disabledWhen: { target: "previous page" }
             },
             transition: {
                 type: "string",
@@ -1065,9 +1066,16 @@ var BWidgetRegistry = {
         },
         displayLabel: "Select Menu",
         properties: {
+            multiple: {
+                type: "boolean",
+                defaultValue: false,
+                displayName: "multiple select",
+                htmlAttribute: "multiple"
+            },
             label: {
                 type: "string",
-                defaultValue: "Choose option"
+                defaultValue: "Choose option",
+                disabledWhen: { multiple: false }
             },
             options: {
                  type: "record-array",
@@ -1086,12 +1094,6 @@ var BWidgetRegistry = {
                      },
                      children : []
                  }
-            },
-            multiple: {
-                type: "boolean",
-                defaultValue: false,
-                displayName: "multiple select",
-                htmlAttribute: "multiple"
             },
             mini: BCommonProperties.mini,
             disabled: BCommonProperties.disabled,
