@@ -279,10 +279,13 @@ var BWidgetRegistry = {
         properties: {
             background: {
                 type: "url-uploadable",
-                defaultValue: "",
+                defaultValue: {},
                 htmlAttribute: "style",
                 htmlValueMap: function (propValue) {
-                    return "background-image: url('" + propValue + "'); " +
+                    if (!propValue || !propValue.value) {
+                        return null;
+                    }
+                    return "background-image: url('" + propValue.value + "'); " +
                         "background-attachment: fixed; " +
                         "background-repeat: no-repeat; " +
                         "background-size: 100% 100%;";
@@ -730,9 +733,18 @@ var BWidgetRegistry = {
         properties: {
             src: {
                 type: "url-uploadable",
-                defaultValue: "",
+                defaultValue: {
+                    value: "src/css/images/widgets/tizen_image.svg",
+                    inSandbox: false
+                },
                 htmlAttribute: "src",
-                forceAttribute: true
+                forceAttribute: true,
+                htmlValueMap: function (propValue) {
+                    if (!propValue || !propValue.value) {
+                        return null;
+                    }
+                    return propValue.value;
+                }
             },
             alt: {
                 type: "string",

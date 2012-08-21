@@ -27,7 +27,9 @@ $(function () {
         // Filter to find sandbox resources
         relativeFilter:{
             type: "url-uploadable",
-            value: /^(?!(https?|ftp):\/+).+/i
+            value: function (valueObject) {
+                return valueObject.inSandbox;
+            }
         },
         // Object to save refernce count for sandbox resource
         resourceRef: {},
