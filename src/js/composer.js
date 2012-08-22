@@ -442,6 +442,11 @@ $(function() {
                 if (events) {
                     $(node).bind(events);
                 }
+                // If this node is "selected", make sure it's class reflects this
+                if (admNode.isSelected() && !admNode.instanceOf('Page')) {
+                    setSelected(delegateNode);
+                }
+
             }
         });
 
@@ -521,7 +526,6 @@ $(function() {
         targets = $(e.target).subtree('.nrc-sortable-container');
 
         debug && console.log("Found ["+targets.length+"] sortable targets: ");
-
         targets
             .sortable({
                 distance: 5,
