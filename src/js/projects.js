@@ -320,6 +320,9 @@ $(function () {
                         $.rib.removeSandboxHeader('css', '/themes/' + oldThemeName + '.css');
                         $.rib.addSandboxHeader('css', '/themes/' + newThemeName + '.css');
                     }
+                    pmUtils.setProperty(pid, 'theme', newThemeName);
+                    // send themeChanged event to notify all views to update
+                    ADM.setTheme();
                 }
                 // if the item has schema then check the type
                 pmUtils.setProperty(pid, i, properties[i]);
@@ -1067,9 +1070,13 @@ $(function () {
             $.rib.fsUtils.read('/themes/' + themeFile.name, function (result) {
                 try {
                     var swatches = parseSwatches(result);
-                    pmUtils.themesList[themeName] = swatches;
-                    //update themes.json in sandbox
-                    $.rib.fsUtils.write('/themes.json', JSON.stringify(pmUtils.themesList));
+                    if (swatches.length) {
+                        pmUtils.themesList[themeName] = swatches;
+                        // add default swatch into theme 
+                        pmUtils.themesList[themeName].unshift('default');
+                        //update themes.json in sandbox
+                        $.rib.fsUtils.write('/themes.json', JSON.stringify(pmUtils.themesList));
+                    }
                 } catch(e) {
                     alert(e.stack);
                     return false;

@@ -254,6 +254,22 @@ ADM.addEventType("activePageChanged");
 ADM.addEventType("selectionChanged");
 
 /**
+ * Event sent by the ADM object when the theme of design
+ * changed. After this event happened, the theme of all widget
+ * will be changed to "default".
+ *
+ * @name ADM#themeChanged
+ * @event
+ * @param {Object} event Object including standard "id" and "name"
+ *                       properties.
+ *
+ * @param {Any} data The data you supplied to the bind() call.
+ * @see ADMEventSource.bind
+ * @see ADMEventSource.unbind
+ */
+ADM.addEventType("themeChanged");
+
+/**
  * Gets the singleton design root.
  *
  * @return {ADMDesign} The root design object.
@@ -462,6 +478,53 @@ ADM.setSelected = function (nodeRef) {
     }
     return false;
 };
+
+/**
+ * Set theme of all widgets. Sends a "themeChanged" event if the
+ * theme of current project actually changes.
+ */
+ADM.setTheme = function () {
+    var design, setNodeTheme, isSwatchExist;
+
+    design = ADM.getDesignRoot();
+    isSwatchExist = function (swatch, type) {
+       var swatches = BWidget.getPropertyOptions(type)['theme'];
+       //check whether swatch is in swatcher list of current theme
+       if (jQuery.inArray(swatch, swatches) >= 0) {
+           return true;
+       }
+       return false;
+    }
+    setNodeTheme = function (admNode) {
+        var i, type, children;
+        if (admNode instanceof ADMNode) {
+            type = admNode.getType();
+            // Firstly we get theme property of node. If original swatch
+            // of theme can be found from current theme, we do nothing.
+            // Otherwise, we set property value as default
+            if (BWidget.propertyExists(type, 'theme') &&
+                !isSwatchExist(admNode.getProperty('theme'), type)){
+                admNode.setProperty('theme', 'default');
+            }
+
+            children = admNode.getChildren();
+            if (children.length > 0) {
+                for (i = 0; i < children.length; i++) {
+                    setNodeTheme(children[i]);
+                }
+            }
+        } else {
+            console.warn("warning: children of ADMNode must be ADMNode");
+        }
+    };
+
+    design.suppressEvents(true);
+    // set theme value of all nodes as default
+    setNodeTheme(design);
+    design.suppressEvents(false);
+    // send themeChanged event to notify all views to update
+    ADM.fireEvent('themeChanged');
+}
 
 /**
  * Initiates an atomic transaction from the user's point of view, that may
