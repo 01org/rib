@@ -255,11 +255,24 @@
 
         _dialogOpenHandler: function (e, ui) {
             try {
-                var dialog = $('#pageDialog') || $(this).dialog('option', 'newPageDialog');
+                var swatches, id, s,
+                    dialog = $('#pageDialog') || $(this).dialog('option', 'newPageDialog'),
+                    swatchPicker = dialog.find('#swatchPicker');
+
                 dialog.find('#pagePicker').get(0).selectedIndex = 0;
                 dialog.find('#header_layout').attr("checked", true);
                 dialog.find('#footer_layout').attr("checked", true);
                 dialog.find('input:radio[name=Layout]')[0].checked = true;
+                swatchPicker.empty();
+                // get swatches of current project theme
+                swatches = BWidget.getPropertyOptions('Page')['theme'];
+                for (s in swatches) {
+                    id = swatches[s];
+                    $('<option id="'+ id +'" value="' + id + '">'+ id + '</option>')
+                        .appendTo(swatchPicker);
+                }
+                // make the first option as default selected
+                swatchPicker.get(0).selectedIndex = 0;
             }
             catch (err) {
                 console.error(err.message);
@@ -287,6 +300,7 @@
                     layout.push('Footer');
                 }
                 options.layout = layout;
+                options.theme =  dialog.find("#swatchPicker").val();
                 newPage = $.rib.pageUtils.createNewPage(options);
                 ADM.setActivePage(newPage);
                 dialog.dialog("close");
@@ -333,6 +347,8 @@
                         '<input id="footer_layout" class="fieldInput" type="checkbox" name="Footer"/>' +
                         '<label class="fieldLabel" for="layout">Footer</label></li>' +
                         '</ul></fieldset></li>' +
+                        '<li class="mt23"><label for="Swatch">Theme</label>' +
+                        '<select id="swatchPicker" size="4"></select></li>' +
                         '</ul></form><div class="div-bottom"/>')
                 .end()
                 .append('<div/>')
