@@ -320,6 +320,9 @@ $(function () {
                         $.rib.removeSandboxHeader('css', '/themes/' + oldThemeName + '.css');
                         $.rib.addSandboxHeader('css', '/themes/' + newThemeName + '.css');
                     }
+                    pmUtils.setProperty(pid, 'theme', newThemeName);
+                    // send themeChanged event to notify all views to update
+                    ADM.setTheme();
                 }
                 // if the item has schema then check the type
                 pmUtils.setProperty(pid, i, properties[i]);
@@ -685,7 +688,7 @@ $(function () {
         var d, s, pid;
         pid = $.rib.pmUtils.getActive();
         if (!pid) {
-            console.warn("No active project to update thumbnail.");
+            dumplog("Warning: No active project to update thumbnail.");
             return false;
         }
         d = $(liveDoc.documentElement).clone();
@@ -978,10 +981,14 @@ $(function () {
             // TODO: will list all the uploaded resource and show the reference
             // count of them. It will depend on the user if delete or not.
             if (pmUtils.resourceRef[refPath] <= 0) {
-                $.rib.confirm('Unused resource: "' + refPath +
-                    '". \nWould you like to delete it from the project?', function () {
-                    $.rib.fsUtils.rm(projectDir + refPath);
-                    delete pmUtils.resourceRef[refPath];
+                delete pmUtils.resourceRef[refPath];
+                $.rib.fsUtils.pathToEntry(projectDir + refPath, function (entry) {
+                    $.rib.confirm('Unused resource: "' + entry.name +
+                        '". \nWould you like to delete it from the project?', function () {
+                            $.rib.fsUtils.rm(entry.fullPath);
+                        }, function () {
+                            pmUtils.resourceRef[refPath] = 0;
+                        });
                 });
             }
         } else {
@@ -1067,9 +1074,13 @@ $(function () {
             $.rib.fsUtils.read('/themes/' + themeFile.name, function (result) {
                 try {
                     var swatches = parseSwatches(result);
-                    pmUtils.themesList[themeName] = swatches;
-                    //update themes.json in sandbox
-                    $.rib.fsUtils.write('/themes.json', JSON.stringify(pmUtils.themesList));
+                    if (swatches.length) {
+                        pmUtils.themesList[themeName] = swatches;
+                        // add default swatch into theme 
+                        pmUtils.themesList[themeName].unshift('default');
+                        //update themes.json in sandbox
+                        $.rib.fsUtils.write('/themes.json', JSON.stringify(pmUtils.themesList));
+                    }
                 } catch(e) {
                     alert(e.stack);
                     return false;

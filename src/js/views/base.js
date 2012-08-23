@@ -27,6 +27,7 @@
             o.selectionChanged = this._selectionChangedHandler;
             o.activePageChanged = this._activePageChangedHandler;
             o.modelUpdated = this._modelUpdatedHandler;
+            o.themeChanged = this._themeChangedHandler;
 
             // FIXME: This should work, but $.extend of options seems to be
             //        creating a copy of the ADM, which will not containt the
@@ -94,6 +95,9 @@
                 if (o.activePageChanged) {
                     a.bind("activePageChanged", o.activePageChanged, this);
                 }
+                if (o.themeChanged) {
+                    a.bind("themeChanged", o.themeChanged, this);
+                }
 
                 // Since model changed, need to call our designReset hander
                 // to sync up the ADMDesign modelUpdated event handler
@@ -153,6 +157,11 @@
             widget.designRoot = d;
 
             // Finally, redraw our view since the ADMDesign root has changed
+            widget.refresh && widget.refresh(event, widget);
+        },
+
+        _themeChangedHandler: function(event, widget) {
+            // redraw our view since theme has changed
             widget.refresh && widget.refresh(event, widget);
         }
     });

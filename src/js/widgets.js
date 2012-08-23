@@ -66,7 +66,20 @@ var BCommonProperties = {
     },
     theme: {
         type: "string",
-        options: [ "default", "a", "b", "c", "d", "e" ],
+        options: function() {
+            var pmUtils = $.rib.pmUtils, currentTheme, pid, 
+                swatches =[];
+            pid = pmUtils.getActive();
+            if (pid) {
+                currentTheme = pmUtils.getProperty(pid, "theme");
+                if (currentTheme === 'Default') {
+                    swatches = ["default", "a", "b", "c", "d", "e"];
+                } else {
+                    swatches = pmUtils.themesList[currentTheme];
+                }
+            }
+            return swatches;
+        },
         defaultValue: "default",
         htmlAttribute: "data-theme"
     },
@@ -203,6 +216,100 @@ var BWidgetRegistry = {
                 type: "string",
                 defaultValue: "",
                 htmlAttribute: "id"
+            },
+
+            /*
+             * Event properties
+             */
+
+            // Touch events
+            tap: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            taphold: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            swipe: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            swipeleft: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            swiperight: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+
+            // Scroll events
+            scrollstart: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            scrollstop: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+
+            // Virtual mouse events
+            vmouseover: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            vmouseout: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            vmousedown: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            vmousemove: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            vmouseup: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            vclick: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            vmousecancel: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+
+            // Orientation change event
+            orientationchange: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+
+            // Layout events
+            updatelayout: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
             }
         }
     },
@@ -332,6 +439,66 @@ var BWidgetRegistry = {
                 type: "string",
                 defaultValue: "",
                 htmlAttribute: "data-title",
+            },
+            pagebeforeload: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            pageload: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            pageloadfailed: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            pagebeforechange: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            pagechange: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            pagechangefailed: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            pagebeforeshow: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            pagebeforehide: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            pageshow: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            pagebeforecreate: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            pagecreate: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
+            },
+            pageremove: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
             }
         },
         redirect: {
@@ -797,6 +964,11 @@ var BWidgetRegistry = {
                 defaultValue: "POST",
                 htmlAttribute: "method",
                 forceAttribute: true
+            },
+            submit: {
+                type: "event",
+                defaultValue: "",
+                visible: false,
             }
         }
     },
@@ -1102,7 +1274,12 @@ var BWidgetRegistry = {
             }),
             iconpos: $.extend({}, BCommonProperties.iconpos, {
                 defaultValue: "right"
-            })
+            }),
+            change: {
+                type: "event",
+                defaultValue: "",
+                visible: false
+            }
         },
         zones: [
             {
@@ -2178,7 +2355,7 @@ var BWidget = {
      * @throws {Error} If widgetType is invalid.
      */
     getPropertyOptions: function (widgetType) {
-        var stack = [], options = {}, length, i, property, widget;
+        var stack = [], options = {}, length, i, property, widget, valueOptions;
         widget = BWidgetRegistry[widgetType];
 
         if (typeof widget !== "object") {
@@ -2188,7 +2365,12 @@ var BWidget = {
 
         for (property in widget.properties) {
             if (widget.properties.hasOwnProperty(property)) {
-                options[property] = widget.properties[property].options;
+                valueOptions = widget.properties[property].options;
+                if (typeof valueOptions === "function") {
+                    options[property] = valueOptions();
+                } else {
+                    options[property] = valueOptions;
+                }
             }
         }
         return $.extend(true, {}, options);

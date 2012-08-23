@@ -69,8 +69,8 @@ $(function () {
         // Create a sandbox filesystem
         successFS = function (filesystem) {
             fsUtils.fs = filesystem;
-            console.log("A sandbox filesystem: " + fsUtils.fs.name + " was created;");
-            console.log(fsUtils.fs.name + " type: " + type + ", size: " + size );
+            dumplog("A sandbox filesystem: " + fsUtils.fs.name + " was created;");
+            dumplog(fsUtils.fs.name + " type: " + type + ", size: " + size );
             // Create a default target window and append it
             // to the document.body
             if (!$('iframe#' + fsUtils.defaultTarget).length) {
@@ -89,7 +89,7 @@ $(function () {
         };
 
         if (!(storageInfo && requestFileSystem)) {
-            console.log("Filesystem not available");
+            console.error("Filesystem not available");
             return;
         }
         // Check the quota
@@ -174,7 +174,7 @@ $(function () {
                          msg += 'Unknown Error';
                          break;
                  }
-                 console.log(msg);
+                 console.warn(msg);
              },
 
     /**
@@ -186,7 +186,7 @@ $(function () {
      */
     pathToUrl: function (path) {
                    if (typeof path !== "string") {
-                       console.log("String type is needed for file which is to be read.");
+                       console.error("String type is needed for file which is to be read.");
                        return false;
                    }
                    var url = fsUtils.fs.root.toURL() + path.replace(/^\//, "");
@@ -327,7 +327,7 @@ $(function () {
                var onError = error || fsUtils.onError;
                function write(fileEntry) {
                    fileEntry.createWriter(function (fileWriter) {
-                       var bb, mimeString, ab, ia;
+                       var bb, ab, ia;
 
                        fileWriter.onwriteend = function (progressEvent) {
                            success && success(fileEntry);
@@ -343,8 +343,6 @@ $(function () {
                              fileWriter.write(contents);
                        // Case 2: string contents, create a blob
                        } else {
-                           bb = new BlobBuilder(); // Create a new Blob on-the-fly.
-                           mimeString = "text/plain";
                            if (binary) {
                                // write the bytes of the string to an ArrayBuffer
                                ab = new ArrayBuffer(contents.length);
@@ -352,16 +350,19 @@ $(function () {
                                for (var i = 0; i < contents.length; i++) {
                                    ia[i] = contents.charCodeAt(i);
                                }
-                               // write the ArrayBuffer to a blob, and you're done
-                               bb.append(ab);
-                               mimeString = "";
+                               contents = ia;
                            }
-                           else {
+                           if (window.Blob) {
+                               bb = new Blob([contents]); // Create a new Blob on-the-fly.
+                               fileWriter.write(bb);
+                           } else if (window.BlobBuilder){
+                               bb = new BlobBuilder(); // Create a new Blob on-the-fly.
                                bb.append(contents);
+                               fileWriter.write(bb.getBlob());
+                           } else {
+                               console.error("No Blob or BlobBuilder constructor.");
                            }
-                           fileWriter.write(bb.getBlob(mimeString));
                        }
-
                    }, onError);
                }
 
@@ -452,7 +453,7 @@ $(function () {
             var onError = error || fsUtils.onError;
             fsUtils.fs.root[opt_recursive ? "getDirectory" : "getFile"](path, {create: false}, function (entry) {
                 entry[opt_recursive ? "removeRecursively" : "remove"](function () {
-                    console.log(path + ' is removed.');
+                    dumplog(path + ' is removed.');
                     if (success) {
                         success();
                     }
@@ -633,7 +634,7 @@ $(function () {
                             }
                         }
                     } else {
-                        console.warn("Don't support cookie or empty cookie.");
+                        dumplog("Warning: don't support cookie or empty cookie.");
                     }
                     return value;
                 },

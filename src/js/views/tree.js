@@ -40,7 +40,7 @@
                 focused = selected;
             }
             items = $(this).find("a:visible");
-            focusedIndex = items.index(focused);
+            focusedIndex = focusing = items.index(focused);
             if (focused === -1) {
                 console.error("focused not in list items");
             }
@@ -66,8 +66,12 @@
                 default:
                     break;
             }
-            focused.removeClass("focused");
-            $(items[focusing]).addClass("focused");
+            if (focused !== focusing) {
+                focused.removeClass("focused");
+                $(items[focusing]).addClass("focused");
+                items[focusing].scrollIntoViewIfNeeded();
+            }
+            return false;
         },
 
         _setOption: function(key, value) {
@@ -167,14 +171,19 @@
         },
 
         _setSelected: function (domNode) {
+            this.element.find('.ui-selected')
+                .removeClass('ui-selected')
+                .removeClass('ui-state-active');
             if (domNode[0]) {
-                this.element.find('.ui-selected')
-                    .removeClass('ui-selected')
-                    .removeClass('ui-state-active');
                 domNode.find('> a').addClass('ui-state-active')
                     .addClass('ui-selected')
                     [0].scrollIntoViewIfNeeded();
                 domNode[0].scrollIntoViewIfNeeded();
+                if (this.element.is(':focus')) {
+                    this.element.find('.focused')
+                        .removeClass("focused");
+                    domNode.find('> a').addClass("focused")
+                }
             }
         },
 

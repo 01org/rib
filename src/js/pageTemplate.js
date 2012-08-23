@@ -32,6 +32,7 @@ $(function() {
                 pageTemplate = config.pageTemplate || this.options[pageTemplate],
                 layout = this.options.layout.concat(config.layout),
                 isDialog = config.isDialog || this.options.isDialog,
+                pageTheme = config.theme,
                 newPage, result;
 
             if (!design.instanceOf("Design")) {
@@ -51,6 +52,14 @@ $(function() {
             result = ADM.setProperty(newPage, 'dialog', isDialog);
             if (!result.result) {
                 return null;
+            }
+
+            // set theme of new page
+            if (pageTheme) {
+                result = ADM.setProperty(newPage, 'theme', pageTheme);
+                if (!result.result) {
+                    return null;
+                }
             }
 
             // create initial page layout

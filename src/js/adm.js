@@ -254,6 +254,22 @@ ADM.addEventType("activePageChanged");
 ADM.addEventType("selectionChanged");
 
 /**
+ * Event sent by the ADM object when the theme of design
+ * changed. After this event happened, the theme of all widget
+ * will be changed to "default".
+ *
+ * @name ADM#themeChanged
+ * @event
+ * @param {Object} event Object including standard "id" and "name"
+ *                       properties.
+ *
+ * @param {Any} data The data you supplied to the bind() call.
+ * @see ADMEventSource.bind
+ * @see ADMEventSource.unbind
+ */
+ADM.addEventType("themeChanged");
+
+/**
  * Gets the singleton design root.
  *
  * @return {ADMDesign} The root design object.
@@ -462,6 +478,53 @@ ADM.setSelected = function (nodeRef) {
     }
     return false;
 };
+
+/**
+ * Set theme of all widgets. Sends a "themeChanged" event if the
+ * theme of current project actually changes.
+ */
+ADM.setTheme = function () {
+    var design, setNodeTheme, isSwatchExist;
+
+    design = ADM.getDesignRoot();
+    isSwatchExist = function (swatch, type) {
+       var swatches = BWidget.getPropertyOptions(type)['theme'];
+       //check whether swatch is in swatcher list of current theme
+       if (jQuery.inArray(swatch, swatches) >= 0) {
+           return true;
+       }
+       return false;
+    }
+    setNodeTheme = function (admNode) {
+        var i, type, children;
+        if (admNode instanceof ADMNode) {
+            type = admNode.getType();
+            // Firstly we get theme property of node. If original swatch
+            // of theme can be found from current theme, we do nothing.
+            // Otherwise, we set property value as default
+            if (BWidget.propertyExists(type, 'theme') &&
+                !isSwatchExist(admNode.getProperty('theme'), type)){
+                admNode.setProperty('theme', 'default');
+            }
+
+            children = admNode.getChildren();
+            if (children.length > 0) {
+                for (i = 0; i < children.length; i++) {
+                    setNodeTheme(children[i]);
+                }
+            }
+        } else {
+            console.warn("warning: children of ADMNode must be ADMNode");
+        }
+    };
+
+    design.suppressEvents(true);
+    // set theme value of all nodes as default
+    setNodeTheme(design);
+    design.suppressEvents(false);
+    // send themeChanged event to notify all views to update
+    ADM.fireEvent('themeChanged');
+}
 
 /**
  * Initiates an atomic transaction from the user's point of view, that may
@@ -1960,11 +2023,15 @@ ADMNode.prototype.foreach = function (func) {
  * @param {String} The name of the property.
  * @return {String} The generated property value.
  */
-ADMNode.prototype.generateUniqueProperty = function (property) {
+ADMNode.prototype.generateUniqueProperty = function (property, force) {
     var generate, design, myType, length, i, genLength, max, num, existing = [];
     myType = this.getType();
     generate = BWidget.getPropertyAutoGenerate(myType, property);
-    if (!generate) {
+    // If force argument is set, then set the generate as myType and continue
+    // to run.
+    if (!generate && force) {
+        generate = myType.toLowerCase();
+    } else if (!generate) {
         return undefined;
     }
 
@@ -2230,8 +2297,17 @@ ADMNode.prototype.isPropertyExplicit = function (property) {
  *                  relevant info for performing an undo of this operation.
  */
 ADMNode.prototype.setProperty = function (property, value, data, raw) {
-    var orig, func, changed, type, rval = { }, defaultValue;
-    type = BWidget.getPropertyType(this.getType(), property);
+    var orig, func, changed, rval = { }, defaultValue, eventName, node,
+        oldValue, cfm, node = this,
+        type = BWidget.getPropertyType(this.getType(), property);
+
+    // Test the node have event handlers
+    function haveEventHandlers() {
+        return !$.isEmptyObject(node.getMatchingProperties(
+            {'type': 'event', 'value': new RegExp('.+')}
+        ));
+    } 
+
     if (!type) {
         console.error("Error: attempted to set non-existent property: " +
                     property);
@@ -2265,6 +2341,19 @@ ADMNode.prototype.setProperty = function (property, value, data, raw) {
         if (value === "" && this._inheritance[0] === "Page") {
             console.error("Error: page id cannot be null");
             return rval;
+        }
+
+        // When widget that have event handlers, after user make the ID
+        // property be blank, then popup a confirm dialog.
+        if (value === "" && haveEventHandlers()) {
+            oldValue = this.getProperty(property);
+            cfm = confirm(
+                'All event handlers of this widget will stop working and can\'t be exported if the ID property is empty. Are you sure you want to set the ID property to empty?'
+            );
+            if (!cfm) {
+                // Restore to old value.
+                return rval;
+            };
         }
     }
 
@@ -2300,6 +2389,14 @@ ADMNode.prototype.setProperty = function (property, value, data, raw) {
                             { type: "propertyChanged", node: this,
                               property: property, oldValue: orig,
                               newValue: value });
+
+        // Event handler saving after ID/event property changed.
+        if (property == 'id') {
+            if (haveEventHandlers())
+                $.rib.saveEventHandlers();
+        } else if (type == 'event') {
+            $.rib.saveEventHandlers();
+        }
         rval.result = true;
     }
     return rval;
