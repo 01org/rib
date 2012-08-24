@@ -518,7 +518,7 @@ ADM.endTransaction = function () {
  * @return {ADMNode} The child object, on success; null, on failure.
  */
 ADM.addChild = function (parentRef, childRef, dryrun) {
-    var parent, child;
+    var parent, child, oldParent, oldZone, oldZoneIndex;
 
     parent = ADM.toNode(parentRef);
     if (!parent) {
@@ -538,6 +538,11 @@ ADM.addChild = function (parentRef, childRef, dryrun) {
         return null;
     }
 
+    oldParent = child.getParent();
+    if (oldParent) {
+        oldZone = child.getZone();
+        oldZoneIndex = child.getZoneIndex();
+    }
     if (parent.addChild(child, dryrun)) {
         if (dryrun) {
             return true;
@@ -547,7 +552,10 @@ ADM.addChild = function (parentRef, childRef, dryrun) {
         ADM.transaction({
             type: "add",
             parent: child.getParent(),
-            child: child
+            child: child,
+            oldParent: oldParent,
+            oldZone: oldZone,
+            oldZoneIndex: oldZoneIndex
         });
         return child;
     }
@@ -634,7 +642,7 @@ ADM.addChildRecursive = function (parentRef, childRef, dryrun) {
  * @private
  */
 ADM.insertChildRelative = function (siblingRef, childRef, offset, dryrun) {
-    var sibling, child;
+    var sibling, child, oldParent, oldZone, oldZoneIndex;
 
     sibling = ADM.toNode(siblingRef);
     if (!sibling) {
@@ -655,6 +663,11 @@ ADM.insertChildRelative = function (siblingRef, childRef, offset, dryrun) {
                      childRef);
     }
 
+    oldParent = child.getParent();
+    if (oldParent) {
+        oldZone = child.getZone();
+        oldZoneIndex = child.getZoneIndex();
+    }
     if (sibling.insertChildRelative(child, offset, dryrun)) {
         if (dryrun) {
             return true;
@@ -663,7 +676,10 @@ ADM.insertChildRelative = function (siblingRef, childRef, offset, dryrun) {
             type: "insertRelative",
             sibling: sibling,
             child: child,
-            offset: offset
+            offset: offset,
+            oldParent: oldParent,
+            oldZone: oldZone,
+            oldZoneIndex: oldZoneIndex
         });
         return child;
     }
@@ -922,6 +938,9 @@ ADM.undo = function () {
         if (obj.type === "add") {
             ADM.ensurePageInactive(obj.child);
             obj.parent.removeChild(obj.child);
+            if (obj.oldParent) {
+                obj.oldParent.addChildToZone(obj.child, obj.oldZone, obj.oldZoneIndex);
+            }
         }
         else if (obj.type === "remove") {
             obj.parent.insertChildInZone(obj.child, obj.zone, obj.zoneIndex);
@@ -933,6 +952,9 @@ ADM.undo = function () {
         }
         else if (obj.type === "insertRelative") {
             obj.sibling.getParent().removeChild(obj.child);
+            if (obj.oldParent) {
+                obj.oldParent.addChildToZone(obj.child, obj.oldZone, obj.oldZoneIndex);
+            }
         }
         else if (obj.type === "propertyChange") {
             // TODO: this could require deeper copy of complex properties
@@ -1167,18 +1189,8 @@ function ADMNode(widgetType) {
     var currentType = widgetType, widget, zones, length, i, func;
 
     this._valid = false;
-    this._inheritance = [];
-
-    while (currentType) {
-        widget = BWidgetRegistry[currentType];
-        if (typeof widget === "object") {
-            this._inheritance.push(currentType);
-            currentType = widget.parent;
-        } else {
-            console.error("Error: invalid type hierarchy creating ADM node");
-            return;
-        }
-    }
+    this._inheritance = [widgetType];
+    $.merge(this._inheritance, BWidget.getAncestors(widgetType));
 
     this._uid = ++ADMNode.prototype._lastUid;
 
@@ -1666,11 +1678,20 @@ ADMNode.prototype.addChild = function (child, dryrun) {
 ADMNode.prototype.addChildToZone = function (child, zoneName, zoneIndex,
                                              dryrun) {
     // requires: assumes cardinality is "N", or a numeric string
-    var add = false, myType, childType, zone, cardinality, limit;
+    var add = false, myType, childType, zone, cardinality, limit, morph, morphedChildType;
     myType = this.getType();
     childType = child.getType();
     zone = this._zones[zoneName];
 
+    morph = BWidget.getZone(myType, zoneName).morph;
+    if (morph)
+    {
+        morphedChildType = morph(childType, myType);
+        if (morphedChildType !== childType) {
+            childType = morphedChildType;
+            $.extend(true, child, ADM.createNode(morphedChildType));
+        }
+    }
     if (!BWidget.zoneAllowsChild(myType, zoneName, childType)) {
         if (!dryrun) {
             console.warn("Warning: zone " + zoneName +
@@ -1693,6 +1714,7 @@ ADMNode.prototype.addChildToZone = function (child, zoneName, zoneIndex,
         return false;
     }
 
+    cardinality = cardinality.max || cardinality;
     if (cardinality !== "N") {
         limit = parseInt(cardinality, 10);
         if (zone.length >= limit) {
@@ -1777,7 +1799,7 @@ ADMNode.prototype.insertChildInZone = function (child, zoneName, index,
         }
     }
 
-    var zone = this._zones[zoneName];
+    var zone = this._zones[zoneName], oldParent, oldZone, oldZoneIndex;
     if (!zone) {
         console.error("Error: zone not found in insertChildInZone: " +
                       zoneName);
@@ -1788,6 +1810,9 @@ ADMNode.prototype.insertChildInZone = function (child, zoneName, index,
         return false;
     }
     if (child instanceof ADMNode) {
+        oldParent = child.getParent();
+        if (oldParent)
+            return child.moveNode(this, zoneName, index, dryrun);
         if (!dryrun) {
             zone.splice(index, 0, child);
 
@@ -1845,6 +1870,9 @@ ADMNode.prototype.moveNode = function (newParent, zoneName, zoneIndex, dryrun) {
     oldZone = this._zone;
     oldIndex = this.getZoneIndex();
     removed = oldParent.removeChild(this, dryrun);
+    if (oldParent === newParent && oldZone === zoneName
+            && oldIndex < zoneIndex)
+        zoneIndex --;
 
     if (removed) {
         if (removed != this) {
@@ -1904,11 +1932,29 @@ ADMNode.prototype.removeChild = function (child, dryrun) {
  * @return {ADMNode} The removed child, or null if not found.
  */
 ADMNode.prototype.removeChildFromZone = function (zoneName, index, dryrun) {
-    var zone, removed, child, parentNode, parent;
+    var zone, removed, child, parent, cardinality, min;
     zone = this._zones[zoneName];
     if (!zone) {
         console.error("Error: no such zone found while removing child: " +
                       zoneName);
+    }
+    cardinality = BWidget.getZoneCardinality(this.getType(), zoneName);
+    if (!cardinality) {
+        console.warn("Warning: no cardinality found for zone " + zoneName);
+        return false;
+    }
+
+    if (cardinality.min) {
+        min = parseInt(cardinality.min, 10);
+
+        if (zone.length <= min) {
+            alert("At least "
+                    + cardinality.min + " "
+                    + BWidget.getDisplayLabel(zone[index].getType())
+                    + (min === 1 ? " " : "s ")
+                    + (min === 1 ? "is": "are") + " required and cannot be deleted!");
+            return false;
+        }
     }
 
     if (dryrun) {

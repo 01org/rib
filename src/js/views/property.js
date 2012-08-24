@@ -81,12 +81,20 @@
         },
 
         _modelUpdatedHandler: function(event, widget) {
+            var affectedWidget, id;
+
             widget = widget || this;
             if (event && (event.type === "propertyChanged" &&
                         event.node.getType() === 'Design')) {
                 return;
             } else {
                 widget.refresh(event,widget);
+                if(event.type === 'propertyChanged') {
+                    id = event.property + '-value'; 
+                    affectedWidget = widget.element.find('#' + id);
+                    affectedWidget[0].scrollIntoViewIfNeeded();
+                    affectedWidget.effect("highlight", {}, 1000);
+                }
             }
         },
 
@@ -96,7 +104,7 @@
                 p, props, options, code, o, propertyItems, label, value,
                 title = this.element.parent().find('.property_title'),
                 content = this.element.find('.property_content'),
-                continueToDelete;
+                continueToDelete, container;
 
             // Clear the properties pane when nothing is selected
             if (node === null || node === undefined) {
@@ -169,18 +177,18 @@
                             .addClass('title labelInput')
                             .appendTo(value);
                         //set default value
-                        value.find('#' + valueId).val(valueVal);
+                        value.find('#' + valueId).val(valueVal.value);
                         $('<button> Upload </button>')
                             .addClass('buttonStyle')
-                            .click(function (e) {
-                                var target, saveDir;
-                                target = $(this).prev("input:text");
-                                saveDir = $.rib.pmUtils.ProjectDir + "/" + $.rib.pmUtils.getActive() + "/images/";
+                            .click({node:node, property:p}, function (e) {
+                                var saveDir = $.rib.pmUtils.getProjectDir() + "images/";
                                 $.rib.fsUtils.upload("image", $(this).parent(), function(file) {
                                     // Write uploaded file to sandbox
                                     $.rib.fsUtils.write(saveDir + file.name, file, function (newFile) {
-                                        target.val("images/" + newFile.name);
-                                        target.trigger('change');
+                                        ADM.setProperty(e.data.node, e.data.property, {
+                                            inSandbox: true,
+                                            value: "images/" + newFile.name
+                                        });
                                     });
                                 });
                             }).appendTo(value);
@@ -382,8 +390,16 @@
                                             value = e.data.value, p = e.data.p;
 
                                         items += '<li>previous page</li>';
+                                        container = node.getParent();
+                                        while (container !== null &&
+                                            container.getType() !== "Page") {
+                                            container = container.getParent(); 
+                                        }
                                         pages = ADM.getDesignRoot().getChildren();
                                         for (o = 0; o < pages.length; o++) {
+                                            if (pages[o] === container) {
+                                                continue;
+                                            }
                                             id = pages[o].getProperty('id');
                                             items += '<li>#' + id + '</li>';
                                         }

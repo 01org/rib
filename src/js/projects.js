@@ -27,7 +27,9 @@ $(function () {
         // Filter to find sandbox resources
         relativeFilter:{
             type: "url-uploadable",
-            value: /^(?!(https?|ftp):\/+).+/i
+            value: function (valueObject) {
+                return valueObject.inSandbox;
+            }
         },
         // Object to save refernce count for sandbox resource
         resourceRef: {},
@@ -956,6 +958,7 @@ $(function () {
      * @return {None}
      */
     pmUtils.addRefCount = function (refPath) {
+        refPath = refPath.value || refPath;
         if (!pmUtils.resourceRef[refPath]) {
             pmUtils.resourceRef[refPath] = 1;
         } else {
@@ -972,6 +975,7 @@ $(function () {
      */
     pmUtils.reduceRefCount = function (refPath) {
         var projectDir = pmUtils.ProjectDir + "/" + pmUtils.getActive() + "/";
+        refPath = refPath.value || refPath;
         if (pmUtils.resourceRef.hasOwnProperty(refPath)) {
             pmUtils.resourceRef[refPath]--;
             // Delete the resource if the reference count is 0
