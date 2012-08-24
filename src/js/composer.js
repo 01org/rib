@@ -432,6 +432,15 @@ $(function() {
                         delegateNode.addClass('delegation');
                         delegateNode.attr('data-uid', $(node).attr('data-uid'));
                     }
+                    if (admNode.isSelected() && !admNode.instanceOf('Page')) {
+                        $(node).removeClass('ui-selected')
+                            .removeClass('ui-selecting')
+                            .removeClass('ui-unselecting');
+
+                        $(delegateNode).removeClass('ui-unselecting')
+                            .removeClass('ui-selecting')
+                            .addClass('ui-selected');
+                    }
                 }
 
                 // Configure "select" handler
@@ -898,6 +907,10 @@ $(function() {
         $(foo).focus();
         $(bar).blur();
 
-        adm.setSelected((item?$(item).attr('data-uid'):item));
+        if (item) {
+            adm.setSelected($(item).attr('data-uid'));
+        } else {
+            adm.setSelected(adm.getActivePage());
+        }
     }
 });
