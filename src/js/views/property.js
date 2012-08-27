@@ -89,6 +89,14 @@
                 widget.refresh(event,widget);
             }
         },
+        _imagesUpdatedHandler: function(event, widget) {
+            widget = widget || this;
+            var optionsList, options;
+            options = event.usageStatus || $.rib.pmUtils.resourceRef;
+            optionsList = widget.element.find('.upload-datalist .datalist ul');
+            updateOptions(optionsList, Object.keys(options));
+            return;
+        },
 
         _showProperties: function(node) {
             var labelId, labelVal, valueId, valueVal, count,
