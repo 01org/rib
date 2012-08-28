@@ -27,6 +27,7 @@
             o.selectionChanged = this._selectionChangedHandler;
             o.activePageChanged = this._activePageChangedHandler;
             o.modelUpdated = this._modelUpdatedHandler;
+            o.imagesUpdated = this._imagesUpdatedHandler;
 
             // FIXME: This should work, but $.extend of options seems to be
             //        creating a copy of the ADM, which will not containt the
@@ -93,6 +94,9 @@
                 }
                 if (o.activePageChanged) {
                     a.bind("activePageChanged", o.activePageChanged, this);
+                }
+                if (o.imagesUpdated) {
+                    a.bind("imagesUpdated", o.imagesUpdated, this);
                 }
 
                 // Since model changed, need to call our designReset hander
