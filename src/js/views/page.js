@@ -18,7 +18,8 @@
         _create: function() {
             var o = this.options,
                 e = this.element,
-                self = this;
+                self = this,
+                startX;
 
             // Chain up to base class _create()
             $.rib.baseView.prototype._create.call(this);
@@ -66,6 +67,17 @@
                     .append('<div/>')
                     .children().first()
                         .addClass('allwidth')
+                        .attr('draggable', 'true')
+                        .bind('dragstart', function(e){
+                            startX = e.clientX;
+                        })
+                        .bind('dragend', function(e){
+                            var delta = e. clientX - startX,
+                                box = $(this).parent(),
+                                scrollLeft = box.scrollLeft();
+                            box.animate({scrollLeft: scrollLeft - delta},
+                                {queue: false});
+                        })
                         .append('<div/>')
                         .children().first()
                             .attr({id:'pages'})
