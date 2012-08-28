@@ -13,7 +13,7 @@
     "Functional Groups": [
         {
             "Toolbars": ["#0._hidden_node.jqm_toolbars"],
-            "Buttons": ["Button", "ButtonGroup"],
+            "Buttons": ["Button", "VButtonGroup", "HButtonGroup"],
             "Content Formatting": ["Grid", "Collapsible", "Accordion", "Div"],
             "Form Elements": [
                 "#0._hidden_node.jqm_other_inputs.0", "Text",

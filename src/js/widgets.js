@@ -480,7 +480,7 @@ var BWidgetRegistry = {
                 cardinality: "N",
                 // FIXME: deny Slider widgets because they render poorly; this
                 // may be a bug in jQuery Mobile 1.0
-                deny: "Slider"
+                deny: [ "Slider", "VButtonGroup" ]
             }
         ]
     },
@@ -614,17 +614,14 @@ var BWidgetRegistry = {
      * Represents a Control Group object. Includes an "data-type" property
      * that should be "vertical" or "horizontal"
      */
-    ButtonGroup: {
+    ControlGroup: {
         parent: "Base",
         dragHeader: true,
-        paletteImageName: "jqm_button_group.svg",
         template: '<div data-role="controlgroup"></div>',
-        displayLabel: "Button Group",
         zones: [
             {
                 name: "default",
                 cardinality: "N",
-                allow: "Button"
             }
         ],
         properties: {
@@ -639,11 +636,55 @@ var BWidgetRegistry = {
         },
         init: function (node) {
             // initial state is three buttons
-            var i;
+            var i, childType;
+            childType = BWidget.getZone(node.getType(), "default").allow;
+            if ($.isArray(childType))
+                childType = childType[0];
             for (i = 0; i < 3; i++) {
-                node.addChild(new ADMNode("Button"));
+                node.addChild(new ADMNode(childType));
             }
         }
+    },
+
+    /**
+     * Represents a group of buttons
+     */
+    ButtonGroup: {
+        parent: "ControlGroup",
+        zones: [
+            {
+                allow: "Button"
+            }
+        ],
+        properties: {
+            orientation: {
+                visible: false,
+            }
+        },
+    },
+
+    /**
+     * Represents vertical button group
+     */
+    VButtonGroup: {
+        parent: "ButtonGroup",
+        paletteImageName: "jqm_vertical_button_group.svg",
+        displayLabel: "Vertical Button Group",
+    },
+
+    /**
+     * Represents horizontal button group
+     */
+    HButtonGroup: {
+        parent: "ButtonGroup",
+        paletteImageName: "jqm_horizontal_button_group.svg",
+        displayLabel: "Horizontal Button Group",
+        properties: {
+            orientation: {
+                defaultValue: "horizontal",
+                forceAttribute: true
+            }
+        },
     },
 
     /**
@@ -1163,8 +1204,7 @@ var BWidgetRegistry = {
      * Represents a Radio Group object.
      */
     RadioGroup: {
-        parent: "ButtonGroup",
-        dragHeader: true,
+        parent: "ControlGroup",
         displayLabel: "Radio Group",
         paletteImageName: "jqm_radio_group.svg",
         properties: {
@@ -1185,8 +1225,6 @@ var BWidgetRegistry = {
         },
         zones: [
             {
-                name: "default",
-                cardinality: "N",
                 allow: "RadioButton"
             }
         ],
@@ -1277,8 +1315,7 @@ var BWidgetRegistry = {
      * Represents a Checkbox Group object.
      */
     CheckboxGroup: {
-        parent: "ButtonGroup",
-        dragHeader: true,
+        parent: "ControlGroup",
         displayLabel: "Checkbox Group",
         paletteImageName: "jqm_checkbox_group.svg",
         properties: {
@@ -1299,19 +1336,10 @@ var BWidgetRegistry = {
         },
         zones: [
             {
-                name: "default",
-                cardinality: "N",
                 allow: "Checkbox"
             }
         ],
         template: '<fieldset data-role="controlgroup"><legend>%LEGEND%</legend></fieldset>',
-        init: function (node) {
-            // initial state is three checkboxes
-            var i;
-            for (i = 0; i < 3; i++) {
-                node.addChild(new ADMNode("Checkbox"));
-            }
-        }
     },
 
     /**
