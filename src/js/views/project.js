@@ -249,18 +249,26 @@
                 .appendTo(projectDialog, this);
 
             $(document).delegate('#uploadTheme', "click", function () {
-                $.rib.fsUtils.upload('css', projectDialog, function(file) {
-                    pmUtils.uploadTheme(file);
-                    //if file.name isn't in theme select list, add it to the list
-                    //else do nothing
-                    var themeName = file.name.replace(/.css$/g, "");
-                    themeNames = pmUtils.getAllThemes();
-                    if (jQuery.inArray(themeName, themeNames) === -1) {
-                        themeNames.push(themeName);
-                        $('<option id="'+ themeName +'" value="' +
-                            themeName + '">'+ themeName + '</option>')
-                            .appendTo('#themePicker', projectDialog);
-                    }
+                $.rib.fsUtils.upload('any', projectDialog, function(file) {
+		            var handler = function () {
+                        var themeName, themeList = [];
+
+                        // get current themes from select element
+                        projectDialog.find('#themePicker option').each(function () {
+                            themeList.push($(this).val());
+                        });
+                        for (themeName in pmUtils.themesList) {
+                            // if imported theme file isn't in theme select list, add it
+                            // to the list else do nothing
+                            if (jQuery.inArray(themeName, themeList) === -1) {
+                                $('<option id="'+ themeName +'" value="' +
+                                    themeName + '">'+ themeName + '</option>')
+                                    .appendTo('#themePicker', projectDialog);
+                            }
+                        }
+                    };
+
+                    pmUtils.uploadTheme(file, handler);
                 });
             });
             projectDialog.dialog({
@@ -411,7 +419,7 @@
                     // and open it, create a new project in no project case
                     if (!$.rib.pmUtils.getActive()) {
                         $(document.body).one("tabsselect", function (e, tab) {
-                            if (tab.index === 1) {
+                            if (tab.index !== 0) {
                                 $.rib.pmUtils.showLastOpened();
                             }
                         });

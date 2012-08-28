@@ -92,6 +92,9 @@
         _toTreeModel: function(model) {
             return model;
         },
+        _getSelected: function () {
+            return null;
+        },
 
         refresh: function(event, widget) {
             var widget = widget || this;
@@ -99,9 +102,10 @@
             if (widget.options.model) {
                 widget._createTreeView(this.element.empty(),
                                        this._toTreeModel(this.options.model));
-                widget.setSelected(widget._getSelected?widget._getSelected():null);
+                widget.scrollIntoView(widget._getSelected());
             }
         },
+
 
         _createTreeView: function (attachingNode, node, attachment) {
             var widget = this, container = attachingNode,
@@ -144,6 +148,8 @@
                             .append($('<a/>')
                                 .append($('<span>').text(name)
                                                    .addClass('widgetType'))
+                                .toggleClass('ui-selected',
+                                    v._origin_node == widget._getSelected())
                                 .click(function (e) {
                                     e.stopPropagation();
                                     widget._nodeSelected(value, v._origin_node,
@@ -170,20 +176,25 @@
             });
         },
 
+        _scrollIntoView: function (domNode) {
+            if (domNode[0]) {
+                domNode.find('> a')[0].scrollIntoViewIfNeeded();
+                domNode[0].scrollIntoViewIfNeeded();
+            }
+        },
         _setSelected: function (domNode) {
             this.element.find('.ui-selected')
                 .removeClass('ui-selected')
                 .removeClass('ui-state-active');
             if (domNode[0]) {
                 domNode.find('> a').addClass('ui-state-active')
-                    .addClass('ui-selected')
-                    [0].scrollIntoViewIfNeeded();
-                domNode[0].scrollIntoViewIfNeeded();
+                    .addClass('ui-selected');
                 if (this.element.is(':focus')) {
                     this.element.find('.focused')
                         .removeClass("focused");
                     domNode.find('> a').addClass("focused")
                 }
+                this._scrollIntoView(domNode);
             }
         },
 
@@ -202,6 +213,10 @@
 
         setSelected: function (node) {
            this._setSelected(this.findDomNode(node));
+        },
+
+        scrollIntoView: function (node) {
+            this._scrollIntoView(this.findDomNode(node));
         },
 
         addNode: function (node) {
@@ -239,6 +254,7 @@
         moveNode: function (node, oldParent) {
             this.removeNode(node, oldParent);
             this.addNode(node);
+            this.scrollIntoView(node);
         }
     });
 })(jQuery);
