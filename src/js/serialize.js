@@ -81,6 +81,15 @@ $(function () {
             attrObject, mapObject, propValue,
             widget, regEx, wrapper, domNodes;
 
+        // check whether current theme contains swatch
+        var swatchExists = function (swatch, type) {
+            var swatches = BWidget.getPropertyOptions(type)['theme'];
+            if (jQuery.inArray(swatch, swatches) >= 0) {
+                return true;
+            }
+            return false;
+        };
+
         // Check for valid node
         if (node === null || node === undefined ||
             !(node instanceof ADMNode)) {
@@ -143,6 +152,13 @@ $(function () {
         // Apply any special ADMNode properties to the template before we
         // create the DOM Element instance
         for (var p in props) {
+            // when theme of project change, change theme property of node
+            if (p === 'theme') {
+                if (BWidget.propertyExists(type, 'theme') &&
+                    !swatchExists(node.getProperty('theme'), type)){
+                    node.setProperty('theme', 'default');
+                }
+            }
             propValue = node.getProperty(p);
 
             attrObject = node.getPropertySerializationObject(p);
