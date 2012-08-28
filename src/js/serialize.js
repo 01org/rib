@@ -425,11 +425,23 @@ $(function () {
     }
 
     function getDesignHeaders(design, useSandboxUrl) {
-        var i, props, el, designRoot, headers;
+        var i, props, el, designRoot, headers, toCorrectPath;
         designRoot = design || ADM.getDesignRoot();
         headers = [];
 
         props = designRoot.getProperty('metas');
+        toCorrectPath = function (header) {
+            var path = header.value;
+            // If need to use sandbox url
+            if (header.inSandbox) {
+                if (useSandboxUrl) {
+                    path = toSandboxUrl(path);
+                } else {
+                    path = path.replace(/^\//, '');
+                }
+            }
+            return path;
+        };
         for (i in props) {
             // Skip design only header properties
             if (props[i].hasOwnProperty('designOnly') && props[i].designOnly) {
@@ -444,12 +456,7 @@ $(function () {
                 if ((typeof props[i].value !== 'string') || (props[i].value.length <= 0)) {
                     continue;
                 }
-                // If need to use sandbox url
-                if (useSandboxUrl && props[i].inSandbox) {
-                    el = el + '="' + toSandboxUrl(props[i].value) + '"';
-                } else {
-                    el = el + '="' + props[i].value + '"';
-                }
+                el = el + '="' + toCorrectPath(props[i]) + '"';
                 if (props[i].hasOwnProperty('content')) {
                     el = el + ' content="' + props[i].content + '"';
                 }
@@ -470,11 +477,7 @@ $(function () {
                 }
                 el = '<script ';
                 // If need to use sandbox url
-                if (useSandboxUrl && props[i].inSandbox) {
-                    el = el + 'src="' + toSandboxUrl(props[i].value) + '"';
-                } else {
-                    el = el + 'src="' + props[i].value + '"';
-                }
+                el = el + 'src="' + toCorrectPath(props[i]) + '"';
                 el = el + '></script>';
                 headers.push(el);
             }
@@ -492,11 +495,7 @@ $(function () {
                 }
                 el = '<link ';
                 // If need to use sandbox url
-                if (useSandboxUrl && props[i].inSandbox) {
-                    el = el + 'href="' + toSandboxUrl(props[i].value) + '"';
-                } else {
-                    el = el + 'href="' + props[i].value + '"';
-                }
+                el = el + 'href="' + toCorrectPath(props[i]) + '"';
                 el = el + ' rel="stylesheet">';
                 headers.push(el);
             }
@@ -659,7 +658,7 @@ $(function () {
             for (p in matched) {
                 files.push({
                     "src": toSandboxUrl(matched[p]),
-                    "dst": matched[p]
+                    "dst": matched[p].value ? matched[p].value : matched[p]
                 });
             }
         });
@@ -730,19 +729,23 @@ $(function () {
     }
 
     function toSandboxUrl(path, pid) {
-        var projectDir, fullPath;
+        var projectDir, pathStr;
         pid = pid || $.rib.pmUtils.getActive();
         projectDir = $.rib.pmUtils.getProjectDir(pid);
-        if (typeof path !== "string") {
-            console.error("Invalid path in toSandboxUrl: " + path);
+        if ((path instanceof Object) && path.inSandbox) {
+            pathStr = path.value;
+        } else {
+            pathStr = path;
+        }
+        if (typeof pathStr !== "string") {
+            console.error("Invalid path in toSandboxUrl: " + pathStr);
             return null;
         }
-        fullPath = path;
         // If the first char is '/', then it will be the absolute path in sandbox
-        if (path[0] !== '/' && projectDir) {
-            fullPath = projectDir + path;
+        if (pathStr[0] !== '/' && projectDir) {
+            pathStr = projectDir + pathStr;
         }
-        return $.rib.fsUtils.pathToUrl(fullPath);
+        return $.rib.fsUtils.pathToUrl(pathStr);
     }
 
     function indexOfArray(array, value) {
@@ -907,6 +910,48 @@ $(function () {
         }, error);
     }
 
+    /**
+     * Save event handler codes to main.js
+     *
+     * @param {ADMNode} design ADM design root to be serialized.
+     *
+     * @return {None} as same as addCustomFile.
+     */
+    function saveEventHandlers(design) {
+        var results, id, matchedProps, eventCode, eventName,
+            design = design || ADM.getDesignRoot(),
+            jsFileName = 'js/main.js', jsType = 'js',
+            jsHeader = '$(document).ready(function(e) {\n',
+            jsContent = '',
+            jsFooter = '});';
+
+        // Regenerate the whole event javascript codes
+        // and save to sandbox.
+        results = design.findNodesByProperty(
+            {'type': 'event', 'value': new RegExp('.+')}
+        );
+        $.each(results, function(index, result) {
+            id = result.node.getProperty('id');
+            if (!id)
+                return
+            matchedProps = result.properties;
+            for (eventName in matchedProps) {
+                // Append the event code to the whole js code content.
+                jsContent += '$("#' + id + '").bind("' + eventName + '", function(e) {'
+                    + '\n' + matchedProps[eventName] + '\n'
+                    + '});\n\n';
+            }
+        });
+        if (!jsContent) {
+            removeSandboxHeader(jsType, jsFileName);
+            $.rib.fsUtils.rm(jsFileName);
+            return null;
+        }
+        return addCustomFile(
+            jsFileName, jsType, js_beautify(jsHeader + jsContent + jsFooter)
+        );
+    }
+
     /***************** export functions out *********************/
     // Export serialization functions into $.rib namespace
     $.rib.generateHTML = generateHTML;
@@ -919,4 +964,5 @@ $(function () {
     $.rib.addSandboxHeader = addSandboxHeader;
     $.rib.removeSandboxHeader = removeSandboxHeader;
     $.rib.addCustomFile = addCustomFile;
+    $.rib.saveEventHandlers = saveEventHandlers;
 });

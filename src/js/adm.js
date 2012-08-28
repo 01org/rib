@@ -518,7 +518,7 @@ ADM.endTransaction = function () {
  * @return {ADMNode} The child object, on success; null, on failure.
  */
 ADM.addChild = function (parentRef, childRef, dryrun) {
-    var parent, child;
+    var parent, child, oldParent, oldType, oldZone, oldZoneIndex;
 
     parent = ADM.toNode(parentRef);
     if (!parent) {
@@ -538,6 +538,12 @@ ADM.addChild = function (parentRef, childRef, dryrun) {
         return null;
     }
 
+    oldParent = child.getParent();
+    if (oldParent) {
+        oldType = child.getType();
+        oldZone = child.getZone();
+        oldZoneIndex = child.getZoneIndex();
+    }
     if (parent.addChild(child, dryrun)) {
         if (dryrun) {
             return true;
@@ -547,7 +553,11 @@ ADM.addChild = function (parentRef, childRef, dryrun) {
         ADM.transaction({
             type: "add",
             parent: child.getParent(),
-            child: child
+            child: child,
+            oldParent: oldParent,
+            oldType: oldType,
+            oldZone: oldZone,
+            oldZoneIndex: oldZoneIndex
         });
         return child;
     }
@@ -634,7 +644,7 @@ ADM.addChildRecursive = function (parentRef, childRef, dryrun) {
  * @private
  */
 ADM.insertChildRelative = function (siblingRef, childRef, offset, dryrun) {
-    var sibling, child;
+    var sibling, child, oldParent, oldType, oldZone, oldZoneIndex;
 
     sibling = ADM.toNode(siblingRef);
     if (!sibling) {
@@ -655,6 +665,12 @@ ADM.insertChildRelative = function (siblingRef, childRef, offset, dryrun) {
                      childRef);
     }
 
+    oldParent = child.getParent();
+    if (oldParent) {
+        oldType = child.getType();
+        oldZone = child.getZone();
+        oldZoneIndex = child.getZoneIndex();
+    }
     if (sibling.insertChildRelative(child, offset, dryrun)) {
         if (dryrun) {
             return true;
@@ -663,7 +679,11 @@ ADM.insertChildRelative = function (siblingRef, childRef, offset, dryrun) {
             type: "insertRelative",
             sibling: sibling,
             child: child,
-            offset: offset
+            offset: offset,
+            oldParent: oldParent,
+            oldType: oldType,
+            oldZone: oldZone,
+            oldZoneIndex: oldZoneIndex
         });
         return child;
     }
@@ -921,7 +941,14 @@ ADM.undo = function () {
     var obj, undo = function (obj) {
         if (obj.type === "add") {
             ADM.ensurePageInactive(obj.child);
-            obj.parent.removeChild(obj.child);
+            if (obj.oldParent) {
+                if (obj.oldType !== obj.child.getType())
+                    obj.child.morphTo(obj.oldType);
+                obj.child.moveNode(obj.oldParent, obj.oldZone, obj.oldZoneIndex);
+                ADM.setSelected(obj.child);
+            }
+            else
+                obj.parent.removeChild(obj.child);
         }
         else if (obj.type === "remove") {
             obj.parent.insertChildInZone(obj.child, obj.zone, obj.zoneIndex);
@@ -932,7 +959,14 @@ ADM.undo = function () {
             ADM.setSelected(obj.node);
         }
         else if (obj.type === "insertRelative") {
-            obj.sibling.getParent().removeChild(obj.child);
+            if (obj.oldParent) {
+                if (obj.oldType !== obj.child.getType())
+                    obj.child.morphTo(obj.oldType);
+                obj.child.moveNode(obj.oldParent, obj.oldZone, obj.oldZoneIndex);
+                ADM.setSelected(obj.child);
+            }
+            else
+                obj.sibling.getParent().removeChild(obj.child);
         }
         else if (obj.type === "propertyChange") {
             // TODO: this could require deeper copy of complex properties
@@ -1167,18 +1201,8 @@ function ADMNode(widgetType) {
     var currentType = widgetType, widget, zones, length, i, func;
 
     this._valid = false;
-    this._inheritance = [];
-
-    while (currentType) {
-        widget = BWidgetRegistry[currentType];
-        if (typeof widget === "object") {
-            this._inheritance.push(currentType);
-            currentType = widget.parent;
-        } else {
-            console.error("Error: invalid type hierarchy creating ADM node");
-            return;
-        }
-    }
+    this._inheritance = [widgetType];
+    $.merge(this._inheritance, BWidget.getAncestors(widgetType));
 
     this._uid = ++ADMNode.prototype._lastUid;
 
@@ -1487,7 +1511,7 @@ ADMNode.prototype.findNodesByProperty = function (propertyFilter) {
 
     // recurse on children
     children = this.getChildren();
-    for (i = children.length - 1; i >= 0; i--) {
+    for (i = 0; i < children.length; i++) {
         result = result.concat(children[i].findNodesByProperty(propertyFilter));
     }
     return result;
@@ -1575,6 +1599,18 @@ ADMNode.prototype.getChildrenCount = function () {
 };
 
 /**
+ * Tests whether this node has has event handlers.
+ *
+ * @return {Boolean} True if the node has at least one event handler.
+ */
+
+ADMNode.prototype.hasEventHandlers = function() {
+    return !$.isEmptyObject(this.getMatchingProperties(
+        {type: 'event', value: /.+/}
+    ));
+}
+
+/**
  * Tests whether this node has user-visible descendants that will be displayed
  * in the outline view.
  *
@@ -1599,6 +1635,18 @@ ADMNode.prototype.hasUserVisibleDescendants = function () {
     return false;
 };
 
+/**
+ * Change this node to another type
+ *
+ * @param {String} type The type this node will morph to.
+ * @return {ADMNode} The morphed node.
+ */
+ADMNode.prototype.morphTo = function (type) {
+    var morphedChild = ADM.createNode(type);
+    this._inheritance = morphedChild._inheritance;
+    this._zones = morphedChild._zones;
+    return this;
+};
 /**
  * Adds given child object to this object, generally at the end of the first
  * zone that accepts the child.
@@ -1666,11 +1714,19 @@ ADMNode.prototype.addChild = function (child, dryrun) {
 ADMNode.prototype.addChildToZone = function (child, zoneName, zoneIndex,
                                              dryrun) {
     // requires: assumes cardinality is "N", or a numeric string
-    var add = false, myType, childType, zone, cardinality, limit;
+    var add = false, myType, childType, zone, cardinality, limit, morph,
+        morphedChildType, morphedChild;
     myType = this.getType();
     childType = child.getType();
     zone = this._zones[zoneName];
 
+    morph = BWidget.getZone(myType, zoneName).morph;
+    if (morph) {
+        morphedChildType = morph(childType, myType);
+        if (morphedChildType !== childType) {
+            childType = morphedChildType;
+        }
+    }
     if (!BWidget.zoneAllowsChild(myType, zoneName, childType)) {
         if (!dryrun) {
             console.warn("Warning: zone " + zoneName +
@@ -1693,6 +1749,7 @@ ADMNode.prototype.addChildToZone = function (child, zoneName, zoneIndex,
         return false;
     }
 
+    cardinality = cardinality.max || cardinality;
     if (cardinality !== "N") {
         limit = parseInt(cardinality, 10);
         if (zone.length >= limit) {
@@ -1777,7 +1834,8 @@ ADMNode.prototype.insertChildInZone = function (child, zoneName, index,
         }
     }
 
-    var zone = this._zones[zoneName];
+    var zone = this._zones[zoneName], oldParent,
+        myType, childType, morph, morphedChildType;
     if (!zone) {
         console.error("Error: zone not found in insertChildInZone: " +
                       zoneName);
@@ -1788,7 +1846,18 @@ ADMNode.prototype.insertChildInZone = function (child, zoneName, index,
         return false;
     }
     if (child instanceof ADMNode) {
+        oldParent = child.getParent();
+        if (oldParent)
+            return child.moveNode(this, zoneName, index, dryrun);
         if (!dryrun) {
+            myType = this.getType();
+            childType = child.getType();
+            morph = BWidget.getZone(myType, zoneName).morph;
+            if (morph) {
+                morphedChildType = morph(childType, myType);
+                if (morphedChildType != childType)
+                    child.morphTo(morphedChildType);
+            }
             zone.splice(index, 0, child);
 
             setRootRecursive(child, this._root);
@@ -1845,6 +1914,9 @@ ADMNode.prototype.moveNode = function (newParent, zoneName, zoneIndex, dryrun) {
     oldZone = this._zone;
     oldIndex = this.getZoneIndex();
     removed = oldParent.removeChild(this, dryrun);
+    if (oldParent === newParent && oldZone === zoneName
+            && oldIndex < zoneIndex)
+        zoneIndex --;
 
     if (removed) {
         if (removed != this) {
@@ -1904,11 +1976,29 @@ ADMNode.prototype.removeChild = function (child, dryrun) {
  * @return {ADMNode} The removed child, or null if not found.
  */
 ADMNode.prototype.removeChildFromZone = function (zoneName, index, dryrun) {
-    var zone, removed, child, parentNode, parent;
+    var zone, removed, child, parent, cardinality, min;
     zone = this._zones[zoneName];
     if (!zone) {
         console.error("Error: no such zone found while removing child: " +
                       zoneName);
+    }
+    cardinality = BWidget.getZoneCardinality(this.getType(), zoneName);
+    if (!cardinality) {
+        console.warn("Warning: no cardinality found for zone " + zoneName);
+        return false;
+    }
+
+    if (cardinality.min) {
+        min = parseInt(cardinality.min, 10);
+
+        if (zone.length <= min) {
+            alert("At least "
+                    + cardinality.min + " "
+                    + BWidget.getDisplayLabel(zone[index].getType())
+                    + (min === 1 ? " " : "s ")
+                    + (min === 1 ? "is": "are") + " required and cannot be deleted!");
+            return false;
+        }
     }
 
     if (dryrun) {
@@ -1960,11 +2050,15 @@ ADMNode.prototype.foreach = function (func) {
  * @param {String} The name of the property.
  * @return {String} The generated property value.
  */
-ADMNode.prototype.generateUniqueProperty = function (property) {
+ADMNode.prototype.generateUniqueProperty = function (property, force) {
     var generate, design, myType, length, i, genLength, max, num, existing = [];
     myType = this.getType();
     generate = BWidget.getPropertyAutoGenerate(myType, property);
-    if (!generate) {
+    // If force argument is set, then set the generate as myType and continue
+    // to run.
+    if (!generate && force) {
+        generate = myType.toLowerCase();
+    } else if (!generate) {
         return undefined;
     }
 
@@ -2230,8 +2324,9 @@ ADMNode.prototype.isPropertyExplicit = function (property) {
  *                  relevant info for performing an undo of this operation.
  */
 ADMNode.prototype.setProperty = function (property, value, data, raw) {
-    var orig, func, changed, type, rval = { }, defaultValue;
-    type = BWidget.getPropertyType(this.getType(), property);
+    var orig, func, changed, rval = { }, defaultValue,
+        type = BWidget.getPropertyType(this.getType(), property);
+
     if (!type) {
         console.error("Error: attempted to set non-existent property: " +
                     property);
@@ -2249,14 +2344,15 @@ ADMNode.prototype.setProperty = function (property, value, data, raw) {
         }
     }
 
-    // TODO: In HTML5 the rules for ids are not this strict, so this should be
-    //       corrected with reference to the spec.
-    // HTML id naming rules:
-    // Must begin with a letter A-Z or a-z
+    // TODO: In HTML5 the rules for ids are not this strict, but JQM and jQuery don't work well
+    // with special chars, such as "$" "%" "/" accepted by HTML5.
+    //
+    // So we use the following id naming rules:
+    // Must begin with a letter A-Z or a-z or 0-9
     // Can be followed by: letters (A-Za-z), digits (0-9), hyphens ("-"), and underscores ("_")
     // In HTML, all values are case-insensitive
     if (property == "id") {
-        var pattern = /^[a-zA-Z]([\w-]*)$/;
+        var pattern = /^[a-zA-Z0-9]([\w-]*)$/;
         if (value && !pattern.test(value)) {
             console.error("Error: attempted to set invalid id");
             return rval;
@@ -2300,6 +2396,14 @@ ADMNode.prototype.setProperty = function (property, value, data, raw) {
                             { type: "propertyChanged", node: this,
                               property: property, oldValue: orig,
                               newValue: value });
+
+        // Event handler saving after ID/event property changed.
+        if (property === 'id') {
+            if (this.hasEventHandlers())
+                $.rib.saveEventHandlers();
+        } else if (type === 'event') {
+            $.rib.saveEventHandlers();
+        }
         rval.result = true;
     }
     return rval;
