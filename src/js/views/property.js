@@ -96,7 +96,7 @@
                 p, props, options, code, o, propertyItems, label, value,
                 title = this.element.parent().find('.property_title'),
                 content = this.element.find('.property_content'),
-                continueToDelete, container;
+                continueToDelete, container, prerequisite;
 
             // Clear the properties pane when nothing is selected
             if (node === null || node === undefined) {
@@ -132,6 +132,7 @@
                     .text(labelVal)
                     .addClass('title');
                 value = $('<div/>').appendTo(code);
+                prerequisite = BWidget.getPropertyPrerequisite(type, p);
                 // display property of widget
                 switch (propType) {
                     case "boolean":
@@ -425,11 +426,6 @@
                             $('<select size="1">').attr('id', valueId)
                                     .addClass('title')
                                     .appendTo(value);
-                            if (type === 'Button' && p === 'opentargetas'
-                                && node.getProperty('target') ===
-                                    'previous page') {
-                                value.find('#'+valueId).attr('disabled', 'disabled');
-                            }
                             //add options to select list
                             for (o in options[p]) {
                                 //TODO make it simple
@@ -479,6 +475,10 @@
                         event.stopPropagation();
                         return false;
                     });
+
+                if (prerequisite && prerequisite(props)) {
+                    value.find('#'+valueId).attr('disabled', 'disabled');
+                }
             }
 
             // add delete element button
