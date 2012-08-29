@@ -81,12 +81,20 @@
         },
 
         _modelUpdatedHandler: function(event, widget) {
+            var affectedWidget, id;
+
             widget = widget || this;
             if (event && (event.type === "propertyChanged" &&
                         event.node.getType() === 'Design')) {
                 return;
             } else {
                 widget.refresh(event,widget);
+                if (event.type === 'propertyChanged') {
+                    id = event.property + '-value';
+                    affectedWidget = widget.element.find('#' + id);
+                    affectedWidget[0].scrollIntoViewIfNeeded();
+                    affectedWidget.effect("highlight", {}, 1000);
+                }
             }
         },
 
