@@ -1575,6 +1575,18 @@ ADMNode.prototype.getChildrenCount = function () {
 };
 
 /**
+ * Tests whether this node has has event handlers.
+ *
+ * @return {Boolean} True if the node has at least one event handler.
+ */
+
+ADMNode.prototype.hasEventHandlers = function() {
+    return !$.isEmptyObject(this.getMatchingProperties(
+        {type: 'event', value: /.+/}
+    ));
+}
+
+/**
  * Tests whether this node has user-visible descendants that will be displayed
  * in the outline view.
  *
@@ -1960,11 +1972,15 @@ ADMNode.prototype.foreach = function (func) {
  * @param {String} The name of the property.
  * @return {String} The generated property value.
  */
-ADMNode.prototype.generateUniqueProperty = function (property) {
+ADMNode.prototype.generateUniqueProperty = function (property, force) {
     var generate, design, myType, length, i, genLength, max, num, existing = [];
     myType = this.getType();
     generate = BWidget.getPropertyAutoGenerate(myType, property);
-    if (!generate) {
+    // If force argument is set, then set the generate as myType and continue
+    // to run.
+    if (!generate && force) {
+        generate = myType.toLowerCase();
+    } else if (!generate) {
         return undefined;
     }
 
@@ -2230,8 +2246,9 @@ ADMNode.prototype.isPropertyExplicit = function (property) {
  *                  relevant info for performing an undo of this operation.
  */
 ADMNode.prototype.setProperty = function (property, value, data, raw) {
-    var orig, func, changed, type, rval = { }, defaultValue;
-    type = BWidget.getPropertyType(this.getType(), property);
+    var orig, func, changed, rval = { }, defaultValue,
+        type = BWidget.getPropertyType(this.getType(), property);
+
     if (!type) {
         console.error("Error: attempted to set non-existent property: " +
                     property);
@@ -2301,6 +2318,14 @@ ADMNode.prototype.setProperty = function (property, value, data, raw) {
                             { type: "propertyChanged", node: this,
                               property: property, oldValue: orig,
                               newValue: value });
+
+        // Event handler saving after ID/event property changed.
+        if (property === 'id') {
+            if (this.hasEventHandlers())
+                $.rib.saveEventHandlers();
+        } else if (type === 'event') {
+            $.rib.saveEventHandlers();
+        }
         rval.result = true;
     }
     return rval;
