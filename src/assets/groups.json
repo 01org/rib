@@ -21,10 +21,27 @@
                     "Boolean": ["#0._hidden_node.jqm_input_boolean"]
                 }
             ],
-            "List Views": [
-                 "List", "OrderedList", "ListItem", "ListDivider", "ListButton"
-            ],
-            "Image": ["Image"]
+            "Image": ["Image"],
+            "List Views": [ {
+                            "Single Lists": [
+                                    "SimpleListItem",
+                                    "ListDivider",
+                                    "SimpleList",
+                                    "ButtonList",
+                                    "TextList",
+                                    "IconList",
+                                    "ThumbnailList"
+                            ],
+                            "Split Lists": [
+                                    "SimpleListItem",
+                                    "ListDivider",
+                                    "ButtonSplitList",
+                                    "TextSplitList",
+                                    "IconSplitList",
+                                    "ThumbnailSplitList"
+                            ]
+                }
+            ]
         }
     ],
 

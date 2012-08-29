@@ -425,11 +425,23 @@ $(function () {
     }
 
     function getDesignHeaders(design, useSandboxUrl) {
-        var i, props, el, designRoot, headers;
+        var i, props, el, designRoot, headers, toCorrectPath;
         designRoot = design || ADM.getDesignRoot();
         headers = [];
 
         props = designRoot.getProperty('metas');
+        toCorrectPath = function (header) {
+            var path = header.value;
+            // If need to use sandbox url
+            if (header.inSandbox) {
+                if (useSandboxUrl) {
+                    path = toSandboxUrl(path);
+                } else {
+                    path = path.replace(/^\//, '');
+                }
+            }
+            return path;
+        };
         for (i in props) {
             // Skip design only header properties
             if (props[i].hasOwnProperty('designOnly') && props[i].designOnly) {
@@ -444,12 +456,7 @@ $(function () {
                 if ((typeof props[i].value !== 'string') || (props[i].value.length <= 0)) {
                     continue;
                 }
-                // If need to use sandbox url
-                if (useSandboxUrl && props[i].inSandbox) {
-                    el = el + '="' + toSandboxUrl(props[i].value) + '"';
-                } else {
-                    el = el + '="' + props[i].value + '"';
-                }
+                el = el + '="' + toCorrectPath(props[i]) + '"';
                 if (props[i].hasOwnProperty('content')) {
                     el = el + ' content="' + props[i].content + '"';
                 }
@@ -470,11 +477,7 @@ $(function () {
                 }
                 el = '<script ';
                 // If need to use sandbox url
-                if (useSandboxUrl && props[i].inSandbox) {
-                    el = el + 'src="' + toSandboxUrl(props[i].value) + '"';
-                } else {
-                    el = el + 'src="' + props[i].value + '"';
-                }
+                el = el + 'src="' + toCorrectPath(props[i]) + '"';
                 el = el + '></script>';
                 headers.push(el);
             }
@@ -492,11 +495,7 @@ $(function () {
                 }
                 el = '<link ';
                 // If need to use sandbox url
-                if (useSandboxUrl && props[i].inSandbox) {
-                    el = el + 'href="' + toSandboxUrl(props[i].value) + '"';
-                } else {
-                    el = el + 'href="' + props[i].value + '"';
-                }
+                el = el + 'href="' + toCorrectPath(props[i]) + '"';
                 el = el + ' rel="stylesheet">';
                 headers.push(el);
             }
@@ -567,8 +566,15 @@ $(function () {
     }
 
     function exportFile(fileName, content, binary) {
-        $.rib.fsUtils.write(fileName, content, function (fileEntry){
-            $.rib.fsUtils.exportToTarget(fileEntry.fullPath);
+        $.rib.fsUtils.write('exportFile', content, function (fileEntry){
+            var a = document.createElement('a');
+            if (a.download !== undefined) {
+                a.href = $.rib.fsUtils.pathToUrl(fileEntry.fullPath);
+                a.download = fileName;
+                a.click();
+            } else {
+                $.rib.fsUtils.exportToTarget(fileEntry.fullPath);
+            }
         }, null, false, binary);
     }
 
@@ -659,7 +665,7 @@ $(function () {
             for (p in matched) {
                 files.push({
                     "src": toSandboxUrl(matched[p]),
-                    "dst": matched[p]
+                    "dst": matched[p].value ? matched[p].value : matched[p]
                 });
             }
         });
@@ -730,19 +736,23 @@ $(function () {
     }
 
     function toSandboxUrl(path, pid) {
-        var projectDir, fullPath;
+        var projectDir, pathStr;
         pid = pid || $.rib.pmUtils.getActive();
         projectDir = $.rib.pmUtils.getProjectDir(pid);
-        if (typeof path !== "string") {
-            console.error("Invalid path in toSandboxUrl: " + path);
+        if ((path instanceof Object) && path.inSandbox) {
+            pathStr = path.value;
+        } else {
+            pathStr = path;
+        }
+        if (typeof pathStr !== "string") {
+            console.error("Invalid path in toSandboxUrl: " + pathStr);
             return null;
         }
-        fullPath = path;
         // If the first char is '/', then it will be the absolute path in sandbox
-        if (path[0] !== '/' && projectDir) {
-            fullPath = projectDir + path;
+        if (pathStr[0] !== '/' && projectDir) {
+            pathStr = projectDir + pathStr;
         }
-        return $.rib.fsUtils.pathToUrl(fullPath);
+        return $.rib.fsUtils.pathToUrl(pathStr);
     }
 
     function indexOfArray(array, value) {
@@ -879,6 +889,83 @@ $(function () {
     }
 
     /**
+     * set theme for given design.
+     *
+     * @param {ADMNode} design The root design object.
+     * @param {String}  newTheme File path of newTheme.
+     * @param {Boolean} newInSandbox Use sandbox url or not
+     *
+     * @return {Boolean} Return true if update theme successfully, else return false.
+     */
+    function setDesignTheme(design, newTheme, newInSandbox) {
+        var property, array, i, index,
+            swatches, themePath, themeName,
+            newThemeObject = {
+                designOnly: false,
+                value: newTheme,
+                theme: true,
+                inSandbox: newInSandbox
+            };
+        // set theme of ADM node
+        var setNodeTheme = function (admNode, swatches) {
+            var i, type, children;
+            if (admNode instanceof ADMNode) {
+                type = admNode.getType();
+                // firstly we get theme property of node. If original swatch
+                // of theme can be found from current theme, we do nothing.
+                // Otherwise, we set property value as default
+                if (BWidget.propertyExists(type, 'theme') &&
+                    jQuery.inArray(admNode.getProperty('theme'), swatches) < 0) {
+                    admNode.setProperty('theme', 'default');
+                }
+                children = admNode.getChildren();
+                if (children.length > 0) {
+                    for (i = 0; i < children.length; i++) {
+                        setNodeTheme(children[i], swatches);
+                    }
+                }
+            } else {
+                console.warn("warning: children of ADMNode must be ADMNode");
+            }
+        };
+
+        array = $.merge([], design.getProperty('css'));
+        // find theme from design property of 'css'
+        for (i = 0; i < array.length; i++) {
+            if (array[i].hasOwnProperty('theme')) {
+                index = i;
+                break;
+            }
+        }
+        if (i === array.length) {
+            // theme is not found in design
+            console.error("no theme found for given design");
+            return false;
+        }
+
+        // update theme object in array
+        array.splice(index, 1, newThemeObject);
+        // update theme for all widgets in given design
+        design.suppressEvents(true);
+        themePath = newTheme.replace(/^\//, "").split("/");
+        themeName = themePath.splice(themePath.length - 1, 1).toString();
+        themeName = themeName.replace(/(\.min.css|\.css)$/g, "");
+        // check whether set "Default" theme
+        // TODO: provide a function to getDefaultTheme in case of
+        // JQuery Mobile upgrading
+        if (newTheme === 'src/css/jquery.mobile.theme-1.1.0.css') {
+            swatches = ["default", "a", "b", "c", "d", "e"];
+        } else {
+            swatches = $.rib.pmUtils.themesList[themeName];
+        }
+        setNodeTheme(design, swatches);
+        design.suppressEvents(false);
+        //set the new array back
+        design.setProperty('css', array);
+        return true;
+    }
+
+    /**
      * Add custom file to current active project.
      * It will save the content in project folder. If the parent directy of
      * filePath doesn't exist, it will be created.
@@ -962,4 +1049,5 @@ $(function () {
     $.rib.removeSandboxHeader = removeSandboxHeader;
     $.rib.addCustomFile = addCustomFile;
     $.rib.saveEventHandlers = saveEventHandlers;
+    $.rib.setDesignTheme = setDesignTheme;
 });

@@ -48,6 +48,10 @@ $(function () {
             mime: 'text/css',
             suffix: ['css']
         },
+        zip: {
+            mime: 'application/zip',
+            suffix: ['zip']
+        },
         any: {
             mime: '*',
             suffix: ['*']
@@ -352,16 +356,18 @@ $(function () {
                                }
                                contents = ia;
                            }
-                           if (window.Blob) {
-                               bb = new Blob([contents]); // Create a new Blob on-the-fly.
-                               fileWriter.write(bb);
-                           } else if (window.BlobBuilder){
-                               bb = new BlobBuilder(); // Create a new Blob on-the-fly.
-                               bb.append(contents);
-                               fileWriter.write(bb.getBlob());
-                           } else {
-                               console.error("No Blob or BlobBuilder constructor.");
+                           try {
+                               bb = new Blob([contents]);
+                           } catch(e) {
+                               if (window.BlobBuilder){
+                                   bb = new BlobBuilder(); // Create a new Blob on-the-fly.
+                                   bb.append(contents);
+                                   bb = bb.getBlob();
+                               } else {
+                                   console.error("No Blob or BlobBuilder constructor.");
+                               }
                            }
+                           bb && fileWriter.write(bb);
                        }
                    }, onError);
                }
@@ -551,6 +557,10 @@ $(function () {
      */
     checkFileType: function (type, file) {
                        var arrString, rule;
+                       if (type === 'any') {
+                           // if file type is any, we don't check
+                           return true;
+                       }
                        arrString = fsUtils.fileTypes[type.toLowerCase()].suffix.join('|');
                        rule = new RegExp("\\.(" + arrString + ")$", "i");
                        // TODO: May need to read the "content-type" to check the type
