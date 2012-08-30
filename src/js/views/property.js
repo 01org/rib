@@ -97,7 +97,7 @@
                 design = ADM.getDesignRoot(),
                 title = this.element.parent().find('.property_title'),
                 content = this.element.find('.property_content'),
-                continueToDelete, buttonsContainer, container;
+                continueToDelete, buttonsContainer, container, range, min, max;
 
             // Clear the properties pane when nothing is selected
             if (node === null || node === undefined) {
@@ -162,6 +162,31 @@
                         if ((node.getProperty (p) === true) ||
                             (node.getProperty (p) === "true")) {
                             value.find("#" + valueId).attr("checked", "checked");
+                        }
+                        break;
+                    case "integer":
+                        range = BWidget.getPropertyRange(type, p);
+                        if (range) {
+                            min = range.split('-')[0];
+                            max = range.split('-')[1];
+                            $('<input type="number"/>')
+                                .addClass('title labelInput')
+                                .attr({
+                                    id: valueId,
+                                    min: min,
+                                    max: max
+                                })
+                                .change(function(event) {
+                                    if( parseInt(this.value) > parseInt(this.max) ||
+                                        parseInt(this.value) < parseInt(this.min)) {
+                                            $(this).effect("highlight", {color: "red"}, 1000);
+                                            event.stopImmediatePropagation();
+                                            this.value = valueVal;
+                                    }
+                                })
+                                .appendTo(value);
+                            //set default value
+                            value.find('#' + valueId).val(valueVal);
                         }
                         break;
                     case "url-uploadable":
