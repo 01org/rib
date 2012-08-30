@@ -453,6 +453,8 @@ $(function () {
                 pmUtils._projectsInfo[newPid] = {};
                 pmUtils.setProperties(newPid, properties);
                 pmUtils.setProperty(newPid, "accessDate", new Date());
+                // init resource usage status
+                $.rib.pmUtils.resourceRef = {};
 
                 if (design && (design instanceof ADMNode)) {
                     ADM.setDesignRoot(design);
@@ -554,7 +556,7 @@ $(function () {
      * @return {None}.
      */
     pmUtils.openProject = function (pid, success, error) {
-        var designPath, successHandler;
+        var designPath, successHandler, imagePath;
 
         if (!pmUtils._projectsInfo[pid]) {
             console.error("Error: Invalid pid for project when opening project");
@@ -566,6 +568,7 @@ $(function () {
             return;
         }
         designPath = pmUtils.getDesignPath(pid);
+        imagePath = pmUtils.getProjectDir(pid) + 'images/';
 
         successHandler = function (result) {
             var design, project;
@@ -576,6 +579,15 @@ $(function () {
                 pmUtils._activeProject = pid;
                 // update access time
                 pmUtils.setProperty(pid, "accessDate", new Date());
+                // init pmUtils.resourceRef, reset usage status of resources
+                $.rib.pmUtils.resourceRef = {};
+                $.rib.fsUtils.ls(imagePath, function (entries) {
+                    $.each(entries, function (i, e) {
+                        $.rib.pmUtils.resourceRef['images/'+e.name] = 0;
+                    });
+                }, function (e) {
+                    dumplog('There is no image in this project.');
+                });
                 // set the new design as design root
                 ADM.setDesignRoot(design);
                 success && success();
@@ -981,6 +993,7 @@ $(function () {
         } else {
             pmUtils.resourceRef[refPath]++;
         }
+        $.rib.fireEvent('imagesUpdated', {usageStatus: pmUtils.resourceRef});
         return;
     };
 
@@ -1003,8 +1016,10 @@ $(function () {
                     $.rib.confirm('Unused resource: "' + entry.name +
                         '". \nWould you like to delete it from the project?', function () {
                             $.rib.fsUtils.rm(entry.fullPath);
+                            $.rib.fireEvent('imagesUpdated', {usageStatus: pmUtils.resourceRef});
                         }, function () {
                             pmUtils.resourceRef[refPath] = 0;
+                            $.rib.fireEvent('imagesUpdated', {usageStatus: pmUtils.resourceRef});
                         });
                 });
             }
@@ -1032,12 +1047,6 @@ $(function () {
         node = node || ADM.getDesignRoot();
         if (!(node instanceof ADMNode)) {
             return false;
-        }
-        // if the design is Design root
-        if (node.getType() === "Design") {
-            // reset pmUtils.resourceRef
-            pmUtils.resourceRef = {};
-            upFlag = true;
         }
         // Find all used sandbox resource nodes and the matched properties
         matched = node.findNodesByProperty($.rib.pmUtils.relativeFilter);
