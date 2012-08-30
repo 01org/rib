@@ -39,11 +39,16 @@
                                 * 0.4);
                 el.height(newHeight);
             });
-            this.element.delegate('*', 'focus', function(e){
+            e.delegate('*', 'click', function (e) {
+                this.focus();
+                e.stopPropagation();
+            })
+            .delegate('*','focus', function (e) {
                 window.focusElement = this;
                 e.stopPropagation();
             });
 
+            $.rib.bind("imagesUpdated", this._imagesUpdatedHandler, this);
             return this;
         },
 
@@ -86,14 +91,34 @@
 
         _setProperty: function(property, value) {
             var viewId = property + '-value';
-            this.element.find("#" + viewId).val(value);
+            if (typeof(value) === 'boolean') {
+                this.element.find("#" + viewId).attr('checked', value);
+            } else {
+                this.element.find("#" + viewId).val(value);
+            }
         },
 
         _modelUpdatedHandler: function(event, widget) {
+            var affectedWidget, id, value;
             widget = widget || this;
             if (event && event.type === "propertyChanged") {
                 if (event.node.getType() !== 'Design') {
-                    widget._setProperty(event.property, event.newValue);
+                    id = event.property + '-value';
+                    affectedWidget = widget.element.find('#' + id);
+                    if (affectedWidget.attr('type') !== 'checkbox') {
+                        value = affectedWidget.val();
+                    } else {
+                        value = affectedWidget.attr('checked')?true:false;
+                    }
+                    if(event.newValue != value) {
+                        affectedWidget[0].scrollIntoViewIfNeeded();
+                        if(typeof(event.newValue) === 'boolean') {
+                            affectedWidget.effect('pulsate', { times:3 }, 200);
+                        } else {
+                            affectedWidget.effect('highlight', {}, 1000);
+                        }
+                        widget._setProperty(event.property, event.newValue);
+                    }
                     return;
                 } else if (event.property !== 'css') {
                     return;
@@ -106,6 +131,17 @@
             // happen when selection changes
         },
 
+        _imagesUpdatedHandler: function(event, widget) {
+            widget = widget || this;
+            var optionsList, options;
+            if (widget.options.imagesDatalist) {
+                options = event.usageStatus || $.rib.pmUtils.resourceRef;
+                optionsList = widget.options.imagesDatalist.find('ul');
+                updateOptions(optionsList, Object.keys(options));
+            }
+            return;
+        },
+
         _showProperties: function(node) {
             var labelId, labelVal, valueId, valueVal, count,
                 widget = this, type,  i, child, index, propType,
@@ -113,7 +149,8 @@
                 design = ADM.getDesignRoot(),
                 title = this.element.parent().find('.property_title'),
                 content = this.element.find('.property_content'),
-                continueToDelete, buttonsContainer, container, prerequisite;
+                continueToDelete, buttonsContainer, container, prerequisite,
+                range, min, max;
 
             // Clear the properties pane when nothing is selected
             if (node === null || node === undefined) {
@@ -129,6 +166,8 @@
                     .addClass('title')
                     .text(BWidget.getDisplayLabel(type)+' Properties');
             content.empty();
+            // git rib of old datalist element
+            this.options.imagesDatalist = null;
             propertyItems = $('<div/>').addClass("propertyItems")
                                     .appendTo(content);
             props = node.getProperties();
@@ -181,28 +220,65 @@
                             value.find("#" + valueId).attr("checked", "checked");
                         }
                         break;
+                    case "integer":
+                        range = BWidget.getPropertyRange(type, p);
+                        if (range) {
+                            min = range.split('-')[0];
+                            max = range.split('-')[1];
+                            $('<input type="number"/>')
+                                .addClass('title labelInput')
+                                .attr({
+                                    id: valueId,
+                                    min: min,
+                                    max: max
+                                })
+                                .change(function(event) {
+                                    if( parseInt(this.value) > parseInt(this.max) ||
+                                        parseInt(this.value) < parseInt(this.min)) {
+                                            $(this).effect("highlight", {color: "red"}, 1000);
+                                            event.stopImmediatePropagation();
+                                            this.value = valueVal;
+                                    }
+                                })
+                                .appendTo(value);
+                            //set default value
+                            value.find('#' + valueId).val(valueVal);
+                        }
+                        break;
                     case "url-uploadable":
-                        $('<input type ="text" value="">')
+                        var array, datalist, uploadClick;
+                        uploadClick = function (e) {
+                            var optionsWrapper, textInput, saveDir;
+                            optionsWrapper = $(this).parents('.datalist:first');
+                            optionsWrapper.hide();
+                            textInput = optionsWrapper.prev('input');
+
+                            saveDir = $.rib.pmUtils.ProjectDir + "/" + $.rib.pmUtils.getActive() + "/images/";
+                            $.rib.fsUtils.upload("image", $(this).parent(), function(file) {
+                                // Write uploaded file to sandbox
+                                $.rib.fsUtils.write(saveDir + file.name, file, function (newFile) {
+                                    textInput.val("images/" + newFile.name).change();
+                                });
+                            });
+                        };
+                        // merge all image files
+                        array = [{
+                            value: "upload",
+                            clickCallback: uploadClick,
+                            cssClass: 'upload-button',
+                            stable: true
+                        }].concat(Object.keys($.rib.pmUtils.resourceRef));
+                        datalist = createDatalist(array);
+                        if (!datalist) break;
+                        datalist.addClass('title').appendTo(value);
+                        datalist.find('input[type="text"]')
                             .attr('id', valueId)
                             .addClass('title labelInput')
-                            .appendTo(value);
-                        //set default value
-                        value.find('#' + valueId).val(valueVal);
-                        $('<button> Upload </button>')
-                            .addClass('buttonStyle')
-                            .click(function (e) {
-                                var target, saveDir;
-                                target = $(this).prev("input:text");
-                                saveDir = $.rib.pmUtils.ProjectDir + "/" + $.rib.pmUtils.getActive() + "/images/";
-                                $.rib.fsUtils.upload("image", $(this).parent(), function(file) {
-                                    // Write uploaded file to sandbox
-                                    $.rib.fsUtils.write(saveDir + file.name, file, function (newFile) {
-                                        target.val("images/" + newFile.name);
-                                        target.trigger('change');
-                                    });
-                                });
-                            }).appendTo(value);
+                            .val(valueVal);
+                        // save the datalist for update
+                        this.options.imagesDatalist = $(this.options.imagesDatalist).add(datalist);
                         break;
+
                     case "record-array":
                         $('<table/>')
                             .attr('id', 'selectOption')

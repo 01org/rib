@@ -9,171 +9,12 @@
  */
 "use strict";
 
-var ADMEvent = {
-    _lastEventId: 0
-};
-
-var ADMEventQueue = [];
-
-ADMEventQueue.processEvents = function () {
-    var queuedEvent = ADMEventQueue.shift();
-    if (queuedEvent) {
-        queuedEvent.handler(queuedEvent.event, queuedEvent.data);
-    }
-}
-
 /**
  * Base class for objects that support sending ADM events.
  *
  * @class
  */
-var ADMEventSource = {
-    _admEvents: {},
-    _suppressEvents: 0,
-
-    /**
-     * Adds named event to list of known event types for this object,
-     * initialized with no event listeners.
-     *
-     * @param {String} name The name of the event.
-     */
-    addEventType: function (name) {
-        this._admEvents[name] = [];
-    },
-
-    /**
-     * Binds the given handler function to be called whenever the named event
-     * occurs on this object.
-     *
-     * @param {String} name The name of the event.
-     * @param {Function} handler Handler function to be called on this event.
-     *                           The function should expect event and data
-     *                           arguments.
-     * @param {Any} data Any data or object to be passed to the handler.
-     * @see ADMEventSource.unbind
-     */
-    bind: function (name, handler, data) {
-        if (typeof name !== "string") {
-            console.error("Error: called bind with a non-string event name");
-            return;
-        }
-        var eventType = this._admEvents[name];
-        if (eventType === undefined) {
-            console.error("Error: bind did not find event type " + name);
-            return;
-        }
-        eventType.push({ handler: handler, data: data });
-    },
-
-    /**
-     * Removes binding to handler function. If handler is undefined, removes
-     * all handlers for the named event. If handler is defined but data is
-     * undefined, removes any bindings to that handler regardless of data. If
-     * data is also specified, removes only the bindings with that data.
-     *
-     * @param {String} name The name of the event.
-     * @param {Function} handler Handler function previously passed to bind().
-     * @param {Any} data Any data or object previously passed to the handler.
-     * @return {Number} The number of event handlers that were removed.
-     * @see ADMEventSource.bind
-     */
-    unbind: function (name, handler, data) {
-        var removed = 0, listeners, i;
-        if (typeof name !== "string") {
-            console.error("Error: called unbind with a non-string event name");
-            return removed;
-        }
-        listeners = this._admEvents[name];
-        if (listeners) {
-            for (i = listeners.length - 1; i >= 0; i--) {
-                if (handler === undefined ||
-                    (listeners[i].handler === handler &&
-                     (data === undefined) || (listeners[i].data === data))) {
-                    listeners.splice(i, 1);
-                    removed++;
-                }
-            }
-        }
-        return removed;
-    },
-
-    /**
-     * Clears named event from the event queue.
-     *
-     * @param {String} name The name of the event.
-     * @see ADMEventSource.bind
-     * @see ADMEventSource.unbind
-     */
-    clearEvent: function (name) {
-        var i = 0;
-        while (i < ADMEventQueue.length) {
-            if (ADMEventQueue[i].event.name === name) {
-                ADMEventQueue.splice(i, 1);
-            } else {
-                i++;
-            }
-        }
-    },
-
-    /**
-     * Fires named event from this object, with extra properties set in data.
-     *
-     * @param {String} name The name of the event.
-     * @param {Object} data Object with properties to include in the event.
-     * @see ADMEventSource.bind
-     * @see ADMEventSource.unbind
-     */
-    fireEvent: function (name, data) {
-        var listeners, event, i, length;
-        if (this._suppressEvents > 0) {
-            return;
-        }
-
-        listeners = this._admEvents[name];
-        if (listeners === undefined) {
-            console.error("Error: fireEvent did not find event type " + name);
-            return;
-        }
-
-        event = {
-            id: ++ADMEvent._lastEventId,
-            name: name
-        };
-        for (i in data) {
-            if (data.hasOwnProperty(i)) {
-                event[i] = data[i];
-            }
-        }
-
-        length = listeners.length;
-        for (i = 0; i < length; i++) {
-            ADMEventQueue.push({
-                handler: listeners[i].handler,
-                event: event,
-                data: listeners[i].data
-            });
-            setTimeout("ADMEventQueue.processEvents()", 0);
-        }
-    },
-
-    /**
-     * Suppresses events from this event source. Each call with a true argument
-     * must be matched with a call with a false argument before events will
-     * be sent again.
-     *
-     * @param {Boolean} flag True to suppress events, false to stop suppressing
-     *                       events.
-     */
-    suppressEvents: function (flag) {
-        if (flag) {
-            this._suppressEvents++;
-        } else {
-            if (this._suppressEvents > 0) {
-                this._suppressEvents--;
-            }
-        }
-    }
-};
+var ADMEventSource = new RIBEventSource();
 
 /**
  * Global object to access the ADM.
@@ -518,7 +359,7 @@ ADM.endTransaction = function () {
  * @return {ADMNode} The child object, on success; null, on failure.
  */
 ADM.addChild = function (parentRef, childRef, dryrun) {
-    var parent, child;
+    var parent, child, oldParent, oldType, oldZone, oldZoneIndex;
 
     parent = ADM.toNode(parentRef);
     if (!parent) {
@@ -538,6 +379,12 @@ ADM.addChild = function (parentRef, childRef, dryrun) {
         return null;
     }
 
+    oldParent = child.getParent();
+    if (oldParent) {
+        oldType = child.getType();
+        oldZone = child.getZone();
+        oldZoneIndex = child.getZoneIndex();
+    }
     if (parent.addChild(child, dryrun)) {
         if (dryrun) {
             return true;
@@ -547,7 +394,11 @@ ADM.addChild = function (parentRef, childRef, dryrun) {
         ADM.transaction({
             type: "add",
             parent: child.getParent(),
-            child: child
+            child: child,
+            oldParent: oldParent,
+            oldType: oldType,
+            oldZone: oldZone,
+            oldZoneIndex: oldZoneIndex
         });
         return child;
     }
@@ -634,7 +485,7 @@ ADM.addChildRecursive = function (parentRef, childRef, dryrun) {
  * @private
  */
 ADM.insertChildRelative = function (siblingRef, childRef, offset, dryrun) {
-    var sibling, child;
+    var sibling, child, oldParent, oldType, oldZone, oldZoneIndex;
 
     sibling = ADM.toNode(siblingRef);
     if (!sibling) {
@@ -655,6 +506,12 @@ ADM.insertChildRelative = function (siblingRef, childRef, offset, dryrun) {
                      childRef);
     }
 
+    oldParent = child.getParent();
+    if (oldParent) {
+        oldType = child.getType();
+        oldZone = child.getZone();
+        oldZoneIndex = child.getZoneIndex();
+    }
     if (sibling.insertChildRelative(child, offset, dryrun)) {
         if (dryrun) {
             return true;
@@ -663,7 +520,11 @@ ADM.insertChildRelative = function (siblingRef, childRef, offset, dryrun) {
             type: "insertRelative",
             sibling: sibling,
             child: child,
-            offset: offset
+            offset: offset,
+            oldParent: oldParent,
+            oldType: oldType,
+            oldZone: oldZone,
+            oldZoneIndex: oldZoneIndex
         });
         return child;
     }
@@ -919,20 +780,20 @@ ADM.transaction = function (obj) {
  */
 ADM.undo = function () {
     var obj, undo = function (obj) {
-        if (obj.type === "add") {
+        if ( ["add", "insertRelative", "move"].indexOf(obj.type) !== -1) {
             ADM.ensurePageInactive(obj.child);
-            obj.parent.removeChild(obj.child);
+            if (obj.oldParent) {
+                if (obj.oldType !== obj.child.getType())
+                    obj.child.morphTo(obj.oldType);
+                obj.child.moveNode(obj.oldParent, obj.oldZone, obj.oldZoneIndex);
+                ADM.setSelected(obj.child);
+            }
+            else
+                obj.child.getParent().removeChild(obj.child);
         }
         else if (obj.type === "remove") {
             obj.parent.insertChildInZone(obj.child, obj.zone, obj.zoneIndex);
             ADM.setSelected(obj.child);
-        }
-        else if (obj.type === "move") {
-            obj.node.moveNode(obj.oldParent, obj.oldZone, obj.oldZoneIndex);
-            ADM.setSelected(obj.node);
-        }
-        else if (obj.type === "insertRelative") {
-            obj.sibling.getParent().removeChild(obj.child);
         }
         else if (obj.type === "propertyChange") {
             // TODO: this could require deeper copy of complex properties
@@ -1167,18 +1028,8 @@ function ADMNode(widgetType) {
     var currentType = widgetType, widget, zones, length, i, func;
 
     this._valid = false;
-    this._inheritance = [];
-
-    while (currentType) {
-        widget = BWidgetRegistry[currentType];
-        if (typeof widget === "object") {
-            this._inheritance.push(currentType);
-            currentType = widget.parent;
-        } else {
-            console.error("Error: invalid type hierarchy creating ADM node");
-            return;
-        }
-    }
+    this._inheritance = [widgetType];
+    $.merge(this._inheritance, BWidget.getAncestors(widgetType));
 
     this._uid = ++ADMNode.prototype._lastUid;
 
@@ -1612,6 +1463,18 @@ ADMNode.prototype.hasUserVisibleDescendants = function () {
 };
 
 /**
+ * Change this node to another type
+ *
+ * @param {String} type The type this node will morph to.
+ * @return {ADMNode} The morphed node.
+ */
+ADMNode.prototype.morphTo = function (type) {
+    var morphedChild = ADM.createNode(type);
+    this._inheritance = morphedChild._inheritance;
+    this._zones = morphedChild._zones;
+    return this;
+};
+/**
  * Adds given child object to this object, generally at the end of the first
  * zone that accepts the child.
  *
@@ -1678,11 +1541,19 @@ ADMNode.prototype.addChild = function (child, dryrun) {
 ADMNode.prototype.addChildToZone = function (child, zoneName, zoneIndex,
                                              dryrun) {
     // requires: assumes cardinality is "N", or a numeric string
-    var add = false, myType, childType, zone, cardinality, limit;
+    var add = false, myType, childType, zone, cardinality, limit, morph,
+        morphedChildType, morphedChild;
     myType = this.getType();
     childType = child.getType();
     zone = this._zones[zoneName];
 
+    morph = BWidget.getZone(myType, zoneName).morph;
+    if (morph) {
+        morphedChildType = morph(childType, myType);
+        if (morphedChildType !== childType) {
+            childType = morphedChildType;
+        }
+    }
     if (!BWidget.zoneAllowsChild(myType, zoneName, childType)) {
         if (!dryrun) {
             console.warn("Warning: zone " + zoneName +
@@ -1705,6 +1576,7 @@ ADMNode.prototype.addChildToZone = function (child, zoneName, zoneIndex,
         return false;
     }
 
+    cardinality = cardinality.max || cardinality;
     if (cardinality !== "N") {
         limit = parseInt(cardinality, 10);
         if (zone.length >= limit) {
@@ -1789,7 +1661,8 @@ ADMNode.prototype.insertChildInZone = function (child, zoneName, index,
         }
     }
 
-    var zone = this._zones[zoneName];
+    var zone = this._zones[zoneName], oldParent,
+        myType, childType, morph, morphedChildType;
     if (!zone) {
         console.error("Error: zone not found in insertChildInZone: " +
                       zoneName);
@@ -1800,7 +1673,22 @@ ADMNode.prototype.insertChildInZone = function (child, zoneName, index,
         return false;
     }
     if (child instanceof ADMNode) {
+        oldParent = child.getParent();
+        if (oldParent) {
+            if (oldParent === this && child.getZone() === zoneName
+                    && child.getZoneIndex() < index)
+                index --;
+            return child.moveNode(this, zoneName, index, dryrun);
+        }
         if (!dryrun) {
+            myType = this.getType();
+            childType = child.getType();
+            morph = BWidget.getZone(myType, zoneName).morph;
+            if (morph) {
+                morphedChildType = morph(childType, myType);
+                if (morphedChildType != childType)
+                    child.morphTo(morphedChildType);
+            }
             zone.splice(index, 0, child);
 
             setRootRecursive(child, this._root);
@@ -1916,11 +1804,29 @@ ADMNode.prototype.removeChild = function (child, dryrun) {
  * @return {ADMNode} The removed child, or null if not found.
  */
 ADMNode.prototype.removeChildFromZone = function (zoneName, index, dryrun) {
-    var zone, removed, child, parentNode, parent;
+    var zone, removed, child, parent, cardinality, min;
     zone = this._zones[zoneName];
     if (!zone) {
         console.error("Error: no such zone found while removing child: " +
                       zoneName);
+    }
+    cardinality = BWidget.getZoneCardinality(this.getType(), zoneName);
+    if (!cardinality) {
+        console.warn("Warning: no cardinality found for zone " + zoneName);
+        return false;
+    }
+
+    if (cardinality.min) {
+        min = parseInt(cardinality.min, 10);
+
+        if (zone.length <= min) {
+            alert("At least "
+                    + cardinality.min + " "
+                    + BWidget.getDisplayLabel(zone[index].getType())
+                    + (min === 1 ? " " : "s ")
+                    + (min === 1 ? "is": "are") + " required and cannot be deleted!");
+            return false;
+        }
     }
 
     if (dryrun) {

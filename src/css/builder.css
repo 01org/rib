@@ -172,30 +172,33 @@ body.ui-tabs.ui-widget {
     border-bottom: 1px solid rgba(0,0,0,0.6);
     background: none;
     background-color: #2a3c4a;
+    height: 56px;
     -webkit-border-top-left-radius: .4em;
     -webkit-border-top-right-radius: .4em;
     -webkit-border-bottom-left-radius: 0px;
     -webkit-border-bottom-right-radius: 0px;
 }
+.navbar > * {
+    height: 32px;
+}
 .navbar > ul.ui-tabs-nav {
     display: -webkit-box;
     border: 0px none transparent;
     background: none;
+    padding: 0px;
+    margin: 12px 0px 12px 10px;
     -webkit-border-top-left-radius: 0px;
     -webkit-border-top-right-radius: 0px;
     -webkit-border-bottom-left-radius: 0px;
     -webkit-border-bottom-right-radius: 0px;
-    padding: .5em;
-/*
-    float: left;
-*/
 }
 .navbar > ul.ui-tabs-nav li {
     -webkit-border-top-left-radius: 0px;
     -webkit-border-top-right-radius: 0px;
     -webkit-border-bottom-left-radius: 0px;
     -webkit-border-bottom-right-radius: 0px;
-    margin-right: 0px !important;
+    top: 0px;
+    margin: 0px;
     border: none;
     background: none;
 }
@@ -208,7 +211,6 @@ body.ui-tabs.ui-widget {
     -webkit-border-bottom-right-radius: .5em !important;
 }
 .navbar > ul.ui-tabs-nav li.ui-tabs-selected {
-    margin-bottom: 0px;
     padding-bottom: 0px;
 }
 .navbar .default-tools a:hover {
@@ -227,13 +229,12 @@ body.ui-tabs.ui-widget {
     /* FIXME: temporary to make tab buttons more reasonably sized */
     font-size: 12px;
     text-transform: uppercase;
-    margin-top: 6px;
-    margin-bottom: 2px;
 }
 
 .navbar > ul.ui-tabs-nav li a {
     padding: 0;
     height: 32px;
+    border: none;
 }
 
 /*
@@ -534,14 +535,15 @@ body.ui-tabs.ui-widget {
 */
 .tools-primary {
     display: -webkit-box;
-    padding: .5em;
+    margin: 12px 0px 12px 0px;
     box-pack: center;
     -moz-box-pack: center;
     -webkit-box-pack: center;
 
 }
 .tools-primary .buttonStyle {
-    margin: 0.3em 0px 0px;
+    margin: 0px;
+    padding: 0px;
     background: #6d8995;
     border: none;
     color: #fefffa;
@@ -627,23 +629,18 @@ body.ui-tabs.ui-widget {
 */
 .tools-secondary {
     display: -webkit-box;
-    padding: .5em;
+    margin: 12px 0px 12px 0px;
     box-pack: end;
     -moz-box-pack: end;
     -webkit-box-pack: end;
 }
 .tools-secondary .default-tools {
-    margin-top: 5px;
     font-size: 12px;
     font-family: OpenSans-SB;
     font-weight: 600; /* semi-bold */
     color: #f0f0f0;
-    margin-bottom: 4px;
 }
 .tools-secondary button {
-    margin-left: 0px;
-    margin-right: 0px;
-    padding: .5em 0px;
     background: none;
     border: none;
     margin-bottom: 0px;
@@ -868,6 +865,17 @@ body.ui-tabs.ui-widget {
     padding: 0px 5px;
     overflow-x: hidden;
     overflow-y: auto;
+}
+.propertyView .datalist .upload-button {
+    text-align: center;
+    border: 1px solid #a1a1a1;
+    line-height: 12px;
+    background-color: #fbfbfb;
+    -webkit-border-radius: 6px;
+    -moz-border-radius: 6px;
+    border-radius: 6px;
+    margin-top: 2px;
+    margin-bottom: 2px;
 }
 .propertyView .datalist li {
     clear:both;
@@ -1220,36 +1228,11 @@ div.propertyItems .delete.button {
 }
 .ribDialog #uploadTheme {
     cursor: pointer;
-}
-.mt15 {
-    margin-top: 15px;
-}
-.mt30 {
-    margin-top: 30px;
-}
-.mt200 {
-    margin-top: 200px;
-}
-.mt150 {
-    margin-top: 150px;
-}
-.mt23 {
-    margin-top: 23px;
-}
-.mr40 {
     margin-right: 40px;
-}
-.mr120 {
-    margin-right: 120px;
-}
-.mr_200 {
-    margin-right: -200px;
-}
-.fl {
-    float: left;
-}
-.fr {
     float: right;
+}
+.ribDialog .dialog-rows-distance {
+    margin-top: 30px;
 }
 .ribDialog .buttonStyle {
     width: 60px;

@@ -27,6 +27,7 @@
             });
             $(e).focusin(function (e) {
                 $(this).find(".ui-selected").addClass("focused");
+                window.focusElement = e.target;
             });
 
         },
@@ -41,7 +42,7 @@
             }
             items = $(this).find("a:visible");
             focusedIndex = focusing = items.index(focused);
-            if (focused === -1) {
+            if (focusedIndex === -1) {
                 console.error("focused not in list items");
             }
             switch (e.which) {
@@ -66,7 +67,7 @@
                 default:
                     break;
             }
-            if (focused !== focusing) {
+            if (focusedIndex !== focusing) {
                 focused.removeClass("focused");
                 $(items[focusing]).addClass("focused");
                 items[focusing].scrollIntoViewIfNeeded();
