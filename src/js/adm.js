@@ -254,6 +254,24 @@ ADM.addEventType("activePageChanged");
 ADM.addEventType("selectionChanged");
 
 /**
+ * Event sent by the ADM object when the usage status of images change.
+ * When the active page changes, the selected widget is set to null
+ * automatically.
+ *
+ * @name ADM#imagesUpdated
+ * @event
+ * @param {Object} event Object including standard "id" and "name"
+ *                       properties, as well as a
+ *                         "usageStatus" is an object contains
+ *                                       current usage status of
+ *                                       all existing images
+ * @param {Any} data The data you supplied to the bind() call.
+ * @see ADMEventSource.bind
+ * @see ADMEventSource.unbind
+ */
+ADM.addEventType("imagesUpdated");
+
+/**
  * Gets the singleton design root.
  *
  * @return {ADMDesign} The root design object.
