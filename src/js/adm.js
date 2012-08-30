@@ -518,7 +518,7 @@ ADM.endTransaction = function () {
  * @return {ADMNode} The child object, on success; null, on failure.
  */
 ADM.addChild = function (parentRef, childRef, dryrun) {
-    var parent, child;
+    var parent, child, oldParent, oldType, oldZone, oldZoneIndex;
 
     parent = ADM.toNode(parentRef);
     if (!parent) {
@@ -538,6 +538,12 @@ ADM.addChild = function (parentRef, childRef, dryrun) {
         return null;
     }
 
+    oldParent = child.getParent();
+    if (oldParent) {
+        oldType = child.getType();
+        oldZone = child.getZone();
+        oldZoneIndex = child.getZoneIndex();
+    }
     if (parent.addChild(child, dryrun)) {
         if (dryrun) {
             return true;
@@ -547,7 +553,11 @@ ADM.addChild = function (parentRef, childRef, dryrun) {
         ADM.transaction({
             type: "add",
             parent: child.getParent(),
-            child: child
+            child: child,
+            oldParent: oldParent,
+            oldType: oldType,
+            oldZone: oldZone,
+            oldZoneIndex: oldZoneIndex
         });
         return child;
     }
@@ -634,7 +644,7 @@ ADM.addChildRecursive = function (parentRef, childRef, dryrun) {
  * @private
  */
 ADM.insertChildRelative = function (siblingRef, childRef, offset, dryrun) {
-    var sibling, child;
+    var sibling, child, oldParent, oldType, oldZone, oldZoneIndex;
 
     sibling = ADM.toNode(siblingRef);
     if (!sibling) {
@@ -655,6 +665,12 @@ ADM.insertChildRelative = function (siblingRef, childRef, offset, dryrun) {
                      childRef);
     }
 
+    oldParent = child.getParent();
+    if (oldParent) {
+        oldType = child.getType();
+        oldZone = child.getZone();
+        oldZoneIndex = child.getZoneIndex();
+    }
     if (sibling.insertChildRelative(child, offset, dryrun)) {
         if (dryrun) {
             return true;
@@ -663,7 +679,11 @@ ADM.insertChildRelative = function (siblingRef, childRef, offset, dryrun) {
             type: "insertRelative",
             sibling: sibling,
             child: child,
-            offset: offset
+            offset: offset,
+            oldParent: oldParent,
+            oldType: oldType,
+            oldZone: oldZone,
+            oldZoneIndex: oldZoneIndex
         });
         return child;
     }
@@ -919,20 +939,20 @@ ADM.transaction = function (obj) {
  */
 ADM.undo = function () {
     var obj, undo = function (obj) {
-        if (obj.type === "add") {
+        if ( ["add", "insertRelative", "move"].indexOf(obj.type) !== -1) {
             ADM.ensurePageInactive(obj.child);
-            obj.parent.removeChild(obj.child);
+            if (obj.oldParent) {
+                if (obj.oldType !== obj.child.getType())
+                    obj.child.morphTo(obj.oldType);
+                obj.child.moveNode(obj.oldParent, obj.oldZone, obj.oldZoneIndex);
+                ADM.setSelected(obj.child);
+            }
+            else
+                obj.child.getParent().removeChild(obj.child);
         }
         else if (obj.type === "remove") {
             obj.parent.insertChildInZone(obj.child, obj.zone, obj.zoneIndex);
             ADM.setSelected(obj.child);
-        }
-        else if (obj.type === "move") {
-            obj.node.moveNode(obj.oldParent, obj.oldZone, obj.oldZoneIndex);
-            ADM.setSelected(obj.node);
-        }
-        else if (obj.type === "insertRelative") {
-            obj.sibling.getParent().removeChild(obj.child);
         }
         else if (obj.type === "propertyChange") {
             // TODO: this could require deeper copy of complex properties
@@ -1167,18 +1187,8 @@ function ADMNode(widgetType) {
     var currentType = widgetType, widget, zones, length, i, func;
 
     this._valid = false;
-    this._inheritance = [];
-
-    while (currentType) {
-        widget = BWidgetRegistry[currentType];
-        if (typeof widget === "object") {
-            this._inheritance.push(currentType);
-            currentType = widget.parent;
-        } else {
-            console.error("Error: invalid type hierarchy creating ADM node");
-            return;
-        }
-    }
+    this._inheritance = [widgetType];
+    $.merge(this._inheritance, BWidget.getAncestors(widgetType));
 
     this._uid = ++ADMNode.prototype._lastUid;
 
@@ -1612,6 +1622,18 @@ ADMNode.prototype.hasUserVisibleDescendants = function () {
 };
 
 /**
+ * Change this node to another type
+ *
+ * @param {String} type The type this node will morph to.
+ * @return {ADMNode} The morphed node.
+ */
+ADMNode.prototype.morphTo = function (type) {
+    var morphedChild = ADM.createNode(type);
+    this._inheritance = morphedChild._inheritance;
+    this._zones = morphedChild._zones;
+    return this;
+};
+/**
  * Adds given child object to this object, generally at the end of the first
  * zone that accepts the child.
  *
@@ -1678,11 +1700,19 @@ ADMNode.prototype.addChild = function (child, dryrun) {
 ADMNode.prototype.addChildToZone = function (child, zoneName, zoneIndex,
                                              dryrun) {
     // requires: assumes cardinality is "N", or a numeric string
-    var add = false, myType, childType, zone, cardinality, limit;
+    var add = false, myType, childType, zone, cardinality, limit, morph,
+        morphedChildType, morphedChild;
     myType = this.getType();
     childType = child.getType();
     zone = this._zones[zoneName];
 
+    morph = BWidget.getZone(myType, zoneName).morph;
+    if (morph) {
+        morphedChildType = morph(childType, myType);
+        if (morphedChildType !== childType) {
+            childType = morphedChildType;
+        }
+    }
     if (!BWidget.zoneAllowsChild(myType, zoneName, childType)) {
         if (!dryrun) {
             console.warn("Warning: zone " + zoneName +
@@ -1705,6 +1735,7 @@ ADMNode.prototype.addChildToZone = function (child, zoneName, zoneIndex,
         return false;
     }
 
+    cardinality = cardinality.max || cardinality;
     if (cardinality !== "N") {
         limit = parseInt(cardinality, 10);
         if (zone.length >= limit) {
@@ -1789,7 +1820,8 @@ ADMNode.prototype.insertChildInZone = function (child, zoneName, index,
         }
     }
 
-    var zone = this._zones[zoneName];
+    var zone = this._zones[zoneName], oldParent,
+        myType, childType, morph, morphedChildType;
     if (!zone) {
         console.error("Error: zone not found in insertChildInZone: " +
                       zoneName);
@@ -1800,7 +1832,22 @@ ADMNode.prototype.insertChildInZone = function (child, zoneName, index,
         return false;
     }
     if (child instanceof ADMNode) {
+        oldParent = child.getParent();
+        if (oldParent) {
+            if (oldParent === this && child.getZone() === zoneName
+                    && child.getZoneIndex() < index)
+                index --;
+            return child.moveNode(this, zoneName, index, dryrun);
+        }
         if (!dryrun) {
+            myType = this.getType();
+            childType = child.getType();
+            morph = BWidget.getZone(myType, zoneName).morph;
+            if (morph) {
+                morphedChildType = morph(childType, myType);
+                if (morphedChildType != childType)
+                    child.morphTo(morphedChildType);
+            }
             zone.splice(index, 0, child);
 
             setRootRecursive(child, this._root);
@@ -1916,11 +1963,29 @@ ADMNode.prototype.removeChild = function (child, dryrun) {
  * @return {ADMNode} The removed child, or null if not found.
  */
 ADMNode.prototype.removeChildFromZone = function (zoneName, index, dryrun) {
-    var zone, removed, child, parentNode, parent;
+    var zone, removed, child, parent, cardinality, min;
     zone = this._zones[zoneName];
     if (!zone) {
         console.error("Error: no such zone found while removing child: " +
                       zoneName);
+    }
+    cardinality = BWidget.getZoneCardinality(this.getType(), zoneName);
+    if (!cardinality) {
+        console.warn("Warning: no cardinality found for zone " + zoneName);
+        return false;
+    }
+
+    if (cardinality.min) {
+        min = parseInt(cardinality.min, 10);
+
+        if (zone.length <= min) {
+            alert("At least "
+                    + cardinality.min + " "
+                    + BWidget.getDisplayLabel(zone[index].getType())
+                    + (min === 1 ? " " : "s ")
+                    + (min === 1 ? "is": "are") + " required and cannot be deleted!");
+            return false;
+        }
     }
 
     if (dryrun) {
