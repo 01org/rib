@@ -17,7 +17,9 @@
 
         options: {
             iframe: null,
-            contentDocument: null
+            contentDocument: null,
+            maxDeviceSize: 10000,
+            minDeviceSize: 240,
         },
 
         _create: function() {
@@ -31,7 +33,9 @@
                 rotateDeviceButton,
                 widget = this,
                 screenCoordElement = function (name, min, className) {
-                    return $('<input type="number" min="240" max="10000" required/>')
+                    return $('<input type="number" min="'
+                                + widget.options.minDeviceSize + '" max="'
+                                + widget.options.maxDeviceSize + '" required/>')
                                 .attr("name", name)
                                 .addClass(className);
                 },
@@ -72,6 +76,7 @@
                                 buttonSet.append($('<input type="button" class="buttonStyle" value="Delete"></input>').click(function () {
                                     var type = widget._projectDevice.type;
                                     delete widget._userDevices[widget._projectDevice.name];
+                                    widget._findOptionByText(widget._recentDevices, widget._projectDevice.name).remove();
                                     applyDeviceChange(deviceForm, type);
                                 }));
                                 deviceForm
@@ -168,7 +173,8 @@
                 .append("<input type='submit' style='display:none' value='sumbit'/>")
                 .appendTo(devicePanel);
 
-            widget._recentDevices = $('<select/>').appendTo(deviceToolbar)
+            widget._recentDevices = $('<select class="deviceSelect"/>')
+                .appendTo(deviceToolbar)
                 .append('<option value="1">Recently Used</option>')
                 .change(function() {
                     $("option:selected", this).each(function () {
@@ -273,6 +279,18 @@
                 .addClass("rotateDevice separated")
                 .appendTo(deviceToolbar)
                 .click( function () {
+                    if (widget._screenWidth.val() < widget.options.minDeviceSize ||
+                        widget._screenHeight.val() < widget.options.minDeviceSize) {
+                       alert("Device size should not be less than "
+                           + widget.options.minDeviceSize);
+                       return;
+                    }
+                    else if (widget._screenWidth.val() > widget.options.maxDeviceSize ||
+                             widget._screenHeight.val() > widget.options.maxDeviceSize) {
+                       alert("Device size should not be greater than "
+                           + widget.options.maxDeviceSize);
+                       return;
+                    }
                     widget._projectDevice.rotating = !widget._projectDevice.rotating;
                     widget._projectDevice.screenWidth = widget._screenHeight.val();
                     widget._projectDevice.screenHeight = widget._screenWidth.val();
@@ -423,7 +441,7 @@
                 $('<li/>').append( key )
                     .attr('id', key)
                     .append(
-                        $('<b>></b>').addClass('fr')
+                        $('<b></b>').addClass('fr')
                     )
                     .append(
                         $('<ul/>')
@@ -457,9 +475,11 @@
             var scaleW =  screenWidth/deviceInfo.screen.width,
             scaleH =  screenHeight/deviceInfo.screen.height;
             deviceInfo.screen.width *= scaleW;
+            deviceInfo.screen.width = Math.round(deviceInfo.screen.width);
             deviceInfo.screen.offset.left *= scaleW;
             deviceInfo.screen.offset.right *= scaleW;
             deviceInfo.screen.height *= scaleH;
+            deviceInfo.screen.height = Math.round(deviceInfo.screen.height);
             deviceInfo.screen.offset.top *= scaleH;
             deviceInfo.screen.offset.bottom *= scaleH;
 
