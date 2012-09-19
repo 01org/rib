@@ -368,7 +368,7 @@ var BWidgetRegistry = {
                 type: "array",
                 defaultValue: [
                     { designOnly: false,
-                      value: 'lib/jquery-1.7.1.js'
+                      value: 'lib/jquery-1.7.2.js'
                     },
                     { designOnly: true,
                       value: 'lib/jquery-ui-1.8.16.custom.js'
