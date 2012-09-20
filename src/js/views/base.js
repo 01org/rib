@@ -63,8 +63,10 @@
                 // Should this REALLY be done here, or plugin registration in
                 // the "host"... using the functions mapped in widget options?
                 case 'model':
-                    this._unbindADMEvents();
-                    this._bindADMEvents(value);
+                    if (value == ADM) {
+                        this._unbindADMEvents();
+                        this._bindADMEvents(value);
+                    }
                     break;
                 default:
                     break;
@@ -110,7 +112,7 @@
 
             // First unbind our ADMDesign modelUpdated handler, if any...
             if (d && o.modelUpdated) {
-                d.designRoot.unbind("modelUpdated", o.modelUpdated, this);
+                d.unbind("modelUpdated", o.modelUpdated, this);
             }
 
             // Now unbind all ADM model event handlers, if any...
@@ -153,7 +155,8 @@
             widget.designRoot = d;
 
             // Finally, redraw our view since the ADMDesign root has changed
-            widget.refresh && widget.refresh(event, widget);
+            if (o.model === ADM)
+                widget.refresh && widget.refresh(event, widget);
         }
     });
 })(jQuery);

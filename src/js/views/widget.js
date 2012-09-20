@@ -17,8 +17,16 @@
     $.widget('rib.widgetView',  $.rib.treeView, {
 
         _create: function() {
-            var widget = this;
-            $.getJSON("src/assets/groups.json", function (groups) {
+            var processJSON, widget = this, design = ADM.getDesignRoot();
+
+            // Bind modelUpdated event handler direclty, designReset is using
+            // for rebind it after _setOptions();
+            this.options.modelUpdated = this._modelUpdatedHandler;
+            design.bind('modelUpdated', this._modelUpdatedHandler, this);
+            ADM.bind('designReset', this._designResetHandler, this);
+
+            // JSON processor
+            processJSON = function (groups) {
                 var resolveRefs = function (root, data) {
                     $.each(data, function(name, value) {
                         var refObj;
@@ -36,17 +44,62 @@
                     });
                 };
                 resolveRefs(groups, groups);
+                widget._groups = groups;
                 widget._setOption("model", groups);
-                widget.findDomNode(groups[0]['Functional Groups'])
-                    .find('> a').trigger('click');
-            });
+                widget._getDefaultSelectedNode().find('> a').trigger('click');
+            }
+
+            // Get the json file and initial the tree.
+            $.rib.fsUtils.read(
+                "groups.json",
+                // After read the file succeed, process the JSON file direclty.
+                function(jsonText) {
+                    processJSON(JSON.parse(jsonText));
+                },
+                // Read the default groups.json file after failure.
+                function() {
+                    $.getJSON("src/assets/groups.json", processJSON);
+                }
+            );
+            this._groups = [{}];
+            this._selectedNode = undefined;
             this.enableKeyNavigation();
             return this;
         },
 
+        _getDefaultSelectedNode: function() {
+            return this.element.find('li').first();
+        },
+
         _nodeSelected: function (treeModelNode, data, domNode) {
+            this._selectedNode = treeModelNode;
             this._setSelected(domNode);
             $(':rib-paletteView').paletteView('option', "model", treeModelNode);
+        },
+
+        _modelUpdatedHandler: function(event, widget) {
+            var type, index,
+                recentWidgets = widget._groups[0]['Recent Widgets'];
+            // Check the event type and update recent objects array.
+            if (typeof(event) === 'object' && event.type == 'nodeAdded') {
+                type = event.node.getType();
+                index = $.inArray(type, recentWidgets);
+                // Remove the widget from recentWidget if the widget is exist
+                // in recentWidget and not the first
+                if (index > 0)
+                    recentWidgets.splice(index, 1);
+                // Add the widget to the first of recentWidget array when the
+                // widget is not exist in recentWidget or after removed.
+                if (index < 0 || index > 0)
+                    recentWidgets.unshift(type);
+                // Refresh the paletteView when it's displaying recent widgets.
+                if (index != 0 && widget._selectedNode == recentWidgets) {
+                    $(':rib-paletteView').paletteView('refresh');
+                    $.rib.fsUtils.write(
+                        "groups.json", JSON.stringify(widget._groups)
+                    );
+                }
+            }
         },
 
         resize: function(event, widget) {
