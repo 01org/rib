@@ -527,9 +527,9 @@ $(function() {
                     $(this).sortable('refresh');
                     $.each($(this).data('sortable').containers, function () {
                         this.options.connectWith = '.ui-sortable-connected';
-                        this._refreshItems();
+                        this.refresh();
                     });
-                    $(this).data('sortable')._refreshItems();
+                    $(this).sortable('refresh');
 
 
 

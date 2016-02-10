@@ -373,7 +373,7 @@ $.widget("ui.sortable", $.extend({}, $.ui.sortable.prototype, {
     _contactContainers: function(event) {
 
         // get innermost container that intersects with item
-        var innermostContainer = null, innermostIndex = null, direction, intersection;
+        var innermostContainer = null, innermostIndex = null;
 
 
         for (var i = this.containers.length - 1; i >= 0; i--){
@@ -384,8 +384,7 @@ $.widget("ui.sortable", $.extend({}, $.ui.sortable.prototype, {
                 continue;
 
 
-            if(intersection = this._intersectsWithPointer(this.containers[i].containerCache)) {
-                direction = intersection == 1 ? "down" : "up";
+            if(this._intersectsWithPointer(this.containers[i].containerCache)) {
 
                 // if we've already found a container and it's more "inner" than this, then continue
                 if(innermostContainer && $.ui.contains(this.containers[i].element[0], innermostContainer.element[0]))
@@ -414,23 +413,24 @@ $.widget("ui.sortable", $.extend({}, $.ui.sortable.prototype, {
 
             //When entering a new container, we will find the item with the least distance and append our item near it
             var dist = 10000; var itemWithLeastDistance = null;
-            var posProperty = this.containers[innermostIndex].floating ? 'left' : 'top';
-            var sizeProperty = this.containers[innermostIndex].floating ? 'width' : 'height';
-            var base = this.positionAbs[posProperty] + this.offset.click[posProperty];
+            var floating = this.containers[innermostIndex].floating;
             for (var j = this.items.length - 1; j >= 0; j--) {
                 if(!$.ui.contains(this.containers[innermostIndex].element[0], this.items[j].item[0])) continue;
+                if(this.items[j].item[0] == this.currentItem[0]) continue;
+                floating = floating || (/left|right/).test(this.items[j].item.css('float')) || (/inline|table-cell/).test(this.items[j].item.css('display'));
+                var posProperty = floating ? 'left' : 'top';
+                var sizeProperty = floating ? 'width' : 'height';
+                var base = this.positionAbs[posProperty] + this.offset.click[posProperty];
                 var cur = this.items[j][posProperty];
-                if(Math.abs(cur - base) > Math.abs(cur + this.items[j][sizeProperty] - base))
+                var nearBottom = false;
+                if(Math.abs(cur - base) > Math.abs(cur + this.items[j][sizeProperty] - base)) {
                     cur += this.items[j][sizeProperty];
+                    nearBottom = true;
+                }
 
                 if(Math.abs(cur - base) < dist) {
                     dist = Math.abs(cur - base); itemWithLeastDistance = this.items[j];
-                    if(!this._intersectsWithPointer(itemWithLeastDistance) && base != cur)
-                    {
-                        this.direction =  base > cur ? "up": "down";
-                    }
-                    else
-                        this.direction = direction;
+                    this.direction =  nearBottom ? "up": "down";
                 }
             }
 
