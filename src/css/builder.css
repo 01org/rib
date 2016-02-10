@@ -186,35 +186,39 @@ body.ui-tabs.ui-widget {
 }
 .navbar > ul.ui-tabs-nav {
     display: -webkit-box;
-    border: 0px none transparent;
+    border: 3px solid #1C2229;
     background: none;
+    height: 26px;
+    width: 293px; /* FIXME: ul li width calculate have some issues, it will be broken when zoom in/out. */
     padding: 0px;
     margin: 12px 0px 12px 10px;
-    -webkit-border-top-left-radius: 0px;
-    -webkit-border-top-right-radius: 0px;
-    -webkit-border-bottom-left-radius: 0px;
-    -webkit-border-bottom-right-radius: 0px;
+    border-radius: 8px;
 }
 .navbar > ul.ui-tabs-nav li {
-    -webkit-border-top-left-radius: 0px;
-    -webkit-border-top-right-radius: 0px;
-    -webkit-border-bottom-left-radius: 0px;
-    -webkit-border-bottom-right-radius: 0px;
     top: 0px;
     margin: 0px;
-    border: none;
-    background: none;
+    border-top: 1px solid #95999B;
+    border-right: 1px solid #393C3D;
+    border-bottom: 1px solid #323536;
+    border-left: 1px solid #95999B;
+    border-radius: 0px;
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(80%, #575D63), color-stop(20%, #737A80));
 }
 .navbar > ul.ui-tabs-nav li:first-child {
-    -webkit-border-top-left-radius: .5em !important;
-    -webkit-border-bottom-left-radius: .5em !important;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
 }
 .navbar > ul.ui-tabs-nav li:last-child {
-    -webkit-border-top-right-radius: .5em !important;
-    -webkit-border-bottom-right-radius: .5em !important;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+.navbar > ul.ui-tabs-nav li:hover {
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(80%, #528791), color-stop(20%, #6B9FA9));
+    box-shadow: inset 0 0 10px #446A70;
 }
 .navbar > ul.ui-tabs-nav li.ui-tabs-selected {
     padding-bottom: 0px;
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(80%, #366B7E), color-stop(20%, #46889A));
 }
 .navbar .default-tools a:hover {
     /* GRG */
@@ -235,9 +239,18 @@ body.ui-tabs.ui-widget {
 }
 
 .navbar > ul.ui-tabs-nav li a {
-    padding: 0;
-    height: 32px;
+    width: 80px;
+    height: 26px;
+    font-size: 12px;
+    font-family: OpenSans-SB;
+    text-transform: uppercase;
+    text-align: center;
+    text-shadow: -1px -1px 1px #222;
+    line-height: 26px;
+    color: white;
+    padding: 0px;
     border: none;
+    outline:none;
 }
 
 /*
@@ -1495,54 +1508,18 @@ p.title {
 input.screenCoordinate::-webkit-inner-spin-button {
     -webkit-appearance: none
 }
-
 .projectViewButton {
-    background: url("images/homeButton_up.png") no-repeat 0 0;
-    width: 45px;
-}
-.projectViewButton:focus,
-.projectViewButton:hover,
-.projectViewButton:active {
-    background-image: url("images/homeButton_active.png");
-}
-.ui-tabs-selected >.projectViewButton {
-    background-image: url("images/homeButton_down.png");
-}
-.layoutViewButton {
-    background: url("images/layoutButton_up.png") no-repeat 0 0;
-    width: 80px;
-}
-.layoutViewButton:focus,
-.layoutViewButton:hover,
-.layoutViewButton:active {
-    background-image: url("images/layoutButton_active.png");
-}
-.ui-tabs-selected >.layoutViewButton {
-    background-image: url("images/layoutButton_down.png");
+    width: 45px !important; /* Override .navbar > ul.ui-tabs-nav li a settings in line 236 */
+    text-indent: -3000px;
+    background-image: url(images/homeIcon.png);
+    background-position: center;
+    background-repeat: no-repeat;
 }
 .codeViewButton {
-    background: url("images/codeButton_up.png") no-repeat 0 0;
-    width: 71px;
-}
-.codeViewButton:focus,
-.codeViewButton:hover,
-.codeViewButton:active {
-    background-image: url("images/codeButton_active.png");
-}
-.ui-tabs-selected >.codeViewButton {
-    background-image: url("images/codeButton_down.png");
+    width: 70px !important; /* Override .navbar > ul.ui-tabs-nav li a settings in line 236 */
 }
 .liveViewButton {
-    background: url("images/previewButton_up.png") no-repeat 0 0;
-    width: 87px;
-}
-.liveViewButton:focus,
-.liveViewButton:hover,
-.liveViewButton:active {
-    background-image: url("images/previewButton_active.png");
-}
-.ui-tabs-selected >.liveViewButton {
-    background-image: url("images/previewButton_down.png");
+    width: 90px !important; /* Override .navbar > ul.ui-tabs-nav li a settings in line 236 */
 }
 .centerImage {
     margin-top: 8px;
