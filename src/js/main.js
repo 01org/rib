@@ -315,6 +315,10 @@
                 .addClass('view live flex1');
             this.ui.liveView.append('<div class="stage flex1 vbox">');
 
+            this.ui.eventHandlerView = $('<div/>').appendTo(container)
+                .attr('id', 'eventHandlerView')
+                .addClass('view eventHandler');
+
             $('.pageView').each( function () {
                 $(this).pageView();
                 $(this).pageView('option', 'model', ADM);
@@ -329,6 +333,11 @@
                 $(this).propertyView();
                 $(this).propertyView('option', 'model', ADM);
             });
+
+            $('.eventHandler').each( function() {
+                $(this).eventHandlerView();
+                $(this).eventHandlerView('option', 'model', ADM);
+            })
 
             $('.paletteView').each( function () {
                 $(this).paletteView();
@@ -431,6 +440,7 @@
             this.ui.layoutView = $('.view.layout').eq(0);
             this.ui.codeView = $('.view.code').eq(0);
             this.ui.liveView = $('.view.live').eq(0);
+            this.ui.eventHandlerView = $('.view.eventHandler').eq(0);
             this.ui.tools = $('.tools-primary').eq(0);
             this.ui.extras = $('.tools-secondary').eq(0);
         },
