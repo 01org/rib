@@ -170,7 +170,7 @@
                                     .data('origin_node', v._origin_node);
                         }
                         widget._createTreeView(folderNode, value);
-                        if (v._origin_node == widget._getSelected()){
+                        if (v._origin_node === widget._getSelected()){
                             widget._setSelected(folderNode);
                         }
                     });
