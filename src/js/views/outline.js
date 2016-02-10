@@ -160,7 +160,10 @@
                 return null;
             return model.getSelectedNode() || model.getActivePage();
         },
-        _renderPageNode: function (domNode, node) {
+        _renderSpecialNode: function (domNode, node) {
+            var id, titleNode, element, icon;
+
+            // Display ID when type is Page.
             if (node.getType() === "Page") {
                 //set page id
                 var id = node.getProperty('id'),
@@ -169,6 +172,16 @@
                     titleNode = $('<span/>').addClass('pageTitle')
                         .appendTo(domNode.find("> a"));
                 titleNode.text(' (' + id + ')');
+            }
+
+            // Add event handler icon to outline view.
+            if (node.hasEventHandlers()) {
+                element = domNode.find('a');
+                icon  = $('<a class="eventHandlerIcon" title="Open event handler.">Event Handler</a>')
+                    .click(function(e) {
+                        $(':rib-eventHandlerView').dialog('open');
+                    });
+                element.append(icon);
             }
         },
         _render: function (domNode, data) {
@@ -187,7 +200,7 @@
                     $('<li class="label">' + label + '</li>')
                         .insertBefore(domNode).data('adm-node', parentNode);
             }
-            this._renderPageNode(domNode, data);
+            this._renderSpecialNode(domNode, data);
         },
         _nodeSelected: function (treeModelNode, data) {
             this.options.model.setSelected(data.getUid());

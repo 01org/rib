@@ -186,35 +186,39 @@ body.ui-tabs.ui-widget {
 }
 .navbar > ul.ui-tabs-nav {
     display: -webkit-box;
-    border: 0px none transparent;
+    border: 3px solid #1C2229;
     background: none;
+    height: 26px;
+    width: 293px; /* FIXME: ul li width calculate have some issues, it will be broken when zoom in/out. */
     padding: 0px;
     margin: 12px 0px 12px 10px;
-    -webkit-border-top-left-radius: 0px;
-    -webkit-border-top-right-radius: 0px;
-    -webkit-border-bottom-left-radius: 0px;
-    -webkit-border-bottom-right-radius: 0px;
+    border-radius: 8px;
 }
 .navbar > ul.ui-tabs-nav li {
-    -webkit-border-top-left-radius: 0px;
-    -webkit-border-top-right-radius: 0px;
-    -webkit-border-bottom-left-radius: 0px;
-    -webkit-border-bottom-right-radius: 0px;
     top: 0px;
     margin: 0px;
-    border: none;
-    background: none;
+    border-top: 1px solid #95999B;
+    border-right: 1px solid #393C3D;
+    border-bottom: 1px solid #323536;
+    border-left: 1px solid #95999B;
+    border-radius: 0px;
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(80%, #575D63), color-stop(20%, #737A80));
 }
 .navbar > ul.ui-tabs-nav li:first-child {
-    -webkit-border-top-left-radius: .5em !important;
-    -webkit-border-bottom-left-radius: .5em !important;
+    border-top-left-radius: 6px;
+    border-bottom-left-radius: 6px;
 }
 .navbar > ul.ui-tabs-nav li:last-child {
-    -webkit-border-top-right-radius: .5em !important;
-    -webkit-border-bottom-right-radius: .5em !important;
+    border-top-right-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+.navbar > ul.ui-tabs-nav li:hover {
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(80%, #528791), color-stop(20%, #6B9FA9));
+    box-shadow: inset 0 0 10px #446A70;
 }
 .navbar > ul.ui-tabs-nav li.ui-tabs-selected {
     padding-bottom: 0px;
+    background: -webkit-gradient(linear, left top, left bottom, color-stop(80%, #366B7E), color-stop(20%, #46889A));
 }
 .navbar .default-tools a:hover {
     /* GRG */
@@ -235,9 +239,18 @@ body.ui-tabs.ui-widget {
 }
 
 .navbar > ul.ui-tabs-nav li a {
-    padding: 0;
-    height: 32px;
+    width: 80px;
+    height: 26px;
+    font-size: 12px;
+    font-family: OpenSans-SB;
+    text-transform: uppercase;
+    text-align: center;
+    text-shadow: -1px -1px 1px #222;
+    line-height: 26px;
+    color: white;
+    padding: 0px;
     border: none;
+    outline:none;
 }
 
 /*
@@ -1495,54 +1508,18 @@ p.title {
 input.screenCoordinate::-webkit-inner-spin-button {
     -webkit-appearance: none
 }
-
 .projectViewButton {
-    background: url("images/homeButton_up.png") no-repeat 0 0;
-    width: 45px;
-}
-.projectViewButton:focus,
-.projectViewButton:hover,
-.projectViewButton:active {
-    background-image: url("images/homeButton_active.png");
-}
-.ui-tabs-selected >.projectViewButton {
-    background-image: url("images/homeButton_down.png");
-}
-.layoutViewButton {
-    background: url("images/layoutButton_up.png") no-repeat 0 0;
-    width: 80px;
-}
-.layoutViewButton:focus,
-.layoutViewButton:hover,
-.layoutViewButton:active {
-    background-image: url("images/layoutButton_active.png");
-}
-.ui-tabs-selected >.layoutViewButton {
-    background-image: url("images/layoutButton_down.png");
+    width: 45px !important; /* Override .navbar > ul.ui-tabs-nav li a settings in line 236 */
+    text-indent: -3000px;
+    background-image: url(images/homeIcon.png);
+    background-position: center;
+    background-repeat: no-repeat;
 }
 .codeViewButton {
-    background: url("images/codeButton_up.png") no-repeat 0 0;
-    width: 71px;
-}
-.codeViewButton:focus,
-.codeViewButton:hover,
-.codeViewButton:active {
-    background-image: url("images/codeButton_active.png");
-}
-.ui-tabs-selected >.codeViewButton {
-    background-image: url("images/codeButton_down.png");
+    width: 70px !important; /* Override .navbar > ul.ui-tabs-nav li a settings in line 236 */
 }
 .liveViewButton {
-    background: url("images/previewButton_up.png") no-repeat 0 0;
-    width: 87px;
-}
-.liveViewButton:focus,
-.liveViewButton:hover,
-.liveViewButton:active {
-    background-image: url("images/previewButton_active.png");
-}
-.ui-tabs-selected >.liveViewButton {
-    background-image: url("images/previewButton_down.png");
+    width: 90px !important; /* Override .navbar > ul.ui-tabs-nav li a settings in line 236 */
 }
 .centerImage {
     margin-top: 8px;
@@ -1563,17 +1540,19 @@ input.screenCoordinate::-webkit-inner-spin-button {
     margin: 0 0.6em;
 }
 
-#eventHandlerDialog {
+.eventHandler {
+    width: 980px !important; /* Override computed style */
+    height: 560px !important; /* Override computed style */
     overflow: hidden;
 }
 
-#eventHandlerDialog .title {
+.eventHandler .title {
     position: relative;
     height: 52px;
     background-color: #E4E5DF;
 }
 
-#eventHandlerDialog .title > label {
+.eventHandler .title > label {
     position: absolute;
     left: 10px;
     top: 16px;
@@ -1583,32 +1562,31 @@ input.screenCoordinate::-webkit-inner-spin-button {
     font-weight: 600; /* semi-bold */
 }
 
-
-#eventHandlerDialog .wrap_left {
+.eventHandler .wrap_left {
     position: relative;
     width: 230px;
     border-right: 1px solid #dededc;
 }
 
-#eventHandlerDialog .wrap_left .container {
+.eventHandler .wrap_left .container {
     position: absolute;
     width: 100%;
     margin: 10px;
 }
 
 
-#eventHandlerDialog .wrap_left .container * {
+.eventHandler .wrap_left .container * {
     display: inline-block;
 }
 
-#eventHandlerDialog .wrap_left .container select {
+.eventHandler .wrap_left .container select {
     position: absolute;
     top: 10px;
     left: 0px;
     width: 270px;
 }
 
-#eventHandlerDialog .wrap_left .container fieldset {
+.eventHandler .wrap_left .container fieldset {
     position: absolute;
     top: 40px;
     width: 244px;
@@ -1616,11 +1594,11 @@ input.screenCoordinate::-webkit-inner-spin-button {
     overflow: auto;
 }
 
-#eventHandlerDialog .wrap_left .container fieldset ul {
+.eventHandler .wrap_left .container fieldset ul {
     margin: 0px;
 }
 
-#eventHandlerDialog .wrap_left .container fieldset li {
+.eventHandler .wrap_left .container fieldset li {
     display: block;
     padding: 8px 8px 8px 8px;
     margin-left: -36px;
@@ -1630,36 +1608,40 @@ input.screenCoordinate::-webkit-inner-spin-button {
     border-bottom: 1px solid #CCC;
 }
 
-#eventHandlerDialog .wrap_left .container fieldset li.ui-selected {
+.eventHandler .wrap_left .container fieldset li.ui-selected {
     background-color: #4AE57B;
 }
 
-#eventHandlerDialog .wrap_left .container fieldset li > a.link {
+.eventHandler .wrap_left .container fieldset li > a.link {
     padding-top: 8px;
     width: 160px;
     height: 34px;
 }
 
-#eventHandlerDialog .wrap_left .container button.doneButton {
+.eventHandler .wrap_left .container fieldset a.ui-button  {
+    margin-top: 0px;
+    float: right;
+}
+
+.eventHandler .wrap_left .container button.doneButton {
     position: absolute;
     top: 440px;
     left: 46px;
     width: 180px;
 }
 
-#eventHandlerDialog .wrap_right {
+.eventHandler .wrap_right {
     width: 630px;
 }
 
-#eventHandlerDialog .wrap_right .container {
+.eventHandler .wrap_right .container {
     overflow: auto;
     resize:  none;
-    height: 600px;
     width: 98%;
     margin: 6px;
 }
 
-#eventHandlerDialog .wrap_right .container .CodeMirror {
+.eventHandler .wrap_right .container .CodeMirror {
     margin: 4px;
     -webkit-border-radius: 4px;
     -moz-border-radius: 4px;
@@ -1669,6 +1651,24 @@ input.screenCoordinate::-webkit-inner-spin-button {
     height: 470px;
 }
 
-#eventHandlerDialog .wrap_right .container .CodeMirror .CodeMirror-scroll {
+.eventHandler .wrap_right .container .CodeMirror .CodeMirror-scroll {
     height: 464px;
+}
+
+.eventHandlerIcon {
+    display: inline-block;
+    position: relative;
+    top: 4px;
+    left: 4px;
+    margin-right: 1px;
+    text-indent: -3000px;
+    height: 20px;
+    width: 20px;
+    background-repeat: no-repeat;
+    background-position: left top;
+    background-image: url('images/eventHandlerIcon.png');
+}
+
+.eventHandlerIcon:hover {
+    opacity: 0.8;
 }
