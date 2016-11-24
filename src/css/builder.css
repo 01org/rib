@@ -1672,3 +1672,21 @@ input.screenCoordinate::-webkit-inner-spin-button {
 #eventHandlerDialog .wrap_right .container .CodeMirror .CodeMirror-scroll {
     height: 464px;
 }
+
+.eventHandlerIcon {
+    display: inline-block;
+    position: relative;
+    top: 2px;
+    left: 4px;
+    margin-right: 4px;
+    text-indent: -3000px;
+    height: 20px;
+    width: 20px;
+    background-repeat: no-repeat;
+    background-position: left top;
+    background-image: url('images/eventHandlerIcon.png');
+}
+
+.eventHandlerIcon:hover {
+    opacity: 0.8;
+}
